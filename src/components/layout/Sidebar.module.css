@@ -1,0 +1,139 @@
+.sidebar {
+  width: 240px;
+  background: var(--navy-900);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 18px;
+  flex-shrink: 0;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.brandMark {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--teal-600);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.brandMark::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--teal-600);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .brandMark::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 1px solid var(--teal-600);
+    opacity: 0;
+    animation: ping 2.4s ease-out infinite;
+  }
+}
+
+@keyframes ping {
+  0% { transform: scale(0.6); opacity: 0.7; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+.brandText strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.brandText span {
+  display: block;
+  font-size: 11px;
+  color: #9AA6BD;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: auto;
+}
+
+.navBtn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  color: #C6CEDD;
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.15s ease;
+  z-index: 1;
+}
+
+.navBtn:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.navBtn.active {
+  color: #fff;
+  font-weight: 500;
+}
+
+.activeIndicator {
+  position: absolute;
+  inset: 0;
+  background: var(--navy-500);
+  border-radius: var(--radius-md);
+  z-index: -1;
+}
+
+.sidebarFoot {
+  font-size: 11px;
+  color: #6F7B92;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 18px;
+  line-height: 1.6;
+}
+
+@media (max-width: 860px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    padding: 14px 16px;
+    position: relative;
+  }
+  .brand {
+    margin-bottom: 0;
+  }
+  .nav {
+    flex-direction: row;
+    margin-bottom: 0;
+    margin-left: auto;
+  }
+  .sidebarFoot {
+    display: none;
+  }
+}

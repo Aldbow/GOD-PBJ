@@ -1,0 +1,71 @@
+.btn {
+  font-family: var(--font-inter);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--info-600);
+  outline-offset: 2px;
+}
+
+/* Sizes */
+.sm {
+  font-size: 11px;
+  padding: 5px 10px;
+}
+.md {
+  font-size: 12px;
+  padding: 7px 14px;
+}
+.lg {
+  font-size: 14px;
+  padding: 10px 18px;
+}
+
+/* Variants */
+.primary {
+  background: var(--info-600);
+  color: #ffffff;
+}
+.primary:hover {
+  background: var(--info-700); /* needs defined or fallback */
+  filter: brightness(0.9);
+}
+
+.secondary {
+  background: var(--surface);
+  border-color: var(--navy-500);
+  color: var(--text-primary);
+}
+.secondary:hover {
+  background: var(--navy-500);
+  color: #fff;
+}
+
+.outline {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+.outline:hover {
+  background: var(--info-100);
+  color: var(--info-600);
+  border-color: var(--info-600);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.ghost:hover {
+  background: rgba(255,255,255,0.07);
+  color: var(--text-primary);
+}
