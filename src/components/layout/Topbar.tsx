@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import styles from './Topbar.module.css';
-import { Select } from '@/components/ui/Select';
+
 import { ThemeToggle } from './ThemeToggle';
 import { usePathname } from 'next/navigation';
 
@@ -53,22 +53,6 @@ export function Topbar() {
           </span>
         </div>
 
-        <Select
-          options={[
-            { value: 'sekjen', label: 'Sekretaris Jenderal' },
-            { value: 'kabiro', label: 'Kepala Biro Umum / UKPBJ' },
-            { value: 'kasatker', label: 'Kepala Satuan Kerja' },
-            { value: 'ppk', label: 'PPK' }
-          ]}
-          onChange={(e) => {
-            // Usually this would set global state or change route
-            if(e.target.value === 'ppk') {
-              window.location.href = '/ppk';
-            } else {
-              window.location.href = '/';
-            }
-          }}
-        />
 
         <ThemeToggle />
       </div>
