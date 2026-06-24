@@ -1,0 +1,29 @@
+.badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  display: inline-block;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.tinggi {
+  background: var(--red-100);
+  color: var(--red-600);
+}
+
+.sedang {
+  background: var(--amber-100);
+  color: var(--amber-600);
+}
+
+.rendah {
+  background: var(--teal-100);
+  color: var(--teal-600);
+}
+
+.default {
+  background: var(--border);
+  color: var(--text-secondary);
+}
