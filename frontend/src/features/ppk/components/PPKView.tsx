@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
+import { PaketDetail } from '@/features/paket/components/PaketDetail';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PPK, Package } from '@/types';
 import Link from 'next/link';
@@ -14,6 +16,8 @@ export function PPKView() {
   const [selectedId, setSelectedId] = useState<string>('');
   const [ppkData, setPpkData] = useState<{ ppk: PPK, packages: Package[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedPkgId, setSelectedPkgId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch roster
   useEffect(() => {
@@ -105,7 +109,15 @@ export function PPKView() {
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 10px' }}>Paket di bawah tanggung jawab saya</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
               {pkgs.length > 0 ? pkgs.map((p, i) => (
-                <motion.div key={p.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <motion.div 
+                  key={p.id} 
+                  initial={{ opacity: 0, x: -10 }} 
+                  animate={{ opacity: 1, x: 0 }} 
+                  whileHover={{ x: 4, borderColor: 'var(--info-600)' }}
+                  transition={{ delay: i * 0.05 }} 
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', cursor: 'pointer' }}
+                  onClick={() => { setSelectedPkgId(p.id); setIsModalOpen(true); }}
+                >
                   <Badge variant={p.risiko}>Risiko {p.risiko}</Badge>
                   <div style={{ flex: 1, minWidth: 180 }}>
                     <p style={{ fontSize: 13, fontWeight: 500, margin: 0 }}>{p.nama}</p>
@@ -130,6 +142,10 @@ export function PPKView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Detail Paket">
+        {selectedPkgId && <PaketDetail id={selectedPkgId} />}
+      </Modal>
     </motion.div>
   );
 }

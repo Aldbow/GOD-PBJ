@@ -10,6 +10,10 @@ export interface Package {
   risiko: RiskLevel;
   pic: string;
   satkerId: string;
+  // Detail fields
+  deskripsi?: string;
+  timeline?: { date: string, event: string }[];
+  alasanRisiko?: string;
 }
 
 export interface Satker {

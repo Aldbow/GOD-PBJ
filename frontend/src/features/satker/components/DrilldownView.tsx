@@ -4,6 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
+import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
+import { PaketDetail } from '@/features/paket/components/PaketDetail';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Satker, Package, RiskLevel } from '@/types';
 
@@ -13,6 +16,8 @@ export function DrilldownView() {
   const [satkerData, setSatkerData] = useState<Satker | null>(null);
   const [loading, setLoading] = useState(true);
   const [riskFilter, setRiskFilter] = useState<'semua' | RiskLevel>('semua');
+  const [selectedPkgId, setSelectedPkgId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch all satker lists for dropdown
   useEffect(() => {
@@ -106,20 +111,22 @@ export function DrilldownView() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <AnimatePresence>
                 {filteredPkgs.length > 0 ? filteredPkgs.map((p, i) => (
-                  <motion.div
+                    <motion.div
                     key={p.id}
                     layout
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+                    whileHover={{ y: -2, borderColor: 'var(--info-600)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                     transition={{ duration: 0.2, delay: i * 0.03 }}
-                    style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', marginBottom: 8 }}
+                    style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', marginBottom: 8, cursor: 'pointer' }}
+                    onClick={() => { setSelectedPkgId(p.id); setIsModalOpen(true); }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
                       <p style={{ fontSize: 13, fontWeight: 500, margin: 0 }}>{p.nama}</p>
                       <Badge variant={p.risiko}>Risiko {p.risiko}</Badge>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, fontSize: 12 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, fontSize: 12, marginBottom: 14 }}>
                       <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Nilai pagu</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(p.nilai)}</span></div>
                       <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Status SPSE</span><span style={{ fontFamily: 'var(--font-mono)' }}>{p.spse}</span></div>
                       <div>
@@ -138,6 +145,10 @@ export function DrilldownView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Detail Paket">
+        {selectedPkgId && <PaketDetail id={selectedPkgId} />}
+      </Modal>
     </motion.div>
   );
 }
