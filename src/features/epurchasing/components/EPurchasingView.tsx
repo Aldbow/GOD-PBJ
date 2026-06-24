@@ -6,63 +6,103 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package } from '@/types'; // we can reuse Badge/styles
 
 export function EPurchasingView() {
-  const [data, setData] = useState<any[]>([]);
+  const [rawData, setRawData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Drill-down states
+  const [viewLevel, setViewLevel] = useState<'eselon' | 'satker' | 'paket'>('eselon');
+  const [selectedEselon, setSelectedEselon] = useState<string | null>(null);
+  const [selectedSatker, setSelectedSatker] = useState<string | null>(null);
 
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Pagination for paket level
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   useEffect(() => {
     async function fetchData() {
       try {
+        setLoading(true);
         // 1. Fetch realisasi
         const { data: realisasi, error: err1 } = await supabase.from('realisasi_inaproc').select('*').limit(1000);
         if (err1) throw err1;
-
         if (!realisasi || realisasi.length === 0) {
-          setData([]);
-          setLoading(false);
+          setRawData([]);
           return;
         }
 
-        // 2. Extract RUPs to join
+        // 2. Fetch paket
         const rups = realisasi.map(r => r['Kode RUP']).filter(Boolean);
-
-        // 3. Fetch matching paket_penyedia to get PAGU
         let paketMap: Record<string, any> = {};
+        let satkerStrs: string[] = [];
         if (rups.length > 0) {
-          // split into chunks if rups is too large, but 397 is fine for Supabase IN clause
           const { data: paket, error: err2 } = await supabase
             .from('api_paket_penyedia_terumumkan')
-            .select('kd_rup, pagu, tgl_pengumuman_paket, status_aktif_rup, nama_ppk')
+            .select('kd_rup, pagu, kd_satker_str, tgl_pengumuman_paket, status_aktif_rup, nama_ppk')
             .in('kd_rup', rups);
-            
           if (err2) throw err2;
-          
           if (paket) {
             paket.forEach(p => {
               paketMap[p.kd_rup] = p;
+              if (p.kd_satker_str) satkerStrs.push(p.kd_satker_str);
             });
           }
         }
 
-        // 4. Join them
+        // 3. Fetch kode_satker
+        let kodeSatkerMap: Record<string, string> = {};
+        if (satkerStrs.length > 0) {
+          const { data: kodeSatkers, error: err3 } = await supabase
+            .from('kode_satker')
+            .select('kd_satker_str, nama_satker')
+            .in('kd_satker_str', satkerStrs);
+          if (err3) throw err3;
+          if (kodeSatkers) {
+            kodeSatkers.forEach(k => {
+              kodeSatkerMap[k.kd_satker_str] = k.nama_satker;
+            });
+          }
+        }
+
+        // 4. Fetch nama_satker (Eselon mapping)
+        const { data: eselonData, error: err4 } = await supabase.from('nama_satker').select('*');
+        if (err4) throw err4;
+        
+        let eselonMap = new Map<string, string>();
+        if (eselonData) {
+          eselonData.forEach(e => {
+            if (e['SATUAN KERJA']) eselonMap.set(e['SATUAN KERJA'].toLowerCase().trim(), e['ESELON I']);
+            if (e['SATKER']) eselonMap.set(e['SATKER'].toLowerCase().trim(), e['ESELON I']);
+          });
+        }
+
+        // 5. Build flattened array
         const combined = realisasi.map(r => {
           const p = paketMap[r['Kode RUP']];
+          const kdSatkerStr = p?.kd_satker_str;
+          const namaSatker = kdSatkerStr ? (kodeSatkerMap[kdSatkerStr] || "Satker Tidak Diketahui") : "Satker Tidak Diketahui";
+          
+          const cleanSatker = namaSatker.toLowerCase().trim();
+          const eselon = eselonMap.get(cleanSatker) || "Lainnya / Belum Dipetakan";
+
           return {
             ...r,
             pagu: p?.pagu || 0,
             tgl_pengumuman_paket: p?.tgl_pengumuman_paket,
             status_aktif_rup: p?.status_aktif_rup,
             nama_ppk: p?.nama_ppk,
+            kd_satker_str: kdSatkerStr,
+            nama_satker: namaSatker,
+            eselon_i: eselon
           };
         });
 
-        setData(combined);
+        setRawData(combined);
       } catch (e: any) {
         console.error(e);
         setError(e.message || 'Gagal memuat data dari Supabase.');
@@ -81,36 +121,63 @@ export function EPurchasingView() {
     return 'Rp ' + m.toLocaleString('id-ID');
   };
 
-  const totalPaket = data.length;
-  const totalPagu = data.reduce((s, d) => s + (d.pagu || 0), 0);
-  const totalRealisasi = data.reduce((s, d) => s + (d['Total Nilai (Rp)'] || 0), 0);
-  const persentase = totalPagu > 0 ? ((totalRealisasi / totalPagu) * 100).toFixed(1) : 0;
+  // Filter Data based on Level
+  let currentData = rawData;
+  if (viewLevel === 'satker' || viewLevel === 'paket') {
+    currentData = currentData.filter(d => d.eselon_i === selectedEselon);
+  }
+  if (viewLevel === 'paket') {
+    currentData = currentData.filter(d => d.nama_satker === selectedSatker);
+  }
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(data.length / itemsPerPage);
-  
+  // Dynamic Metrics
+  const totalPaket = currentData.length;
+  const totalPagu = currentData.reduce((s, d) => s + (d.pagu || 0), 0);
+  const totalRealisasi = currentData.reduce((s, d) => s + (d['Total Nilai (Rp)'] || 0), 0);
+  const persentase = totalPagu > 0 ? ((totalRealisasi / totalPagu) * 100).toFixed(1) : '0.0';
+
+  // Grouping for Eselon Level
+  const eselonGroups = Array.from(new Set(rawData.map(d => d.eselon_i))).map(eselonName => {
+    const items = rawData.filter(d => d.eselon_i === eselonName);
+    const pagu = items.reduce((s, d) => s + (d.pagu || 0), 0);
+    const realisasi = items.reduce((s, d) => s + (d['Total Nilai (Rp)'] || 0), 0);
+    return { name: eselonName, count: items.length, pagu, realisasi };
+  }).sort((a, b) => b.realisasi - a.realisasi);
+
+  // Grouping for Satker Level
+  const satkerGroups = Array.from(new Set(rawData.filter(d => d.eselon_i === selectedEselon).map(d => d.nama_satker))).map(satkerName => {
+    const items = rawData.filter(d => d.eselon_i === selectedEselon && d.nama_satker === satkerName);
+    const pagu = items.reduce((s, d) => s + (d.pagu || 0), 0);
+    const realisasi = items.reduce((s, d) => s + (d['Total Nilai (Rp)'] || 0), 0);
+    return { name: satkerName, count: items.length, pagu, realisasi };
+  }).sort((a, b) => b.realisasi - a.realisasi);
+
+  // Paket Pagination
+  const totalPages = Math.ceil(currentData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentData = data.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedPaket = viewLevel === 'paket' ? currentData.slice(startIndex, startIndex + itemsPerPage) : [];
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(p => p + 1);
-  };
-  
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage(p => p - 1);
+  const handleBreadcrumbClick = (level: 'eselon' | 'satker') => {
+    setViewLevel(level);
+    setCurrentPage(1);
+    if (level === 'eselon') {
+      setSelectedEselon(null);
+      setSelectedSatker(null);
+    } else if (level === 'satker') {
+      setSelectedSatker(null);
+    }
   };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 24, fontWeight: 600, margin: '0 0 4px', color: 'var(--text-primary)' }}>Realisasi E-Purchasing V6</h1>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>Data langsung dari Supabase Database (Gabungan INAPROC & SIRUP)</p>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>Drill-down: Eselon I → Satuan Kerja → Daftar Paket</p>
       </div>
 
       {error && (
         <div style={{ background: 'var(--red-100)', color: 'var(--red-600)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
-          {error}. Pastikan URL dan KEY Supabase di .env.local valid.
+          {error}. Pastikan tabel Anda sudah diimport dan RLS dimatikan.
         </div>
       )}
 
@@ -118,6 +185,36 @@ export function EPurchasingView() {
         <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat data dari Supabase...</p>
       ) : (
         <>
+          {/* BREADCRUMB */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 20, fontSize: 14 }}>
+            <span 
+              onClick={() => handleBreadcrumbClick('eselon')}
+              style={{ cursor: 'pointer', fontWeight: viewLevel === 'eselon' ? 600 : 400, color: viewLevel === 'eselon' ? 'var(--text-primary)' : 'var(--info-600)' }}
+            >
+              Semua Eselon I
+            </span>
+            {selectedEselon && (
+              <>
+                <span style={{ color: 'var(--text-tertiary)' }}>/</span>
+                <span 
+                  onClick={() => handleBreadcrumbClick('satker')}
+                  style={{ cursor: 'pointer', fontWeight: viewLevel === 'satker' ? 600 : 400, color: viewLevel === 'satker' ? 'var(--text-primary)' : 'var(--info-600)' }}
+                >
+                  {selectedEselon}
+                </span>
+              </>
+            )}
+            {selectedSatker && (
+              <>
+                <span style={{ color: 'var(--text-tertiary)' }}>/</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {selectedSatker}
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* DYNAMIC METRICS */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 22 }}>
             <Card>
               <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 8px' }}>Jumlah Paket</p>
@@ -137,56 +234,116 @@ export function EPurchasingView() {
             </Card>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {currentData.map((p, i) => (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.01, borderColor: 'var(--info-600)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-                transition={{ duration: 0.15 }}
-                style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', cursor: 'pointer', willChange: 'transform' }}
-                onClick={() => { setSelectedItem(p); setIsModalOpen(true); }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
-                  <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.4 }}>{p['Nama Paket']}</p>
-                  <Badge variant={p['Status Paket'] === 'COMPLETED' ? 'rendah' : 'sedang'}>{p['Status Paket']}</Badge>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, fontSize: 12 }}>
-                  <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Penyedia</span><span style={{ fontFamily: 'var(--font-mono)' }}>{p['Nama Penyedia']}</span></div>
-                  <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Nilai Pagu</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(p.pagu)}</span></div>
-                  <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Realisasi</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(p['Total Nilai (Rp)'])}</span></div>
-                  <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Persentase</span><span style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-600)' }}>{p.pagu > 0 ? ((p['Total Nilai (Rp)'] / p.pagu) * 100).toFixed(1) : 0}%</span></div>
-                </div>
+          <AnimatePresence mode="wait">
+            {/* LEVEL 1: ESELON I */}
+            {viewLevel === 'eselon' && (
+              <motion.div key="eselon" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+                {eselonGroups.map(e => (
+                  <motion.div
+                    key={e.name}
+                    whileHover={{ scale: 1.02, borderColor: 'var(--info-600)' }}
+                    onClick={() => { setSelectedEselon(e.name); setViewLevel('satker'); }}
+                    style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
+                  >
+                    <h3 style={{ margin: '0 0 12px', fontSize: 16, color: 'var(--text-primary)' }}>{e.name}</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Jumlah Paket</span>
+                      <strong style={{ fontFamily: 'var(--font-mono)' }}>{e.count}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Total Pagu</span>
+                      <strong style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(e.pagu)}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Realisasi</span>
+                      <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-600)' }}>{fmtRupiah(e.realisasi)}</strong>
+                    </div>
+                  </motion.div>
+                ))}
               </motion.div>
-            ))}
-            
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
-                <button 
-                  onClick={handlePrevPage} 
-                  disabled={currentPage === 1}
-                  style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === 1 ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
-                >
-                  Sebelumnya
-                </button>
-                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  Halaman <strong style={{ color: 'var(--text-primary)' }}>{currentPage}</strong> dari {totalPages}
-                </span>
-                <button 
-                  onClick={handleNextPage} 
-                  disabled={currentPage === totalPages}
-                  style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === totalPages ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
-                >
-                  Selanjutnya
-                </button>
-              </div>
             )}
-          </div>
+
+            {/* LEVEL 2: SATKER */}
+            {viewLevel === 'satker' && (
+              <motion.div key="satker" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+                {satkerGroups.map(s => (
+                  <motion.div
+                    key={s.name}
+                    whileHover={{ scale: 1.02, borderColor: 'var(--amber-600)' }}
+                    onClick={() => { setSelectedSatker(s.name); setViewLevel('paket'); setCurrentPage(1); }}
+                    style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
+                  >
+                    <h3 style={{ margin: '0 0 12px', fontSize: 15, color: 'var(--text-primary)' }}>{s.name}</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Jumlah Paket</span>
+                      <strong style={{ fontFamily: 'var(--font-mono)' }}>{s.count}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Total Pagu</span>
+                      <strong style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(s.pagu)}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Realisasi</span>
+                      <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-600)' }}>{fmtRupiah(s.realisasi)}</strong>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+
+            {/* LEVEL 3: PAKET ROWS */}
+            {viewLevel === 'paket' && (
+              <motion.div key="paket" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {paginatedPaket.map((p, i) => (
+                  <div
+                    key={p.id}
+                    style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', cursor: 'pointer', transition: 'all 0.15s' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--info-600)'; e.currentTarget.style.transform = 'scale(1.01)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                    onClick={() => { setSelectedItem(p); setIsModalOpen(true); }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+                      <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.4 }}>{p['Nama Paket']}</p>
+                      <Badge variant={p['Status Paket'] === 'COMPLETED' ? 'rendah' : 'sedang'}>{p['Status Paket']}</Badge>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, fontSize: 12 }}>
+                      <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Penyedia</span><span style={{ fontFamily: 'var(--font-mono)' }}>{p['Nama Penyedia']}</span></div>
+                      <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Nilai Pagu</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(p.pagu)}</span></div>
+                      <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Realisasi</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(p['Total Nilai (Rp)'])}</span></div>
+                      <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Persentase</span><span style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-600)' }}>{p.pagu > 0 ? ((p['Total Nilai (Rp)'] / p.pagu) * 100).toFixed(1) : 0}%</span></div>
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
+                    <button 
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                      disabled={currentPage === 1}
+                      style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === 1 ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
+                    >
+                      Sebelumnya
+                    </button>
+                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                      Halaman <strong style={{ color: 'var(--text-primary)' }}>{currentPage}</strong> dari {totalPages}
+                    </span>
+                    <button 
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                      disabled={currentPage === totalPages}
+                      style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === totalPages ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
+                    >
+                      Selanjutnya
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </>
       )}
 
+      {/* MODAL DETAIL */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Detail E-Purchasing">
         {selectedItem && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -205,10 +362,10 @@ export function EPurchasingView() {
             </div>
 
             <div>
-              <h4 style={{ fontSize: 14, margin: '0 0 8px', color: 'var(--text-primary)' }}>Informasi Instansi & Satker</h4>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Instansi: {selectedItem['Nama Instansi']}</p>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Satuan Kerja: {selectedItem['Nama Satuan Kerja']}</p>
-              {selectedItem.nama_ppk && <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>PPK: {selectedItem.nama_ppk}</p>}
+              <h4 style={{ fontSize: 14, margin: '0 0 8px', color: 'var(--text-primary)' }}>Hierarki Instansi</h4>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Eselon I: <strong>{selectedItem.eselon_i}</strong></p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Satker Terpetakan: <strong>{selectedItem.nama_satker}</strong></p>
+              <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '4px 0 0', fontStyle: 'italic' }}>*Satker Original Inaproc: {selectedItem['Nama Satuan Kerja']}</p>
             </div>
 
             <div>

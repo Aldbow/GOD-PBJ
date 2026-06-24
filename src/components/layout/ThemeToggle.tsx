@@ -6,7 +6,7 @@ import { Sun, Moon } from 'lucide-react';
 import styles from './ThemeToggle.module.css';
 
 export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     // Check initial HTML attribute
