@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function EPurchasingView() {
-  const [rawData, setRawData] = useState<any[]>([]);
+  const [rawData, setRawData] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,26 +69,42 @@ export function EPurchasingView() {
           }
         }
 
-        // 4. Fetch nama_satker (Eselon mapping)
+        // 4. Fetch nama_satker (Eselon mapping & Master Hierarchy)
         const { data: eselonData, error: err4 } = await supabase.from('nama_satker').select('*');
         if (err4) throw err4;
         
         let eselonMap = new Map<string, string>();
+        let masterHierarchy: Record<string, string[]> = {};
+        
         if (eselonData) {
           eselonData.forEach(e => {
-            if (e['SATUAN KERJA']) eselonMap.set(e['SATUAN KERJA'].toLowerCase().trim(), e['ESELON I']);
-            if (e['SATKER']) eselonMap.set(e['SATKER'].toLowerCase().trim(), e['ESELON I']);
+            const eselon = e['ESELON I'];
+            const satuanKerja = e['SATUAN KERJA'];
+            if (!eselon || !satuanKerja) return;
+
+            // Map strict SATUAN KERJA to Eselon I
+            eselonMap.set(satuanKerja.toLowerCase().trim(), eselon);
+
+            // Build Master Hierarchy
+            if (!masterHierarchy[eselon]) masterHierarchy[eselon] = [];
+            if (!masterHierarchy[eselon].includes(satuanKerja)) {
+              masterHierarchy[eselon].push(satuanKerja);
+            }
           });
         }
 
-        // 5. Build flattened array
+        // 5. Build flattened array of active packages
         const combined = realisasi.map(r => {
           const p = paketMap[r['Kode RUP']];
           const kdSatkerStr = p?.kd_satker_str;
-          const namaSatker = kdSatkerStr ? (kodeSatkerMap[kdSatkerStr] || "Satker Tidak Diketahui") : "Satker Tidak Diketahui";
+          const namaSatkerFromKode = kdSatkerStr ? (kodeSatkerMap[kdSatkerStr] || "") : "";
           
-          const cleanSatker = namaSatker.toLowerCase().trim();
+          const cleanSatker = namaSatkerFromKode.toLowerCase().trim();
+          
+          // STRICT MAPPING to SATUAN KERJA
           const eselon = eselonMap.get(cleanSatker) || "Lainnya / Belum Dipetakan";
+          // We must find the EXACT casing for the SATUAN KERJA from our master list so grouping works perfectly
+          const masterSatuanKerja = eselonData?.find(e => e['SATUAN KERJA']?.toLowerCase().trim() === cleanSatker)?.['SATUAN KERJA'] || namaSatkerFromKode;
 
           return {
             ...r,
@@ -97,12 +113,13 @@ export function EPurchasingView() {
             status_aktif_rup: p?.status_aktif_rup,
             nama_ppk: p?.nama_ppk,
             kd_satker_str: kdSatkerStr,
-            nama_satker: namaSatker,
+            nama_satker_original: namaSatkerFromKode,
+            satuan_kerja_master: masterSatuanKerja,
             eselon_i: eselon
           };
         });
 
-        setRawData(combined);
+        setRawData({ packages: combined, hierarchy: masterHierarchy });
       } catch (e: any) {
         console.error(e);
         setError(e.message || 'Gagal memuat data dari Supabase.');
@@ -121,41 +138,52 @@ export function EPurchasingView() {
     return 'Rp ' + m.toLocaleString('id-ID');
   };
 
-  // Filter Data based on Level
-  let currentData = rawData;
+  const { packages = [], hierarchy = {} } = rawData as any;
+
+  // Filter Packages based on Level
+  let currentPackages = packages;
   if (viewLevel === 'satker' || viewLevel === 'paket') {
-    currentData = currentData.filter(d => d.eselon_i === selectedEselon);
+    currentPackages = currentPackages.filter((d: any) => d.eselon_i === selectedEselon);
   }
   if (viewLevel === 'paket') {
-    currentData = currentData.filter(d => d.nama_satker === selectedSatker);
+    currentPackages = currentPackages.filter((d: any) => d.satuan_kerja_master === selectedSatker);
   }
 
   // Dynamic Metrics
-  const totalPaket = currentData.length;
-  const totalPagu = currentData.reduce((s, d) => s + (d.pagu || 0), 0);
-  const totalRealisasi = currentData.reduce((s, d) => s + (d['Total Nilai (Rp)'] || 0), 0);
+  const totalPaket = currentPackages.length;
+  const totalPagu = currentPackages.reduce((s: number, d: any) => s + (d.pagu || 0), 0);
+  const totalRealisasi = currentPackages.reduce((s: number, d: any) => s + (d['Total Nilai (Rp)'] || 0), 0);
   const persentase = totalPagu > 0 ? ((totalRealisasi / totalPagu) * 100).toFixed(1) : '0.0';
 
-  // Grouping for Eselon Level
-  const eselonGroups = Array.from(new Set(rawData.map(d => d.eselon_i))).map(eselonName => {
-    const items = rawData.filter(d => d.eselon_i === eselonName);
-    const pagu = items.reduce((s, d) => s + (d.pagu || 0), 0);
-    const realisasi = items.reduce((s, d) => s + (d['Total Nilai (Rp)'] || 0), 0);
-    return { name: eselonName, count: items.length, pagu, realisasi };
-  }).sort((a, b) => b.realisasi - a.realisasi);
+  // Grouping for Eselon Level (FORCING MASTER LIST)
+  const masterEselons = Object.keys(hierarchy).sort();
+  // Include "Lainnya / Belum Dipetakan" if there are unmapped packages
+  const unmappedEselon = packages.filter((p: any) => p.eselon_i === "Lainnya / Belum Dipetakan");
+  if (unmappedEselon.length > 0 && !masterEselons.includes("Lainnya / Belum Dipetakan")) {
+    masterEselons.push("Lainnya / Belum Dipetakan");
+    hierarchy["Lainnya / Belum Dipetakan"] = Array.from(new Set(unmappedEselon.map((p: any) => p.satuan_kerja_master)));
+  }
 
-  // Grouping for Satker Level
-  const satkerGroups = Array.from(new Set(rawData.filter(d => d.eselon_i === selectedEselon).map(d => d.nama_satker))).map(satkerName => {
-    const items = rawData.filter(d => d.eselon_i === selectedEselon && d.nama_satker === satkerName);
-    const pagu = items.reduce((s, d) => s + (d.pagu || 0), 0);
-    const realisasi = items.reduce((s, d) => s + (d['Total Nilai (Rp)'] || 0), 0);
+  const eselonGroups = masterEselons.map(eselonName => {
+    const items = packages.filter((d: any) => d.eselon_i === eselonName);
+    const pagu = items.reduce((s: number, d: any) => s + (d.pagu || 0), 0);
+    const realisasi = items.reduce((s: number, d: any) => s + (d['Total Nilai (Rp)'] || 0), 0);
+    return { name: eselonName, count: items.length, pagu, realisasi };
+  });
+
+  // Grouping for Satker Level (FORCING MASTER LIST)
+  const masterSatkers = selectedEselon && hierarchy[selectedEselon] ? hierarchy[selectedEselon] : [];
+  const satkerGroups = masterSatkers.map((satkerName: string) => {
+    const items = packages.filter((d: any) => d.eselon_i === selectedEselon && d.satuan_kerja_master === satkerName);
+    const pagu = items.reduce((s: number, d: any) => s + (d.pagu || 0), 0);
+    const realisasi = items.reduce((s: number, d: any) => s + (d['Total Nilai (Rp)'] || 0), 0);
     return { name: satkerName, count: items.length, pagu, realisasi };
-  }).sort((a, b) => b.realisasi - a.realisasi);
+  });
 
   // Paket Pagination
-  const totalPages = Math.ceil(currentData.length / itemsPerPage);
+  const totalPages = Math.ceil(currentPackages.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedPaket = viewLevel === 'paket' ? currentData.slice(startIndex, startIndex + itemsPerPage) : [];
+  const paginatedPaket = viewLevel === 'paket' ? currentPackages.slice(startIndex, startIndex + itemsPerPage) : [];
 
   const handleBreadcrumbClick = (level: 'eselon' | 'satker') => {
     setViewLevel(level);
@@ -238,7 +266,7 @@ export function EPurchasingView() {
             {/* LEVEL 1: ESELON I */}
             {viewLevel === 'eselon' && (
               <motion.div key="eselon" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-                {eselonGroups.map(e => (
+                {eselonGroups.map((e: any) => (
                   <motion.div
                     key={e.name}
                     whileHover={{ scale: 1.02, borderColor: 'var(--info-600)' }}
@@ -266,7 +294,7 @@ export function EPurchasingView() {
             {/* LEVEL 2: SATKER */}
             {viewLevel === 'satker' && (
               <motion.div key="satker" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-                {satkerGroups.map(s => (
+                {satkerGroups.map((s: any) => (
                   <motion.div
                     key={s.name}
                     whileHover={{ scale: 1.02, borderColor: 'var(--amber-600)' }}
@@ -294,7 +322,7 @@ export function EPurchasingView() {
             {/* LEVEL 3: PAKET ROWS */}
             {viewLevel === 'paket' && (
               <motion.div key="paket" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {paginatedPaket.map((p, i) => (
+                {paginatedPaket.map((p: any, i: number) => (
                   <div
                     key={p.id}
                     style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', cursor: 'pointer', transition: 'all 0.15s' }}
@@ -364,7 +392,7 @@ export function EPurchasingView() {
             <div>
               <h4 style={{ fontSize: 14, margin: '0 0 8px', color: 'var(--text-primary)' }}>Hierarki Instansi</h4>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Eselon I: <strong>{selectedItem.eselon_i}</strong></p>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Satker Terpetakan: <strong>{selectedItem.nama_satker}</strong></p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Satker Terpetakan: <strong>{selectedItem.satuan_kerja_master}</strong></p>
               <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '4px 0 0', fontStyle: 'italic' }}>*Satker Original Inaproc: {selectedItem['Nama Satuan Kerja']}</p>
             </div>
 
