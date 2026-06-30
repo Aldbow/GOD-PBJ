@@ -6,7 +6,6 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package } from '@/types'; // we can reuse Badge/styles
 
 export function EPurchasingView() {
   const [data, setData] = useState<any[]>([]);
@@ -19,6 +18,11 @@ export function EPurchasingView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
+  // Drill-down states
+  const [selectedEselon1, setSelectedEselon1] = useState<string | null>(null);
+  const [selectedSatker, setSelectedSatker] = useState<string | null>(null);
+  const [selectedPPK, setSelectedPPK] = useState<string | null>(null);
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -27,7 +31,7 @@ export function EPurchasingView() {
           .from('paket_e_purchasing')
           .select('*')
           .not('status', 'ilike', '%cancel%')
-          .limit(1000);
+          .limit(2000);
         if (err1) throw err1;
 
         if (!realisasi || realisasi.length === 0) {
@@ -39,13 +43,12 @@ export function EPurchasingView() {
         // 2. Extract RUPs to join
         const rups = realisasi.map(r => r.rup_code).filter(Boolean);
 
-        // 3. Fetch matching paket_penyedia to get PAGU
+        // 3. Fetch matching master data to get PAGU, Eselon 1, Satker, PPK
         let paketMap: Record<string, any> = {};
         if (rups.length > 0) {
-          // split into chunks if rups is too large, but 397 is fine for Supabase IN clause
           const { data: paket, error: err2 } = await supabase
-            .from('api_paket_penyedia_terumumkan')
-            .select('kd_rup, pagu, tgl_pengumuman_paket, status_aktif_rup, nama_ppk')
+            .from('view_paket_penyedia_master_data')
+            .select('kd_rup, pagu, tgl_pengumuman_paket, status_aktif_rup, MASTER_NAMA_PPK, "UNIT KERJA", "SATUAN KERJA"')
             .in('kd_rup', rups);
             
           if (err2) throw err2;
@@ -65,7 +68,9 @@ export function EPurchasingView() {
             pagu: p?.pagu || 0,
             tgl_pengumuman_paket: p?.tgl_pengumuman_paket,
             status_aktif_rup: p?.status_aktif_rup,
-            nama_ppk: p?.nama_ppk,
+            nama_ppk: p?.MASTER_NAMA_PPK || 'Tidak Diketahui',
+            eselon1: p?.['UNIT KERJA'] || 'Tidak Diketahui',
+            satker: p?.['SATUAN KERJA'] || r.nama_satker || 'Tidak Diketahui',
           };
         });
 
@@ -99,32 +104,132 @@ export function EPurchasingView() {
 
     const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    // Apply drill-down filters
+    const matchesEselon1 = !selectedEselon1 || p.eselon1 === selectedEselon1;
+    const matchesSatker = !selectedSatker || p.satker === selectedSatker;
+    const matchesPPK = !selectedPPK || p.nama_ppk === selectedPPK;
+
+    return matchesSearch && matchesStatus && matchesEselon1 && matchesSatker && matchesPPK;
   });
 
+  // Calculate stats based on current view
   const totalPaket = filteredData.length;
   const totalPagu = filteredData.reduce((s, d) => s + (d.pagu || 0), 0);
   const totalRealisasi = filteredData.reduce((s, d) => s + (d.total || 0), 0);
   const persentase = totalPagu > 0 ? ((totalRealisasi / totalPagu) * 100).toFixed(1) : 0;
 
+  // Hierarchical Data Grouping (only relevant when we are not viewing the deepest level)
+  let groupedData: { name: string; totalPagu: number; totalRealisasi: number; count: number }[] = [];
+  let viewMode = 'ESELON1'; // ESELON1, SATKER, PPK, PAKET
+
+  if (!selectedEselon1) {
+    viewMode = 'ESELON1';
+    const groups: Record<string, any> = {};
+    filteredData.forEach(p => {
+      const key = p.eselon1;
+      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
+      groups[key].totalPagu += (p.pagu || 0);
+      groups[key].totalRealisasi += (p.total || 0);
+      groups[key].count += 1;
+    });
+    groupedData = Object.values(groups).sort((a, b) => b.totalPagu - a.totalPagu);
+  } else if (!selectedSatker) {
+    viewMode = 'SATKER';
+    const groups: Record<string, any> = {};
+    filteredData.forEach(p => {
+      const key = p.satker;
+      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
+      groups[key].totalPagu += (p.pagu || 0);
+      groups[key].totalRealisasi += (p.total || 0);
+      groups[key].count += 1;
+    });
+    groupedData = Object.values(groups).sort((a, b) => b.totalPagu - a.totalPagu);
+  } else if (!selectedPPK) {
+    viewMode = 'PPK';
+    const groups: Record<string, any> = {};
+    filteredData.forEach(p => {
+      const key = p.nama_ppk;
+      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
+      groups[key].totalPagu += (p.pagu || 0);
+      groups[key].totalRealisasi += (p.total || 0);
+      groups[key].count += 1;
+    });
+    groupedData = Object.values(groups).sort((a, b) => b.totalPagu - a.totalPagu);
+  } else {
+    viewMode = 'PAKET';
+  }
+
+  const handleGroupClick = (name: string) => {
+    if (viewMode === 'ESELON1') setSelectedEselon1(name);
+    else if (viewMode === 'SATKER') setSelectedSatker(name);
+    else if (viewMode === 'PPK') setSelectedPPK(name);
+  };
+
+  const handleBreadcrumbClick = (level: string) => {
+    if (level === 'ALL') {
+      setSelectedEselon1(null);
+      setSelectedSatker(null);
+      setSelectedPPK(null);
+    } else if (level === 'ESELON1') {
+      setSelectedSatker(null);
+      setSelectedPPK(null);
+    } else if (level === 'SATKER') {
+      setSelectedPPK(null);
+    }
+  };
+
+  // Pagination for Paket view
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   
-  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, selectedEselon1, selectedSatker, selectedPPK]);
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentData = filteredData.slice(startIndex, startIndex + itemsPerPage);
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(p => p + 1);
-  };
-  
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage(p => p - 1);
+  const renderHierarchyCard = (item: { name: string; totalPagu: number; totalRealisasi: number; count: number }) => {
+    const pct = item.totalPagu > 0 ? (item.totalRealisasi / item.totalPagu) * 100 : 0;
+    const clampedPct = Math.min(Math.max(pct, 0), 100);
+
+    return (
+      <motion.div
+        key={item.name}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ scale: 1.01, borderColor: 'var(--info-600)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+        transition={{ duration: 0.15 }}
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '24px', cursor: 'pointer', willChange: 'transform', display: 'flex', flexDirection: 'column', gap: 16 }}
+        onClick={() => handleGroupClick(item.name)}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h3 style={{ fontSize: 17, fontWeight: 600, margin: '0 0 6px', color: 'var(--text-primary)' }}>{item.name}</h3>
+            <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{item.count} Paket</span>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: 24, fontWeight: 600, color: 'var(--text-primary)' }}>{pct.toFixed(1)}%</span>
+          </div>
+        </div>
+
+        <div style={{ width: '100%', height: 10, background: 'var(--gray-200)', borderRadius: 5, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${clampedPct}%`, background: 'var(--teal-500)', transition: 'width 0.5s ease-in-out' }} />
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+          <div>
+            <span style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Total Pagu</span>
+            <strong style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(item.totalPagu)}</strong>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Total Realisasi</span>
+            <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-600)' }}>{fmtRupiah(item.totalRealisasi)}</strong>
+          </div>
+        </div>
+      </motion.div>
+    );
   };
 
   return (
@@ -144,19 +249,44 @@ export function EPurchasingView() {
         <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat data dari Supabase...</p>
       ) : (
         <>
-          {/* Filters & Search */}
+          {/* Breadcrumbs Navigation - Only shown when inside a level */}
+          {selectedEselon1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 13, color: 'var(--text-secondary)' }}>
+              <button onClick={() => handleBreadcrumbClick('ALL')} style={{ background: 'none', border: 'none', color: 'var(--info-600)', cursor: 'pointer', padding: 0, fontWeight: 500 }}>Semua Eselon 1</button>
+              <span>/</span>
+              {selectedSatker ? (
+                <>
+                  <button onClick={() => handleBreadcrumbClick('ESELON1')} style={{ background: 'none', border: 'none', color: 'var(--info-600)', cursor: 'pointer', padding: 0, fontWeight: 500 }}>{selectedEselon1}</button>
+                  <span>/</span>
+                  {selectedPPK ? (
+                    <>
+                      <button onClick={() => handleBreadcrumbClick('SATKER')} style={{ background: 'none', border: 'none', color: 'var(--info-600)', cursor: 'pointer', padding: 0, fontWeight: 500 }}>{selectedSatker}</button>
+                      <span>/</span>
+                      <span style={{ color: 'var(--text-primary)' }}>{selectedPPK}</span>
+                    </>
+                  ) : (
+                    <span style={{ color: 'var(--text-primary)' }}>{selectedSatker}</span>
+                  )}
+                </>
+              ) : (
+                <span style={{ color: 'var(--text-primary)' }}>{selectedEselon1}</span>
+              )}
+            </div>
+          )}
+
+          {/* Filters & Search - Shared across all views */}
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
             <input
               type="text"
               placeholder="Cari nama paket, kode RUP, penyedia..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ flex: '1 1 300px', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
+              style={{ flex: '1 1 300px', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
             />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ flex: '0 0 auto', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', cursor: 'pointer' }}
+              style={{ flex: '0 0 auto', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', cursor: 'pointer' }}
             >
               <option value="ALL">Semua Status</option>
               {uniqueStatuses.map((status: any) => (
@@ -165,6 +295,7 @@ export function EPurchasingView() {
             </select>
           </div>
 
+          {/* Summary Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 22 }}>
             <Card>
               <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 8px' }}>Jumlah Paket</p>
@@ -184,53 +315,60 @@ export function EPurchasingView() {
             </Card>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {currentData.map((p, i) => (
-              <motion.div
-                key={p.order_id || i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.01, borderColor: 'var(--info-600)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-                transition={{ duration: 0.15 }}
-                style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', cursor: 'pointer', willChange: 'transform' }}
-                onClick={() => { setSelectedItem(p); setIsModalOpen(true); }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
-                  <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.4 }}>{p.rup_name}</p>
-                  <Badge variant={p.status === 'COMPLETED' ? 'rendah' : 'sedang'}>{p.status}</Badge>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, fontSize: 12 }}>
-                  <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Penyedia</span><span style={{ fontFamily: 'var(--font-mono)' }}>{p.kode_penyedia || '-'}</span></div>
-                  <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Nilai Pagu</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(p.pagu)}</span></div>
-                  <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Realisasi</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(p.total)}</span></div>
-                  <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Persentase</span><span style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-600)' }}>{p.pagu > 0 ? ((p.total / p.pagu) * 100).toFixed(1) : 0}%</span></div>
-                </div>
-              </motion.div>
-            ))}
-            
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
-                <button 
-                  onClick={handlePrevPage} 
-                  disabled={currentPage === 1}
-                  style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === 1 ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
+          {/* Dynamic Render based on ViewMode */}
+          {viewMode === 'PAKET' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {currentData.map((p, i) => (
+                <motion.div
+                  key={p.order_id || i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ scale: 1.01, borderColor: 'var(--info-600)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                  transition={{ duration: 0.15 }}
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', cursor: 'pointer', willChange: 'transform' }}
+                  onClick={() => { setSelectedItem(p); setIsModalOpen(true); }}
                 >
-                  Sebelumnya
-                </button>
-                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  Halaman <strong style={{ color: 'var(--text-primary)' }}>{currentPage}</strong> dari {totalPages}
-                </span>
-                <button 
-                  onClick={handleNextPage} 
-                  disabled={currentPage === totalPages}
-                  style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === totalPages ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
-                >
-                  Selanjutnya
-                </button>
-              </div>
-            )}
-          </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+                    <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.4 }}>{p.rup_name}</p>
+                    <Badge variant={p.status === 'COMPLETED' ? 'rendah' : 'sedang'}>{p.status}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, fontSize: 12 }}>
+                    <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Penyedia</span><span style={{ fontFamily: 'var(--font-mono)' }}>{p.kode_penyedia || '-'}</span></div>
+                    <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Nilai Pagu</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(p.pagu)}</span></div>
+                    <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Realisasi</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(p.total)}</span></div>
+                    <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Persentase</span><span style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-600)' }}>{p.pagu > 0 ? ((p.total / p.pagu) * 100).toFixed(1) : 0}%</span></div>
+                  </div>
+                </motion.div>
+              ))}
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
+                  <button 
+                    onClick={handlePrevPage} 
+                    disabled={currentPage === 1}
+                    style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === 1 ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
+                  >
+                    Sebelumnya
+                  </button>
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                    Halaman <strong style={{ color: 'var(--text-primary)' }}>{currentPage}</strong> dari {totalPages}
+                  </span>
+                  <button 
+                    onClick={handleNextPage} 
+                    disabled={currentPage === totalPages}
+                    style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === totalPages ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
+                  >
+                    Selanjutnya
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {groupedData.map(renderHierarchyCard)}
+            </div>
+          )}
         </>
       )}
 
@@ -254,8 +392,8 @@ export function EPurchasingView() {
             <div>
               <h4 style={{ fontSize: 14, margin: '0 0 8px', color: 'var(--text-primary)' }}>Informasi Instansi & Satker</h4>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Instansi: {selectedItem.kode_klpd || '-'}</p>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Satuan Kerja: {selectedItem.nama_satker}</p>
-              {selectedItem.nama_ppk && <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>PPK: {selectedItem.nama_ppk}</p>}
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Satuan Kerja: {selectedItem.satker}</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>PPK: {selectedItem.nama_ppk}</p>
             </div>
 
             <div>
