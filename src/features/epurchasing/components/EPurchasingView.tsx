@@ -16,7 +16,9 @@ export function EPurchasingView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [sortBy, setSortBy] = useState('PCT_DESC');
 
   // Drill-down states
   const [selectedEselon1, setSelectedEselon1] = useState<string | null>(null);
@@ -102,7 +104,7 @@ export function EPurchasingView() {
       (p.rup_code && String(p.rup_code).toLowerCase().includes(query)) ||
       (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(query));
 
-    const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
+    const matchesStatus = statusFilter.length === 0 || statusFilter.includes(p.status);
 
     // Apply drill-down filters
     const matchesEselon1 = !selectedEselon1 || p.eselon1 === selectedEselon1;
@@ -122,6 +124,22 @@ export function EPurchasingView() {
   let groupedData: { name: string; totalPagu: number; totalRealisasi: number; count: number }[] = [];
   let viewMode = 'ESELON1'; // ESELON1, SATKER, PPK, PAKET
 
+  const sortGroupedData = (groups: Record<string, any>) => {
+    return Object.values(groups).sort((a, b) => {
+      const pctA = a.totalPagu > 0 ? (a.totalRealisasi / a.totalPagu) * 100 : 0;
+      const pctB = b.totalPagu > 0 ? (b.totalRealisasi / b.totalPagu) * 100 : 0;
+      switch (sortBy) {
+        case 'PAGU_ASC': return a.totalPagu - b.totalPagu;
+        case 'REAL_DESC': return b.totalRealisasi - a.totalRealisasi;
+        case 'REAL_ASC': return a.totalRealisasi - b.totalRealisasi;
+        case 'PCT_DESC': return pctB - pctA;
+        case 'PCT_ASC': return pctA - pctB;
+        case 'PAGU_DESC':
+        default: return b.totalPagu - a.totalPagu;
+      }
+    });
+  };
+
   if (!selectedEselon1) {
     viewMode = 'ESELON1';
     const groups: Record<string, any> = {};
@@ -132,7 +150,7 @@ export function EPurchasingView() {
       groups[key].totalRealisasi += (p.total || 0);
       groups[key].count += 1;
     });
-    groupedData = Object.values(groups).sort((a, b) => b.totalPagu - a.totalPagu);
+    groupedData = sortGroupedData(groups);
   } else if (!selectedSatker) {
     viewMode = 'SATKER';
     const groups: Record<string, any> = {};
@@ -143,7 +161,7 @@ export function EPurchasingView() {
       groups[key].totalRealisasi += (p.total || 0);
       groups[key].count += 1;
     });
-    groupedData = Object.values(groups).sort((a, b) => b.totalPagu - a.totalPagu);
+    groupedData = sortGroupedData(groups);
   } else if (!selectedPPK) {
     viewMode = 'PPK';
     const groups: Record<string, any> = {};
@@ -154,7 +172,7 @@ export function EPurchasingView() {
       groups[key].totalRealisasi += (p.total || 0);
       groups[key].count += 1;
     });
-    groupedData = Object.values(groups).sort((a, b) => b.totalPagu - a.totalPagu);
+    groupedData = sortGroupedData(groups);
   } else {
     viewMode = 'PAKET';
   }
@@ -181,14 +199,33 @@ export function EPurchasingView() {
   // Pagination for Paket view
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, selectedEselon1, selectedSatker, selectedPPK]);
+  }, [searchQuery, statusFilter, sortBy, selectedEselon1, selectedSatker, selectedPPK]);
 
+  // Sort packages for the lowest level view
+  const sortedPackages = [...filteredData].sort((a, b) => {
+    const paguA = a.pagu || 0;
+    const paguB = b.pagu || 0;
+    const realA = a.total || 0;
+    const realB = b.total || 0;
+    const pctA = paguA > 0 ? (realA / paguA) * 100 : 0;
+    const pctB = paguB > 0 ? (realB / paguB) * 100 : 0;
+    
+    switch (sortBy) {
+      case 'PAGU_ASC': return paguA - paguB;
+      case 'REAL_DESC': return realB - realA;
+      case 'REAL_ASC': return realA - realB;
+      case 'PCT_DESC': return pctB - pctA;
+      case 'PCT_ASC': return pctA - pctB;
+      case 'PAGU_DESC':
+      default: return paguB - paguA;
+    }
+  });
+
+  const totalPages = Math.ceil(sortedPackages.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentData = filteredData.slice(startIndex, startIndex + itemsPerPage);
+  const currentData = sortedPackages.slice(startIndex, startIndex + itemsPerPage);
 
   const handleNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(p => p + 1);
@@ -325,24 +362,119 @@ export function EPurchasingView() {
           )}
 
           {/* Filters & Search - Shared across all views */}
-          <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-            <input
-              type="text"
-              placeholder="Cari nama paket, kode RUP, penyedia..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ flex: '1 1 300px', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
-            />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ flex: '0 0 auto', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', cursor: 'pointer' }}
-            >
-              <option value="ALL">Semua Status</option>
-              {uniqueStatuses.map((status: any) => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </select>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="Cari nama paket, kode RUP, penyedia..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ flex: '1 1 300px', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
+              />
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                style={{ padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: showAdvanced ? 'var(--info-100)' : 'var(--surface)', color: showAdvanced ? 'var(--info-700)' : 'var(--text-primary)', cursor: 'pointer', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}
+              >
+                {showAdvanced ? 'Tutup Filter Lanjutan' : 'Filter Lanjutan'}
+                {(statusFilter.length > 0 || sortBy !== 'PAGU_DESC') && (
+                  <Badge variant="info">Aktif</Badge>
+                )}
+              </button>
+            </div>
+
+            {/* Advanced Filters Panel */}
+            <AnimatePresence>
+              {showAdvanced && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }} 
+                  animate={{ height: 'auto', opacity: 1 }} 
+                  exit={{ height: 0, opacity: 0 }} 
+                  style={{ overflow: 'hidden' }}
+                >
+                  <div style={{ background: 'var(--bg-page)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
+                      {/* Status Toggle */}
+                      <div>
+                        <h4 style={{ fontSize: 13, margin: '0 0 10px', color: 'var(--text-secondary)' }}>Pilih Status Paket (Bisa Lebih Dari Satu)</h4>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          {uniqueStatuses.map((status: any) => {
+                            const isSelected = statusFilter.includes(status);
+                            return (
+                              <button
+                                key={status}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setStatusFilter(statusFilter.filter(s => s !== status));
+                                  } else {
+                                    setStatusFilter([...statusFilter, status]);
+                                  }
+                                }}
+                                style={{ 
+                                  padding: '6px 12px', borderRadius: '20px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                                  background: isSelected ? 'var(--info-600)' : 'var(--surface)', 
+                                  color: isSelected ? 'white' : 'var(--text-secondary)',
+                                  border: `1px solid ${isSelected ? 'var(--info-600)' : 'var(--border)'}`,
+                                  transition: 'all 0.2s'
+                                }}
+                              >
+                                {status}
+                              </button>
+                            );
+                          })}
+                          {statusFilter.length > 0 && (
+                            <button onClick={() => setStatusFilter([])} style={{ background: 'none', border: 'none', color: 'var(--red-500)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', padding: '6px' }}>Reset Status</button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Sorting Option via Buttons */}
+                      <div>
+                        <h4 style={{ fontSize: 13, margin: '0 0 10px', color: 'var(--text-secondary)' }}>Urutkan Data Berdasarkan</h4>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          {[
+                            { value: 'PAGU_DESC', label: 'Pagu Tertinggi' },
+                            { value: 'PAGU_ASC', label: 'Pagu Terendah' },
+                            { value: 'REAL_DESC', label: 'Realisasi Tertinggi' },
+                            { value: 'REAL_ASC', label: 'Realisasi Terendah' },
+                            { value: 'PCT_DESC', label: 'Persentase Tertinggi' },
+                            { value: 'PCT_ASC', label: 'Persentase Terendah' },
+                          ].map((opt) => {
+                            const isSelected = sortBy === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                onClick={() => setSortBy(opt.value)}
+                                style={{
+                                  padding: '8px 14px', borderRadius: '20px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                                  background: isSelected ? 'var(--teal-600)' : 'var(--surface)',
+                                  color: isSelected ? 'white' : 'var(--text-secondary)',
+                                  border: `1px solid ${isSelected ? 'var(--teal-600)' : 'var(--border)'}`,
+                                  transition: 'all 0.2s',
+                                  boxShadow: isSelected ? '0 4px 12px rgba(13, 148, 136, 0.2)' : 'none'
+                                }}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right', marginTop: 8 }}>
+                      <button 
+                        onClick={() => { setSortBy('PCT_DESC'); setStatusFilter([]); }}
+                        style={{ padding: '8px 16px', background: 'var(--red-100)', color: 'var(--red-600)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Reset Semua Filter & Urutan
+                      </button>
+                    </div>
+
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Summary Cards */}
