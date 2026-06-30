@@ -190,42 +190,92 @@ export function EPurchasingView() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentData = filteredData.slice(startIndex, startIndex + itemsPerPage);
 
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(p => p + 1);
+  };
+  
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(p => p - 1);
+  };
+
   const renderHierarchyCard = (item: { name: string; totalPagu: number; totalRealisasi: number; count: number }) => {
     const pct = item.totalPagu > 0 ? (item.totalRealisasi / item.totalPagu) * 100 : 0;
     const clampedPct = Math.min(Math.max(pct, 0), 100);
+    const sisaPagu = Math.max(item.totalPagu - item.totalRealisasi, 0);
+    
+    // Dynamic glow and color based on realization percentage
+    const themeColor = clampedPct > 75 ? '#06b6d4' : clampedPct > 40 ? '#f97316' : '#ef4444'; // Neon Cyan, Orange, Red
+    const glowColor = clampedPct > 75 ? 'rgba(6, 182, 212, 0.4)' : clampedPct > 40 ? 'rgba(249, 115, 22, 0.4)' : 'rgba(239, 68, 68, 0.4)';
+    const bgTint = clampedPct > 75 ? 'rgba(6, 182, 212, 0.03)' : clampedPct > 40 ? 'rgba(249, 115, 22, 0.03)' : 'rgba(239, 68, 68, 0.03)';
 
     return (
       <motion.div
         key={item.name}
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        whileHover={{ scale: 1.01, borderColor: 'var(--info-600)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-        transition={{ duration: 0.15 }}
-        style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '24px', cursor: 'pointer', willChange: 'transform', display: 'flex', flexDirection: 'column', gap: 16 }}
+        whileHover={{ scale: 1.01, y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
+        transition={{ duration: 0.2 }}
+        style={{ 
+          background: `linear-gradient(135deg, var(--surface) 40%, ${bgTint})`, 
+          border: '1px solid var(--border)', 
+          borderRadius: '24px', 
+          padding: '28px', 
+          cursor: 'pointer', 
+          willChange: 'transform',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '28px',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
         onClick={() => handleGroupClick(item.name)}
       >
+        {/* Top: Title & Badge */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h3 style={{ fontSize: 17, fontWeight: 600, margin: '0 0 6px', color: 'var(--text-primary)' }}>{item.name}</h3>
-            <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{item.count} Paket</span>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: 24, fontWeight: 600, color: 'var(--text-primary)' }}>{pct.toFixed(1)}%</span>
-          </div>
+          <h3 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.5px', lineHeight: 1.3, flex: 1, paddingRight: 16 }}>{item.name}</h3>
+          <span style={{ background: 'var(--bg-page)', color: 'var(--text-secondary)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: '30px', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>{item.count} Paket</span>
         </div>
 
-        <div style={{ width: '100%', height: 10, background: 'var(--gray-200)', borderRadius: 5, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${clampedPct}%`, background: 'var(--teal-500)', transition: 'width 0.5s ease-in-out' }} />
+        {/* Middle: Data-Rich Progress Bar */}
+        <div style={{ position: 'relative', padding: '10px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>
+            <span>0%</span>
+            <span style={{ color: themeColor, fontSize: 22, transform: 'translateY(-6px)' }}>{pct.toFixed(1)}%</span>
+            <span>100%</span>
+          </div>
+          
+          <div style={{ position: 'relative', width: '100%', height: 16, background: 'var(--gray-200)', borderRadius: 8, overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
+            <div 
+              style={{ 
+                height: '100%', 
+                width: `${clampedPct}%`, 
+                background: themeColor,
+                boxShadow: `0 0 12px ${glowColor}`,
+                borderRadius: 8,
+                transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' 
+              }} 
+            />
+          </div>
+          
+          {/* Markers */}
+          <div style={{ position: 'absolute', bottom: -2, left: '50%', width: 2, height: 8, background: 'var(--gray-400)' }}></div>
+          <div style={{ position: 'absolute', bottom: -2, left: '25%', width: 1, height: 6, background: 'var(--gray-300)' }}></div>
+          <div style={{ position: 'absolute', bottom: -2, left: '75%', width: 1, height: 6, background: 'var(--gray-300)' }}></div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+        {/* Bottom: Detailed Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, background: 'var(--bg-page)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
           <div>
-            <span style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Total Pagu</span>
-            <strong style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(item.totalPagu)}</strong>
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, display: 'block', marginBottom: 6 }}>Total Pagu</span>
+            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 16, color: 'var(--text-primary)' }}>{fmtRupiah(item.totalPagu)}</strong>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Total Realisasi</span>
-            <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-600)' }}>{fmtRupiah(item.totalRealisasi)}</strong>
+          <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: 16 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, display: 'block', marginBottom: 6 }}>Total Realisasi</span>
+            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 16, color: themeColor, textShadow: `0 0 10px ${glowColor}` }}>{fmtRupiah(item.totalRealisasi)}</strong>
+          </div>
+          <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: 16 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, display: 'block', marginBottom: 6 }}>Sisa Pagu</span>
+            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 16, color: 'var(--text-secondary)' }}>{fmtRupiah(sisaPagu)}</strong>
           </div>
         </div>
       </motion.div>
