@@ -16,11 +16,18 @@ export function EPurchasingView() {
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
   useEffect(() => {
     async function fetchData() {
       try {
-        // 1. Fetch realisasi
-        const { data: realisasi, error: err1 } = await supabase.from('paket_e_purchasing').select('*').limit(1000);
+        // 1. Fetch realisasi (exclude cancelled)
+        const { data: realisasi, error: err1 } = await supabase
+          .from('paket_e_purchasing')
+          .select('*')
+          .not('status', 'ilike', '%cancel%')
+          .limit(1000);
         if (err1) throw err1;
 
         if (!realisasi || realisasi.length === 0) {
@@ -81,17 +88,36 @@ export function EPurchasingView() {
     return 'Rp ' + m.toLocaleString('id-ID');
   };
 
-  const totalPaket = data.length;
-  const totalPagu = data.reduce((s, d) => s + (d.pagu || 0), 0);
-  const totalRealisasi = data.reduce((s, d) => s + (d.total || 0), 0);
+  const uniqueStatuses = Array.from(new Set(data.map(p => p.status).filter(Boolean)));
+
+  const filteredData = data.filter((p) => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch =
+      (p.rup_name && p.rup_name.toLowerCase().includes(query)) ||
+      (p.rup_code && String(p.rup_code).toLowerCase().includes(query)) ||
+      (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(query));
+
+    const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const totalPaket = filteredData.length;
+  const totalPagu = filteredData.reduce((s, d) => s + (d.pagu || 0), 0);
+  const totalRealisasi = filteredData.reduce((s, d) => s + (d.total || 0), 0);
   const persentase = totalPagu > 0 ? ((totalRealisasi / totalPagu) * 100).toFixed(1) : 0;
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const totalPages = Math.ceil(data.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentData = data.slice(startIndex, startIndex + itemsPerPage);
+  const currentData = filteredData.slice(startIndex, startIndex + itemsPerPage);
 
   const handleNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(p => p + 1);
@@ -118,6 +144,27 @@ export function EPurchasingView() {
         <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat data dari Supabase...</p>
       ) : (
         <>
+          {/* Filters & Search */}
+          <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              placeholder="Cari nama paket, kode RUP, penyedia..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ flex: '1 1 300px', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
+            />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ flex: '0 0 auto', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', cursor: 'pointer' }}
+            >
+              <option value="ALL">Semua Status</option>
+              {uniqueStatuses.map((status: any) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 22 }}>
             <Card>
               <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 8px' }}>Jumlah Paket</p>
