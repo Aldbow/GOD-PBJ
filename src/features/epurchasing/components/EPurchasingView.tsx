@@ -28,55 +28,47 @@ export function EPurchasingView() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // 1. Fetch realisasi (exclude cancelled)
-        const { data: realisasi, error: err1 } = await supabase
-          .from('paket_e_purchasing')
-          .select('*')
-          .not('status', 'ilike', '%cancel%')
-          .limit(2000);
-        if (err1) throw err1;
+        let allData: any[] = [];
+        let offset = 0;
+        const limit = 1000;
+        
+        while (true) {
+          const { data, error } = await supabase
+            .from('view_dashboard_epurchasing_v6')
+            .select('*')
+            .range(offset, offset + limit - 1);
+            
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          
+          allData = [...allData, ...data];
+          if (data.length < limit) break;
+          offset += limit;
+        }
 
-        if (!realisasi || realisasi.length === 0) {
+        if (allData.length === 0) {
           setData([]);
           setLoading(false);
           return;
         }
 
-        // 2. Extract RUPs to join
-        const rups = realisasi.map(r => r.rup_code).filter(Boolean);
+        const formattedData = allData.map(r => ({
+          rup_code: r.kd_rup,
+          rup_name: r.rup_name || 'Tanpa Nama',
+          pagu: Number(r.pagu) || 0,
+          total: Number(r.total) || 0,
+          status: r.status,
+          kode_penyedia: r.kode_penyedia,
+          order_id: r.order_id,
+          tgl_pengumuman_paket: r.tgl_pengumuman_paket,
+          status_aktif_rup: r.status_aktif_rup,
+          nama_ppk: r.nama_ppk || 'Tidak Diketahui',
+          eselon1: r.eselon1 || 'Tidak Diketahui',
+          satker: r.satker || 'Tidak Diketahui',
+          kode_klpd: r.kode_klpd
+        }));
 
-        // 3. Fetch matching master data to get PAGU, Eselon 1, Satker, PPK
-        let paketMap: Record<string, any> = {};
-        if (rups.length > 0) {
-          const { data: paket, error: err2 } = await supabase
-            .from('view_paket_penyedia_master_data')
-            .select('kd_rup, pagu, tgl_pengumuman_paket, status_aktif_rup, MASTER_NAMA_PPK, "UNIT KERJA", "SATUAN KERJA"')
-            .in('kd_rup', rups);
-            
-          if (err2) throw err2;
-          
-          if (paket) {
-            paket.forEach(p => {
-              paketMap[p.kd_rup] = p;
-            });
-          }
-        }
-
-        // 4. Join them
-        const combined = realisasi.map(r => {
-          const p = paketMap[r.rup_code];
-          return {
-            ...r,
-            pagu: p?.pagu || 0,
-            tgl_pengumuman_paket: p?.tgl_pengumuman_paket,
-            status_aktif_rup: p?.status_aktif_rup,
-            nama_ppk: p?.MASTER_NAMA_PPK || 'Tidak Diketahui',
-            eselon1: p?.['UNIT KERJA'] || 'Tidak Diketahui',
-            satker: p?.['SATUAN KERJA'] || r.nama_satker || 'Tidak Diketahui',
-          };
-        });
-
-        setData(combined);
+        setData(formattedData);
       } catch (e: any) {
         console.error(e);
         setError(e.message || 'Gagal memuat data dari Supabase.');
