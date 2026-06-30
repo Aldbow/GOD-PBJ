@@ -118,6 +118,12 @@ export function EPurchasingView() {
 
   const uniqueStatuses = Array.from(new Set(data.map(p => p.status).filter(Boolean)));
 
+  const STATUS_CLUSTERS = [
+    { label: 'SUDAH REALISASI', values: ['PAYMENT_OUTSIDE_SYSTEM', 'COMPLETED'] },
+    { label: 'PROSES', values: ['ON_PROCESS', 'WAITING_PPK_REVIEW', 'ON_NEGOTIATION', 'WAITING_SELLER_CONFIRMATION'] },
+    { label: 'BELUM REALISASI', values: ['BELUM REALISASI'] },
+  ];
+
   // First apply only the hierarchical drill-down filters to get the "Base" Context for Total Pagu
   const baseData = data.filter((p) => {
     const matchesEselon1 = !selectedEselon1 || p.eselon1 === selectedEselon1;
@@ -134,7 +140,10 @@ export function EPurchasingView() {
       (p.rup_code && String(p.rup_code).toLowerCase().includes(query)) ||
       (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(query));
 
-    const matchesStatus = statusFilter.length === 0 || statusFilter.includes(p.status);
+    const matchesStatus = statusFilter.length === 0 || statusFilter.some(clusterLabel => {
+      const cluster = STATUS_CLUSTERS.find(c => c.label === clusterLabel);
+      return cluster ? cluster.values.includes(p.status) : false;
+    });
     const matchesAbnormal = !showAbnormal || ((p.total || 0) > (p.pagu || 0));
 
     return matchesSearch && matchesStatus && matchesAbnormal;
@@ -283,64 +292,54 @@ export function EPurchasingView() {
         style={{ 
           background: `linear-gradient(135deg, var(--surface) 40%, ${bgTint})`, 
           border: '1px solid var(--border)', 
-          borderRadius: '24px', 
-          padding: '28px', 
+          borderRadius: '12px', 
+          padding: '14px 16px', 
           cursor: 'pointer', 
           willChange: 'transform',
           display: 'flex',
           flexDirection: 'column',
-          gap: '28px',
+          gap: '12px',
           position: 'relative',
           overflow: 'hidden'
         }}
         onClick={() => handleGroupClick(item.name)}
       >
         {/* Top: Title & Badge */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <h3 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.5px', lineHeight: 1.3, flex: 1, paddingRight: 16 }}>{item.name}</h3>
-          <span style={{ background: 'var(--bg-page)', color: 'var(--text-secondary)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: '30px', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>{item.count} Paket</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.2px', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 12 }} title={item.name}>{item.name}</h3>
+          <span style={{ background: 'var(--bg-page)', color: 'var(--text-secondary)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: '20px', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{item.count} Paket</span>
         </div>
 
-        {/* Middle: Data-Rich Progress Bar */}
-        <div style={{ position: 'relative', padding: '10px 0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>
-            <span>0%</span>
-            <span style={{ color: themeColor, fontSize: 22, transform: 'translateY(-6px)' }}>{pct.toFixed(1)}%</span>
-            <span>100%</span>
-          </div>
-          
-          <div style={{ position: 'relative', width: '100%', height: 16, background: 'var(--gray-200)', borderRadius: 8, overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
+        {/* Middle: Progress Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ position: 'relative', flex: 1, height: 6, background: 'var(--gray-200)', borderRadius: 3, overflow: 'hidden' }}>
             <div 
               style={{ 
                 height: '100%', 
                 width: `${clampedPct}%`, 
                 background: themeColor,
-                boxShadow: `0 0 12px ${glowColor}`,
-                borderRadius: 8,
+                boxShadow: `0 0 8px ${glowColor}`,
+                borderRadius: 3,
                 transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' 
               }} 
             />
           </div>
-          
-          {/* Markers */}
-          <div style={{ position: 'absolute', bottom: -2, left: '50%', width: 2, height: 8, background: 'var(--gray-400)' }}></div>
-          <div style={{ position: 'absolute', bottom: -2, left: '25%', width: 1, height: 6, background: 'var(--gray-300)' }}></div>
-          <div style={{ position: 'absolute', bottom: -2, left: '75%', width: 1, height: 6, background: 'var(--gray-300)' }}></div>
+          <span style={{ color: themeColor, fontSize: 13, fontWeight: 700, width: '40px', textAlign: 'right' }}>{pct.toFixed(1)}%</span>
         </div>
 
         {/* Bottom: Detailed Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, background: 'var(--bg-page)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
-          <div>
-            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, display: 'block', marginBottom: 6 }}>Total Pagu</span>
-            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 16, color: 'var(--text-primary)' }}>{fmtRupiah(item.totalPagu)}</strong>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'var(--bg-page)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 600, display: 'block', marginBottom: 2 }}>Pagu</span>
+            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-primary)' }}>{fmtRupiah(item.totalPagu)}</strong>
           </div>
-          <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: 16 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, display: 'block', marginBottom: 6 }}>Total Realisasi</span>
-            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 16, color: themeColor, textShadow: `0 0 10px ${glowColor}` }}>{fmtRupiah(item.totalRealisasi)}</strong>
+          <div style={{ flex: 1, borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 600, display: 'block', marginBottom: 2 }}>Realisasi</span>
+            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: themeColor, textShadow: `0 0 8px ${glowColor}` }}>{fmtRupiah(item.totalRealisasi)}</strong>
           </div>
-          <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: 16 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, display: 'block', marginBottom: 6 }}>Sisa Pagu</span>
-            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 16, color: 'var(--text-secondary)' }}>{fmtRupiah(sisaPagu)}</strong>
+          <div style={{ flex: 1, borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 600, display: 'block', marginBottom: 2 }}>Sisa</span>
+            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)' }}>{fmtRupiah(sisaPagu)}</strong>
           </div>
         </div>
       </motion.div>
@@ -426,16 +425,16 @@ export function EPurchasingView() {
                       <div>
                         <h4 style={{ fontSize: 13, margin: '0 0 10px', color: 'var(--text-secondary)' }}>Pilih Status Paket (Bisa Lebih Dari Satu)</h4>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                          {uniqueStatuses.map((status: any) => {
-                            const isSelected = statusFilter.includes(status);
+                          {STATUS_CLUSTERS.map((cluster) => {
+                            const isSelected = statusFilter.includes(cluster.label);
                             return (
                               <button
-                                key={status}
+                                key={cluster.label}
                                 onClick={() => {
                                   if (isSelected) {
-                                    setStatusFilter(statusFilter.filter(s => s !== status));
+                                    setStatusFilter(statusFilter.filter(s => s !== cluster.label));
                                   } else {
-                                    setStatusFilter([...statusFilter, status]);
+                                    setStatusFilter([...statusFilter, cluster.label]);
                                   }
                                 }}
                                 style={{ 
@@ -446,7 +445,7 @@ export function EPurchasingView() {
                                   transition: 'all 0.2s'
                                 }}
                               >
-                                {status}
+                                {cluster.label}
                               </button>
                             );
                           })}
@@ -554,18 +553,22 @@ export function EPurchasingView() {
                   animate={{ opacity: 1, y: 0 }}
                   whileHover={{ scale: 1.01, borderColor: 'var(--info-600)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
                   transition={{ duration: 0.15 }}
-                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', cursor: 'pointer', willChange: 'transform' }}
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', willChange: 'transform', display: 'flex', flexDirection: 'column', gap: 6 }}
                   onClick={() => { setSelectedItem(p); setIsModalOpen(true); }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
-                    <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.4 }}>{p.rup_name}</p>
-                    <Badge variant={p.status === 'COMPLETED' ? 'rendah' : 'sedang'}>{p.status}</Badge>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }} title={p.rup_name}>{p.rup_name}</p>
+                    <Badge variant={p.status === 'COMPLETED' ? 'rendah' : 'sedang'} style={{ padding: '2px 6px', fontSize: 9 }}>{p.status}</Badge>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, fontSize: 12 }}>
-                    <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Penyedia</span><span style={{ fontFamily: 'var(--font-mono)' }}>{p.kode_penyedia || '-'}</span></div>
-                    <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Nilai Pagu</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(p.pagu)}</span></div>
-                    <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Realisasi</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtRupiah(p.total)}</span></div>
-                    <div><span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2, fontSize: 11 }}>Persentase</span><span style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-600)' }}>{p.pagu > 0 ? ((p.total / p.pagu) * 100).toFixed(1) : 0}%</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--text-secondary)', flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, background: 'var(--bg-page)', padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)' }} title="Kode RUP">RUP: {p.rup_code || '-'}</span>
+                      <span>Pagu: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{fmtRupiah(p.pagu)}</strong></span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span>Realisasi: <strong style={{ fontFamily: 'var(--font-mono)', color: ((p.total || 0) > (p.pagu || 0)) ? 'var(--red-600)' : 'var(--text-primary)' }}>{fmtRupiah(p.total)}</strong></span>
+                      <strong style={{ fontFamily: 'var(--font-mono)', color: ((p.total || 0) > (p.pagu || 0)) ? 'var(--red-600)' : 'var(--teal-700)', background: ((p.total || 0) > (p.pagu || 0)) ? 'var(--red-100)' : 'var(--teal-100)', padding: '2px 6px', borderRadius: 4 }}>{p.pagu > 0 ? ((p.total / p.pagu) * 100).toFixed(1) : 0}%</strong>
+                    </div>
                   </div>
                 </motion.div>
               ))}
