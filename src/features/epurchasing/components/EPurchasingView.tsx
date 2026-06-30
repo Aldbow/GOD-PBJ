@@ -19,6 +19,7 @@ export function EPurchasingView() {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [sortBy, setSortBy] = useState('PCT_DESC');
+  const [showAbnormal, setShowAbnormal] = useState(false);
 
   // Drill-down states
   const [selectedEselon1, setSelectedEselon1] = useState<string | null>(null);
@@ -134,8 +135,9 @@ export function EPurchasingView() {
       (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(query));
 
     const matchesStatus = statusFilter.length === 0 || statusFilter.includes(p.status);
+    const matchesAbnormal = !showAbnormal || ((p.total || 0) > (p.pagu || 0));
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesAbnormal;
   });
 
   // Calculate stats based on current view
@@ -402,7 +404,7 @@ export function EPurchasingView() {
                 style={{ padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: showAdvanced ? 'var(--info-100)' : 'var(--surface)', color: showAdvanced ? 'var(--info-700)' : 'var(--text-primary)', cursor: 'pointer', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}
               >
                 {showAdvanced ? 'Tutup Filter Lanjutan' : 'Filter Lanjutan'}
-                {(statusFilter.length > 0 || sortBy !== 'PAGU_DESC') && (
+                {(statusFilter.length > 0 || sortBy !== 'PAGU_DESC' || showAbnormal) && (
                   <Badge variant="info">Aktif</Badge>
                 )}
               </button>
@@ -485,6 +487,25 @@ export function EPurchasingView() {
                             );
                           })}
                         </div>
+                      </div>
+                      
+                      {/* Abnormal Toggle */}
+                      <div>
+                        <h4 style={{ fontSize: 13, margin: '0 0 10px', color: 'var(--text-secondary)' }}>Kategori Paket</h4>
+                        <button
+                          onClick={() => setShowAbnormal(!showAbnormal)}
+                          style={{ 
+                            padding: '8px 14px', borderRadius: '20px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                            background: showAbnormal ? 'var(--red-600)' : 'var(--surface)', 
+                            color: showAbnormal ? 'white' : 'var(--red-600)',
+                            border: `1px solid var(--red-600)`,
+                            transition: 'all 0.2s',
+                            boxShadow: showAbnormal ? '0 4px 12px rgba(220, 38, 38, 0.2)' : 'none',
+                            display: 'flex', alignItems: 'center', gap: 6
+                          }}
+                        >
+                          {showAbnormal ? '✕ Batal Filter Abnormal' : '⚠ Paket Abnormal (Realisasi > Pagu)'}
+                        </button>
                       </div>
                     </div>
 
