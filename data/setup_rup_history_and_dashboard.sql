@@ -52,20 +52,26 @@ SELECT
     mapped_e.order_id
 FROM view_paket_penyedia_master_data m
 FULL OUTER JOIN (
-    -- Resolve realisasi RUP to its final destination RUP
+    -- Resolve realisasi RUP to its final destination RUP and group multiple orders
     SELECT 
         COALESCE(rf.final_rup, e.rup_code::bigint) as resolved_rup,
-        e.rup_name,
-        e.nama_satker,
-        e.kode_klpd,
-        e.status,
-        e.total,
-        e.kode_penyedia,
-        e.order_id
+        MAX(e.rup_name) as rup_name,
+        MAX(e.nama_satker) as nama_satker,
+        MAX(e.kode_klpd) as kode_klpd,
+        MAX(e.status) as status,
+        SUM(e.total) as total,
+        STRING_AGG(DISTINCT e.kode_penyedia, ', ') as kode_penyedia,
+        STRING_AGG(DISTINCT e.order_id, ', ') as order_id
     FROM paket_e_purchasing e
     LEFT JOIN view_rup_final rf ON e.rup_code::bigint = rf.origin_rup
+    GROUP BY COALESCE(rf.final_rup, e.rup_code::bigint)
 ) mapped_e ON m.kd_rup = mapped_e.resolved_rup
-WHERE (mapped_e.status NOT ILIKE '%cancel%' OR mapped_e.status IS NULL);
+WHERE (mapped_e.status NOT ILIKE '%cancel%' OR mapped_e.status IS NULL)
+  AND COALESCE(m.kd_rup, mapped_e.resolved_rup) NOT IN (
+      SELECT kd_rup_lama 
+      FROM history_kaji_ulang 
+      WHERE kd_rup_lama <> kd_rup_baru
+  );
 
 
 -- 3. Create an RPC function for the frontend to fetch history given a final RUP.

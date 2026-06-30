@@ -117,7 +117,16 @@ export function EPurchasingView() {
 
   const uniqueStatuses = Array.from(new Set(data.map(p => p.status).filter(Boolean)));
 
-  const filteredData = data.filter((p) => {
+  // First apply only the hierarchical drill-down filters to get the "Base" Context for Total Pagu
+  const baseData = data.filter((p) => {
+    const matchesEselon1 = !selectedEselon1 || p.eselon1 === selectedEselon1;
+    const matchesSatker = !selectedSatker || p.satker === selectedSatker;
+    const matchesPPK = !selectedPPK || p.nama_ppk === selectedPPK;
+    return matchesEselon1 && matchesSatker && matchesPPK;
+  });
+
+  // Then apply search and status filters on top of the base data
+  const filteredData = baseData.filter((p) => {
     const query = searchQuery.toLowerCase();
     const matchesSearch =
       (p.rup_name && p.rup_name.toLowerCase().includes(query)) ||
@@ -126,17 +135,14 @@ export function EPurchasingView() {
 
     const matchesStatus = statusFilter.length === 0 || statusFilter.includes(p.status);
 
-    // Apply drill-down filters
-    const matchesEselon1 = !selectedEselon1 || p.eselon1 === selectedEselon1;
-    const matchesSatker = !selectedSatker || p.satker === selectedSatker;
-    const matchesPPK = !selectedPPK || p.nama_ppk === selectedPPK;
-
-    return matchesSearch && matchesStatus && matchesEselon1 && matchesSatker && matchesPPK;
+    return matchesSearch && matchesStatus;
   });
 
   // Calculate stats based on current view
   const totalPaket = filteredData.length;
-  const totalPagu = filteredData.reduce((s, d) => s + (d.pagu || 0), 0);
+  // Total Pagu is locked to the original base data (ignores search & status filters)
+  const totalPagu = baseData.reduce((s, d) => s + (d.pagu || 0), 0);
+  // Total Realisasi strictly follows what is currently filtered
   const totalRealisasi = filteredData.reduce((s, d) => s + (d.total || 0), 0);
   const persentase = totalPagu > 0 ? ((totalRealisasi / totalPagu) * 100).toFixed(1) : 0;
 
