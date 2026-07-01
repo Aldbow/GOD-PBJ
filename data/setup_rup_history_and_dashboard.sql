@@ -50,7 +50,11 @@ SELECT
     COALESCE(mapped_e.total, 0) as total,
     mapped_e.kode_penyedia,
     mapped_e.order_id
-FROM view_paket_penyedia_master_data m
+FROM (
+    SELECT * 
+    FROM view_paket_penyedia_master_data 
+    WHERE metode_pengadaan = 'E-Purchasing'
+) m
 FULL OUTER JOIN (
     -- Resolve realisasi RUP to its final destination RUP and group multiple orders
     SELECT 
@@ -64,10 +68,10 @@ FULL OUTER JOIN (
         STRING_AGG(DISTINCT e.order_id, ', ') as order_id
     FROM paket_e_purchasing e
     LEFT JOIN view_rup_final rf ON e.rup_code::bigint = rf.origin_rup
+    WHERE (e.status NOT ILIKE '%cancel%' OR e.status IS NULL)
     GROUP BY COALESCE(rf.final_rup, e.rup_code::bigint)
 ) mapped_e ON m.kd_rup = mapped_e.resolved_rup
-WHERE (mapped_e.status NOT ILIKE '%cancel%' OR mapped_e.status IS NULL)
-  AND COALESCE(m.kd_rup, mapped_e.resolved_rup) NOT IN (
+WHERE COALESCE(m.kd_rup, mapped_e.resolved_rup) NOT IN (
       SELECT kd_rup_lama 
       FROM history_kaji_ulang 
       WHERE kd_rup_lama <> kd_rup_baru

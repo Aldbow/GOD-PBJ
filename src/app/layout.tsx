@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" data-theme="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} ${plexMono.variable}`}>
+      <body className={`${inter.variable} ${plexMono.variable}`} suppressHydrationWarning>
         <Shell>{children}</Shell>
       </body>
     </html>
