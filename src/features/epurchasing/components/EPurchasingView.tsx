@@ -404,7 +404,7 @@ export function EPurchasingView() {
               >
                 {showAdvanced ? 'Tutup Filter Lanjutan' : 'Filter Lanjutan'}
                 {(statusFilter.length > 0 || sortBy !== 'PAGU_DESC' || showAbnormal) && (
-                  <Badge variant="info">Aktif</Badge>
+                  <Badge variant="default">Aktif</Badge>
                 )}
               </button>
             </div>
@@ -662,7 +662,7 @@ export function EPurchasingView() {
                         <div style={{ paddingBottom: isLast ? 0 : 20, flex: 1 }}>
                           <div style={{ background: 'var(--bg-page)', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                              <Badge variant="info">{hist.jenis_revisi}</Badge>
+                              <Badge variant="default">{hist.jenis_revisi}</Badge>
                               <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
                                 {new Date(hist.tgl_kaji_ulang).toLocaleString('id-ID')}
                               </span>
