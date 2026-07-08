@@ -42,7 +42,10 @@ SELECT
     m.tgl_pengumuman_paket, 
     m.status_aktif_rup, 
     COALESCE(m."MASTER_NAMA_PPK", 'Tidak Diketahui') as nama_ppk, 
-    COALESCE(m."UNIT KERJA", 'Tidak Diketahui') as eselon1, 
+    COALESCE(m."UNIT KERJA", 
+        (SELECT v."UNIT KERJA" FROM view_paket_penyedia_master_data v WHERE UPPER(v."SATUAN KERJA") = UPPER(mapped_e.nama_satker) AND v."UNIT KERJA" IS NOT NULL LIMIT 1),
+        'Tidak Diketahui'
+    ) as eselon1, 
     COALESCE(m."SATUAN KERJA", mapped_e.nama_satker, 'Tidak Diketahui') as satker,
     COALESCE(m.kd_klpd, mapped_e.kode_klpd) as kode_klpd,
     

@@ -20,6 +20,7 @@ export function EPurchasingView() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [sortBy, setSortBy] = useState('PCT_DESC');
   const [showAbnormal, setShowAbnormal] = useState(false);
+  const [showNoMasterData, setShowNoMasterData] = useState(false);
 
   // Drill-down states
   const [selectedEselon1, setSelectedEselon1] = useState<string | null>(null);
@@ -145,8 +146,9 @@ export function EPurchasingView() {
       return cluster ? cluster.values.includes(p.status) : false;
     });
     const matchesAbnormal = !showAbnormal || ((p.total || 0) > (p.pagu || 0));
+    const matchesNoMasterData = !showNoMasterData || (p.nama_ppk === 'Tidak Diketahui' && (p.total || 0) > 0);
 
-    return matchesSearch && matchesStatus && matchesAbnormal;
+    return matchesSearch && matchesStatus && matchesAbnormal && matchesNoMasterData;
   });
 
   // Calculate stats based on current view
@@ -403,7 +405,7 @@ export function EPurchasingView() {
                 style={{ padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: showAdvanced ? 'var(--info-100)' : 'var(--surface)', color: showAdvanced ? 'var(--info-700)' : 'var(--text-primary)', cursor: 'pointer', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}
               >
                 {showAdvanced ? 'Tutup Filter Lanjutan' : 'Filter Lanjutan'}
-                {(statusFilter.length > 0 || sortBy !== 'PAGU_DESC' || showAbnormal) && (
+                {(statusFilter.length > 0 || sortBy !== 'PAGU_DESC' || showAbnormal || showNoMasterData) && (
                   <Badge variant="default">Aktif</Badge>
                 )}
               </button>
@@ -491,26 +493,42 @@ export function EPurchasingView() {
                       {/* Abnormal Toggle */}
                       <div>
                         <h4 style={{ fontSize: 13, margin: '0 0 10px', color: 'var(--text-secondary)' }}>Kategori Paket</h4>
-                        <button
-                          onClick={() => setShowAbnormal(!showAbnormal)}
-                          style={{ 
-                            padding: '8px 14px', borderRadius: '20px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                            background: showAbnormal ? 'var(--red-600)' : 'var(--surface)', 
-                            color: showAbnormal ? 'white' : 'var(--red-600)',
-                            border: `1px solid var(--red-600)`,
-                            transition: 'all 0.2s',
-                            boxShadow: showAbnormal ? '0 4px 12px rgba(220, 38, 38, 0.2)' : 'none',
-                            display: 'flex', alignItems: 'center', gap: 6
-                          }}
-                        >
-                          {showAbnormal ? '✕ Batal Filter Abnormal' : '⚠ Paket Abnormal (Realisasi > Pagu)'}
-                        </button>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          <button
+                            onClick={() => setShowAbnormal(!showAbnormal)}
+                            style={{ 
+                              padding: '8px 14px', borderRadius: '20px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                              background: showAbnormal ? 'var(--red-600)' : 'var(--surface)', 
+                              color: showAbnormal ? 'white' : 'var(--red-600)',
+                              border: `1px solid var(--red-600)`,
+                              transition: 'all 0.2s',
+                              boxShadow: showAbnormal ? '0 4px 12px rgba(220, 38, 38, 0.2)' : 'none',
+                              display: 'flex', alignItems: 'center', gap: 6
+                            }}
+                          >
+                            {showAbnormal ? '✕ Batal Filter Abnormal' : '⚠ Paket Abnormal (Realisasi > Pagu)'}
+                          </button>
+                          <button
+                            onClick={() => setShowNoMasterData(!showNoMasterData)}
+                            style={{ 
+                              padding: '8px 14px', borderRadius: '20px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                              background: showNoMasterData ? 'var(--orange-500)' : 'var(--surface)', 
+                              color: showNoMasterData ? 'white' : 'var(--orange-500)',
+                              border: `1px solid var(--orange-500)`,
+                              transition: 'all 0.2s',
+                              boxShadow: showNoMasterData ? '0 4px 12px rgba(249, 115, 22, 0.2)' : 'none',
+                              display: 'flex', alignItems: 'center', gap: 6
+                            }}
+                          >
+                            {showNoMasterData ? '✕ Batal Filter Tanpa Data' : '❓ Tanpa Master Data / PPK'}
+                          </button>
+                        </div>
                       </div>
                     </div>
 
                     <div style={{ textAlign: 'right', marginTop: 8 }}>
                       <button 
-                        onClick={() => { setSortBy('PCT_DESC'); setStatusFilter([]); }}
+                        onClick={() => { setSortBy('PCT_DESC'); setStatusFilter([]); setShowAbnormal(false); setShowNoMasterData(false); }}
                         style={{ padding: '8px 16px', background: 'var(--red-100)', color: 'var(--red-600)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                       >
                         Reset Semua Filter & Urutan
