@@ -34,7 +34,7 @@ export function PengadaanLangsungView() {
         setLoadingHistory(true);
         try {
           const { data, error } = await supabase.rpc('get_rup_history', {
-            p_kd_rup: selectedItem.kd_rup
+            target_rup: parseInt(selectedItem.kd_rup)
           });
           if (error) throw error;
           setHistoryData(data || []);
