@@ -125,10 +125,15 @@ export function PengadaanLangsungView() {
   
   // Realisasi and Summary calculated relative to current view or total? 
   // Let's make summary cards absolute (top-level) or contextual. Usually contextual to filteredData.
-  const contextPagu = baseData.reduce((s, d) => s + (Number(d.pagu) || 0), 0);
+  // Kiri (Left Join context)
+  const contextPagu = baseData.filter(p => p.is_from_sirup !== false).reduce((s, d) => s + (Number(d.pagu) || 0), 0);
+  
+  // Kanan
   const contextRealisasi = filteredData.reduce((s, d) => s + (Number(d.total) || 0), 0);
   const contextRealisasiPencatatan = filteredData.reduce((s, d) => s + (Number(d.total_pencatatan) || 0), 0);
   const contextRealisasiTransaksional = filteredData.reduce((s, d) => s + (Number(d.total_transaksional) || 0), 0);
+  
+  // Sisa Anggaran = Kiri - Kanan
   const contextBelumRealisasi = Math.max(0, contextPagu - contextRealisasi);
 
   const persentase = contextPagu > 0 ? ((contextRealisasi / contextPagu) * 100).toFixed(1) : '0.0';
@@ -136,8 +141,8 @@ export function PengadaanLangsungView() {
 
   const countRup = (kd_rup: any) => String(kd_rup || '').split(';').length;
 
-  const totalPaket = filteredData.reduce((sum, p) => sum + countRup(p.kd_rup), 0);
-  const paketSelesai = filteredData.filter(p => (Number(p.total) || 0) > 0).reduce((sum, p) => sum + countRup(p.kd_rup), 0);
+  const totalPaket = filteredData.filter(p => p.is_from_sirup !== false).reduce((sum, p) => sum + countRup(p.kd_rup), 0);
+  const paketSelesai = filteredData.filter(p => p.is_from_sirup !== false && (Number(p.total) || 0) > 0).reduce((sum, p) => sum + countRup(p.kd_rup), 0);
   const paketBelumSelesai = totalPaket - paketSelesai;
 
   // Hierarchical Data Grouping
@@ -154,9 +159,10 @@ export function PengadaanLangsungView() {
     filteredData.forEach(p => {
       const key = p.eselon1 || 'Tidak Diketahui';
       if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
-      groups[key].totalPagu += (Number(p.pagu) || 0);
+      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
+      groups[key].totalPagu += p.is_from_sirup !== false ? (Number(p.pagu) || 0) : 0;
       groups[key].totalRealisasi += (Number(p.total) || 0);
-      groups[key].count += countRup(p.kd_rup);
+      groups[key].count += p.is_from_sirup !== false ? countRup(p.kd_rup) : 0;
     });
     groupedData = sortGroupedData(groups);
   } else if (!selectedSatker) {
@@ -165,9 +171,10 @@ export function PengadaanLangsungView() {
     filteredData.forEach(p => {
       const key = p.satker || 'Tidak Diketahui';
       if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
-      groups[key].totalPagu += (Number(p.pagu) || 0);
+      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
+      groups[key].totalPagu += p.is_from_sirup !== false ? (Number(p.pagu) || 0) : 0;
       groups[key].totalRealisasi += (Number(p.total) || 0);
-      groups[key].count += countRup(p.kd_rup);
+      groups[key].count += p.is_from_sirup !== false ? countRup(p.kd_rup) : 0;
     });
     groupedData = sortGroupedData(groups);
   } else if (!selectedPPK) {
@@ -176,9 +183,10 @@ export function PengadaanLangsungView() {
     filteredData.forEach(p => {
       const key = p.nama_ppk || 'Tidak Diketahui';
       if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
-      groups[key].totalPagu += (Number(p.pagu) || 0);
+      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
+      groups[key].totalPagu += p.is_from_sirup !== false ? (Number(p.pagu) || 0) : 0;
       groups[key].totalRealisasi += (Number(p.total) || 0);
-      groups[key].count += countRup(p.kd_rup);
+      groups[key].count += p.is_from_sirup !== false ? countRup(p.kd_rup) : 0;
     });
     groupedData = sortGroupedData(groups);
   } else if (!selectedTipeRup) {
@@ -187,9 +195,10 @@ export function PengadaanLangsungView() {
     filteredData.forEach(p => {
       const key = p.is_multiple_rup ? 'Multiple RUP' : 'Single RUP';
       if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
-      groups[key].totalPagu += (Number(p.pagu) || 0);
+      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
+      groups[key].totalPagu += p.is_from_sirup !== false ? (Number(p.pagu) || 0) : 0;
       groups[key].totalRealisasi += (Number(p.total) || 0);
-      groups[key].count += countRup(p.kd_rup);
+      groups[key].count += p.is_from_sirup !== false ? countRup(p.kd_rup) : 0;
     });
     groupedData = sortGroupedData(groups);
   } else {

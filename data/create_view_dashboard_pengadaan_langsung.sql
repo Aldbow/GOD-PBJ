@@ -56,6 +56,9 @@ SELECT
     -- Menambahkan penanda boolean Multiple RUP
     CASE WHEN g.kd_rup LIKE '%;%' THEN true ELSE false END AS is_multiple_rup,
     
+    -- Penanda apakah RUP ini berasal dari SIRUP (tabel kiri)
+    CASE WHEN pl.kd_rup IS NOT NULL THEN true ELSE false END AS is_from_sirup,
+    
     CASE 
         WHEN (COALESCE(p.total, 0) + COALESCE(t.total, 0)) > 0 THEN 'COMPLETED'
         ELSE 'BELUM REALISASI'
