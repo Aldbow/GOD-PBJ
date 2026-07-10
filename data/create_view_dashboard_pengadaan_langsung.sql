@@ -45,7 +45,10 @@ SELECT
     COALESCE(t.total, 0) AS total_transaksional,
     (COALESCE(p.total, 0) + COALESCE(t.total, 0)) AS total,
     
-    COALESCE(pl.nama_ppk, 'Anomali/Tidak Diketahui') AS nama_ppk,
+    CASE 
+        WHEN g.kd_rup LIKE '%;%' THEN 'Multiple RUP'
+        ELSE COALESCE(pl.nama_ppk, 'Anomali/Tidak Diketahui')
+    END AS nama_ppk,
     COALESCE(pl.nama_satker, t.nama_satker, 'Satker Tidak Diketahui') AS satker,
     (SELECT m."UNIT KERJA" FROM master_data m WHERE LTRIM(m."KODE SATKER_str", '0') = LTRIM(COALESCE(CAST(pl.kd_satker_str AS text), t.kd_satker_str), '0') AND m."UNIT KERJA" IS NOT NULL LIMIT 1) AS eselon1,
     pl.status_aktif_rup,
