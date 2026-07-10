@@ -1,4 +1,4 @@
--- Hapus view yang lama terlebih dahulu agar tidak terjadi error bentrok kolom
+/* Hapus view yang lama terlebih dahulu agar tidak terjadi error bentrok kolom */
 DROP VIEW IF EXISTS view_dashboard_pengadaan_langsung;
 
 CREATE OR REPLACE VIEW view_dashboard_pengadaan_langsung AS
@@ -45,7 +45,7 @@ SELECT
     COALESCE(t.total, 0) AS total_transaksional,
     (COALESCE(p.total, 0) + COALESCE(t.total, 0)) AS total,
     
-    -- Kembalikan nama PPK ke asalnya, karena kita akan menarik data dari split_part
+    /* Kembalikan nama PPK ke asalnya, karena kita akan menarik data dari split_part */
     COALESCE(pl.nama_ppk, 'Anomali/Tidak Diketahui') AS nama_ppk,
     COALESCE(pl.nama_satker, t.nama_satker, 'Satker Tidak Diketahui') AS satker,
     (SELECT m."UNIT KERJA" FROM master_data m WHERE LTRIM(m."KODE SATKER_str", '0') = LTRIM(COALESCE(CAST(pl.kd_satker_str AS text), t.kd_satker_str), '0') AND m."UNIT KERJA" IS NOT NULL LIMIT 1) AS eselon1,
@@ -53,10 +53,10 @@ SELECT
     
     COALESCE(t.nama_penyedia, p.nama_penyedia) AS kode_penyedia,
     
-    -- Menambahkan penanda boolean Multiple RUP
+    /* Menambahkan penanda boolean Multiple RUP */
     CASE WHEN g.kd_rup LIKE '%;%' THEN true ELSE false END AS is_multiple_rup,
     
-    -- Penanda apakah RUP ini berasal dari SIRUP (tabel kiri)
+    /* Penanda apakah RUP ini berasal dari SIRUP (tabel kiri) */
     CASE WHEN pl.kd_rup IS NOT NULL THEN true ELSE false END AS is_from_sirup,
     
     CASE 
@@ -64,7 +64,7 @@ SELECT
         ELSE 'BELUM REALISASI'
     END AS status
 FROM gabungan_rup g
--- >>> MENGGUNAKAN SPLIT_PART UNTUK MENGAMBIL RUP PERTAMA SEBAGAI PENGHUBUNG PPK <<<
+/* >>> MENGGUNAKAN SPLIT_PART UNTUK MENGAMBIL RUP PERTAMA SEBAGAI PENGHUBUNG PPK <<< */
 LEFT JOIN view_api_paket_pengadaan_langsung pl ON CAST(pl.kd_rup AS text) = split_part(g.kd_rup, ';', 1)
 LEFT JOIN pencatatan p ON p.kd_rup_paket = g.kd_rup
 LEFT JOIN transaksional t ON t.kd_rup = g.kd_rup;
