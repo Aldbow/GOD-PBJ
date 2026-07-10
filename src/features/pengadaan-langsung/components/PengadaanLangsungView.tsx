@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
@@ -14,10 +14,11 @@ export function PengadaanLangsungView() {
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Drill-down states
+  // Hierarchy State
   const [selectedEselon1, setSelectedEselon1] = useState<string | null>(null);
   const [selectedSatker, setSelectedSatker] = useState<string | null>(null);
   const [selectedPPK, setSelectedPPK] = useState<string | null>(null);
+  const [selectedTipeRup, setSelectedTipeRup] = useState<string | null>(null);
 
   // Modal State
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
@@ -98,24 +99,27 @@ export function PengadaanLangsungView() {
   };
 
   // Base Context (Drill-down filter applied)
-  const baseData = data.filter((p) => {
-    const matchesEselon1 = !selectedEselon1 || (p.eselon1 || 'Tidak Diketahui') === selectedEselon1;
-    const matchesSatker = !selectedSatker || (p.satker || 'Tidak Diketahui') === selectedSatker;
-    const matchesPPK = !selectedPPK || (p.nama_ppk || 'Tidak Diketahui') === selectedPPK;
-    return matchesEselon1 && matchesSatker && matchesPPK;
-  });
+  const baseData = useMemo(() => {
+    let d = data;
+    if (selectedEselon1) d = d.filter(item => (item.eselon1 || 'Tidak Diketahui') === selectedEselon1);
+    if (selectedSatker) d = d.filter(item => (item.satker || 'Tidak Diketahui') === selectedSatker);
+    if (selectedPPK) d = d.filter(item => (item.nama_ppk || 'Tidak Diketahui') === selectedPPK);
+    if (selectedTipeRup) d = d.filter(item => (item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP') === selectedTipeRup);
+    return d;
+  }, [data, selectedEselon1, selectedSatker, selectedPPK, selectedTipeRup]);
 
-  const filteredData = baseData.filter((p) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      (p.rup_name && p.rup_name.toLowerCase().includes(query)) ||
-      (p.kd_rup && String(p.kd_rup).toLowerCase().includes(query)) ||
-      (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(query)) ||
-      (p.satker && p.satker.toLowerCase().includes(query)) ||
-      (p.eselon1 && p.eselon1.toLowerCase().includes(query)) ||
-      (p.nama_ppk && p.nama_ppk.toLowerCase().includes(query));
-    return matchesSearch;
-  });
+  const filteredData = useMemo(() => {
+    if (!searchQuery) return baseData;
+    const q = searchQuery.toLowerCase();
+    return baseData.filter(p => 
+      (p.rup_name && p.rup_name.toLowerCase().includes(q)) ||
+      (p.kd_rup && String(p.kd_rup).toLowerCase().includes(q)) ||
+      (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(q)) ||
+      (p.satker && p.satker.toLowerCase().includes(q)) ||
+      (p.eselon1 && p.eselon1.toLowerCase().includes(q)) ||
+      (p.nama_ppk && p.nama_ppk.toLowerCase().includes(q))
+    );
+  }, [baseData, searchQuery]);
 
   const totalPagu = data.reduce((s, d) => s + (Number(d.pagu) || 0), 0);
   
@@ -175,6 +179,17 @@ export function PengadaanLangsungView() {
       groups[key].count += 1;
     });
     groupedData = sortGroupedData(groups);
+  } else if (!selectedTipeRup) {
+    viewMode = 'TIPE_RUP';
+    const groups: Record<string, any> = {};
+    filteredData.forEach(p => {
+      const key = p.is_multiple_rup ? 'Multiple RUP' : 'Single RUP';
+      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
+      groups[key].totalPagu += (Number(p.pagu) || 0);
+      groups[key].totalRealisasi += (Number(p.total) || 0);
+      groups[key].count += 1;
+    });
+    groupedData = sortGroupedData(groups);
   } else {
     viewMode = 'PAKET';
   }
@@ -183,6 +198,7 @@ export function PengadaanLangsungView() {
     if (viewMode === 'ESELON1') setSelectedEselon1(name);
     else if (viewMode === 'SATKER') setSelectedSatker(name);
     else if (viewMode === 'PPK') setSelectedPPK(name);
+    else if (viewMode === 'TIPE_RUP') setSelectedTipeRup(name);
   };
 
   const handleBreadcrumbClick = (level: string) => {
@@ -190,11 +206,16 @@ export function PengadaanLangsungView() {
       setSelectedEselon1(null);
       setSelectedSatker(null);
       setSelectedPPK(null);
+      setSelectedTipeRup(null);
     } else if (level === 'ESELON1') {
       setSelectedSatker(null);
       setSelectedPPK(null);
+      setSelectedTipeRup(null);
     } else if (level === 'SATKER') {
       setSelectedPPK(null);
+      setSelectedTipeRup(null);
+    } else if (level === 'PPK') {
+      setSelectedTipeRup(null);
     }
   };
 
@@ -203,7 +224,7 @@ export function PengadaanLangsungView() {
   const itemsPerPage = 10;
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedEselon1, selectedSatker, selectedPPK]);
+  }, [searchQuery, selectedEselon1, selectedSatker, selectedPPK, selectedTipeRup]);
 
   const sortedPackages = [...filteredData].sort((a, b) => (Number(b.pagu) || 0) - (Number(a.pagu) || 0));
 
