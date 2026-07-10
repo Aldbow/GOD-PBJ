@@ -259,6 +259,39 @@ export function PengadaanLangsungView() {
     );
   };
 
+  const renderVerticalHierarchyCard = (item: { name: string; totalPagu: number; totalRealisasi: number; count: number }, type: 'Satker' | 'PPK') => {
+    return (
+      <motion.div
+        key={item.name}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ scale: 1.01, borderColor: 'var(--info-600)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+        transition={{ duration: 0.15 }}
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 16px', cursor: 'pointer', willChange: 'transform', display: 'flex', flexDirection: 'column', gap: 8 }}
+        onClick={() => handleGroupClick(item.name)}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>{item.name}</p>
+          <Badge variant="outline" style={{ background: 'var(--bg-page)', color: 'var(--text-secondary)' }}>
+            {item.count} Paket
+          </Badge>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span>Level: <strong style={{ color: 'var(--text-primary)' }}>{type}</strong></span>
+            <span>Pagu: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{fmtRupiah(item.totalPagu)}</strong></span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span>Realisasi: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-600)' }}>{fmtRupiah(item.totalRealisasi)}</strong></span>
+            <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-700)', background: 'var(--teal-100)', padding: '2px 8px', borderRadius: 4 }}>
+              {item.totalPagu > 0 ? ((item.totalRealisasi / item.totalPagu) * 100).toFixed(1) : 0}%
+            </strong>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       <div style={{ marginBottom: 20 }}>
@@ -422,10 +455,16 @@ export function PengadaanLangsungView() {
           </div>
 
           {/* Render Detail Cards for Eselon1/Satker/PPK or Vertical Cards for Pakets */}
-          {viewMode !== 'PAKET' ? (
+          {viewMode === 'ESELON1' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16, paddingBottom: 40 }}>
               <AnimatePresence>
                 {groupedData.map(item => renderHierarchyCard(item))}
+              </AnimatePresence>
+            </div>
+          ) : viewMode === 'SATKER' || viewMode === 'PPK' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 40 }}>
+              <AnimatePresence>
+                {groupedData.map(item => renderVerticalHierarchyCard(item, viewMode === 'SATKER' ? 'Satker' : 'PPK'))}
               </AnimatePresence>
             </div>
           ) : (
