@@ -15,6 +15,7 @@ export function Sidebar() {
     { name: 'Tampilan PPK', href: '/ppk', icon: <Users size={18} /> },
     { name: 'Drill-down satker', href: '/drilldown', icon: <Component size={18} /> },
     { name: 'Realisasi E-Purchasing V6', href: '/epurchasing', icon: <ShoppingCart size={18} /> },
+    { name: 'Realisasi Pengadaan Langsung', href: '/pengadaan-langsung', icon: <Package size={18} /> },
     { name: 'Realisasi Swakelola', href: '/swakelola', icon: <Package size={18} /> },
   ];
 
