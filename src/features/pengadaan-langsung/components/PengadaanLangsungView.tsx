@@ -22,6 +22,34 @@ export function PengadaanLangsungView() {
   // Modal State
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // History State
+  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Fetch History Effect
+  useEffect(() => {
+    if (selectedItem) {
+      const fetchHistory = async () => {
+        setLoadingHistory(true);
+        try {
+          const { data, error } = await supabase.rpc('get_rup_history', {
+            p_kd_rup: selectedItem.kd_rup
+          });
+          if (error) throw error;
+          setHistoryData(data || []);
+        } catch (e) {
+          console.error("Failed to fetch history", e);
+          setHistoryData([]);
+        } finally {
+          setLoadingHistory(false);
+        }
+      };
+      fetchHistory();
+    } else {
+      setHistoryData([]);
+    }
+  }, [selectedItem]);
 
   useEffect(() => {
     async function fetchData() {
@@ -561,9 +589,10 @@ export function PengadaanLangsungView() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div>
               <h3 style={{ margin: '0 0 8px', fontSize: 18, color: 'var(--text-primary)', lineHeight: 1.4 }}>{selectedItem.rup_name}</h3>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
-                Penyedia: <strong style={{ color: 'var(--text-primary)' }}>{selectedItem.kode_penyedia || '-'}</strong>
-              </p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>Penyedia (Kontraktor)</p>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 16px' }}>
+                <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: 'var(--text-primary)' }}>{selectedItem.kode_penyedia || 'Tidak Diketahui'}</p>
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, background: 'var(--bg-page)', padding: 16, borderRadius: 'var(--radius-lg)' }}>
@@ -589,6 +618,56 @@ export function PengadaanLangsungView() {
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Status Aktif RUP: {selectedItem.status_aktif_rup === true ? 'Aktif' : 'Tidak / N/A'}</p>
             </div>
             
+            {/* History Section */}
+            <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <h4 style={{ fontSize: 14, margin: '0 0 16px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                Riwayat Kaji Ulang RUP
+                {loadingHistory && <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 400 }}>Memuat...</span>}
+              </h4>
+              
+              {!loadingHistory && historyData.length === 0 ? (
+                <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>
+                  Tidak ada riwayat kaji ulang (perubahan) untuk RUP ini.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
+                  {historyData.map((hist, index) => {
+                    const isLast = index === historyData.length - 1;
+                    return (
+                      <div key={index} style={{ display: 'flex', gap: 16, position: 'relative' }}>
+                        {/* Timeline Graphic */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24, flexShrink: 0 }}>
+                          <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--teal-500)', zIndex: 1, border: '2px solid var(--surface)' }} />
+                          {!isLast && <div style={{ width: 2, flex: 1, background: 'var(--border)', margin: '4px 0' }} />}
+                        </div>
+                        
+                        {/* Content */}
+                        <div style={{ paddingBottom: isLast ? 0 : 20, flex: 1 }}>
+                          <div style={{ background: 'var(--bg-page)', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                              <Badge variant="default">{hist.jenis_revisi}</Badge>
+                              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                                {new Date(hist.tgl_kaji_ulang).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                            
+                            <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: '0 0 6px', fontWeight: 500 }}>
+                              RUP {hist.kd_rup_lama} ➔ <span style={{ color: 'var(--teal-600)' }}>RUP {hist.kd_rup_baru}</span>
+                            </p>
+                            
+                            {hist.alasan_kajiulang && (
+                              <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, fontStyle: 'italic', background: 'var(--surface)', padding: '6px 10px', borderRadius: '4px' }}>
+                                "{hist.alasan_kajiulang}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </Modal>
