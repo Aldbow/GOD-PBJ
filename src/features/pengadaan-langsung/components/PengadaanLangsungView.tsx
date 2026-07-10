@@ -134,8 +134,10 @@ export function PengadaanLangsungView() {
   const persentase = contextPagu > 0 ? ((contextRealisasi / contextPagu) * 100).toFixed(1) : '0.0';
   const persentaseBelumRealisasi = contextPagu > 0 ? ((contextBelumRealisasi / contextPagu) * 100).toFixed(1) : '0.0';
 
-  const totalPaket = filteredData.length;
-  const paketSelesai = filteredData.filter(p => (Number(p.total) || 0) > 0).length;
+  const countRup = (kd_rup: any) => String(kd_rup || '').split(';').length;
+
+  const totalPaket = filteredData.reduce((sum, p) => sum + countRup(p.kd_rup), 0);
+  const paketSelesai = filteredData.filter(p => (Number(p.total) || 0) > 0).reduce((sum, p) => sum + countRup(p.kd_rup), 0);
   const paketBelumSelesai = totalPaket - paketSelesai;
 
   // Hierarchical Data Grouping
@@ -154,7 +156,7 @@ export function PengadaanLangsungView() {
       if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
       groups[key].totalPagu += (Number(p.pagu) || 0);
       groups[key].totalRealisasi += (Number(p.total) || 0);
-      groups[key].count += 1;
+      groups[key].count += countRup(p.kd_rup);
     });
     groupedData = sortGroupedData(groups);
   } else if (!selectedSatker) {
@@ -165,7 +167,7 @@ export function PengadaanLangsungView() {
       if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
       groups[key].totalPagu += (Number(p.pagu) || 0);
       groups[key].totalRealisasi += (Number(p.total) || 0);
-      groups[key].count += 1;
+      groups[key].count += countRup(p.kd_rup);
     });
     groupedData = sortGroupedData(groups);
   } else if (!selectedPPK) {
@@ -176,7 +178,7 @@ export function PengadaanLangsungView() {
       if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
       groups[key].totalPagu += (Number(p.pagu) || 0);
       groups[key].totalRealisasi += (Number(p.total) || 0);
-      groups[key].count += 1;
+      groups[key].count += countRup(p.kd_rup);
     });
     groupedData = sortGroupedData(groups);
   } else if (!selectedTipeRup) {
@@ -187,7 +189,7 @@ export function PengadaanLangsungView() {
       if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
       groups[key].totalPagu += (Number(p.pagu) || 0);
       groups[key].totalRealisasi += (Number(p.total) || 0);
-      groups[key].count += 1;
+      groups[key].count += countRup(p.kd_rup);
     });
     groupedData = sortGroupedData(groups);
   } else {
@@ -324,7 +326,7 @@ export function PengadaanLangsungView() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>{item.name}</p>
           <Badge variant="outline" style={{ background: 'var(--bg-page)', color: 'var(--text-secondary)' }}>
-            {item.count} Paket
+            {item.count} RUP
           </Badge>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)', flexWrap: 'wrap', gap: 8 }}>
@@ -467,7 +469,7 @@ export function PengadaanLangsungView() {
                     <Package size={24} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Total Seluruh Paket</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Total Seluruh RUP</p>
                     <p style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{totalPaket}</p>
                   </div>
                 </motion.div>
