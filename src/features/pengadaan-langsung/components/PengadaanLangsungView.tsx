@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Wallet, TrendingUp, ListTodo, Search, CheckCircle2, Clock } from 'lucide-react';
+import { Package, Wallet, TrendingUp, ListTodo, Search, CheckCircle2, Clock, FileText, CreditCard } from 'lucide-react';
 
 export function PengadaanLangsungView() {
   const [data, setData] = useState<any[]>([]);
@@ -95,6 +95,8 @@ export function PengadaanLangsungView() {
   // Let's make summary cards absolute (top-level) or contextual. Usually contextual to filteredData.
   const contextPagu = baseData.reduce((s, d) => s + (Number(d.pagu) || 0), 0);
   const contextRealisasi = filteredData.reduce((s, d) => s + (Number(d.total) || 0), 0);
+  const contextRealisasiPencatatan = filteredData.reduce((s, d) => s + (Number(d.total_pencatatan) || 0), 0);
+  const contextRealisasiTransaksional = filteredData.reduce((s, d) => s + (Number(d.total_transaksional) || 0), 0);
   const contextBelumRealisasi = Math.max(0, contextPagu - contextRealisasi);
 
   const persentase = contextPagu > 0 ? ((contextRealisasi / contextPagu) * 100).toFixed(1) : '0.0';
@@ -358,11 +360,31 @@ export function PengadaanLangsungView() {
                     <TrendingUp size={24} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Total Realisasi</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Total Realisasi Keseluruhan</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <p style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextRealisasi)}</p>
                       <Badge variant="default" style={{ background: 'var(--teal-100)', color: 'var(--teal-700)', border: 'none', padding: '2px 8px' }}>{persentase}%</Badge>
                     </div>
+                  </div>
+                </motion.div>
+
+                <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', borderLeft: '4px solid var(--indigo-500)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--indigo-100)', color: 'var(--indigo-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileText size={24} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Realisasi Pencatatan</p>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextRealisasiPencatatan)}</p>
+                  </div>
+                </motion.div>
+
+                <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', borderLeft: '4px solid var(--purple-500)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--purple-100)', color: 'var(--purple-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <CreditCard size={24} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Realisasi Transaksional</p>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextRealisasiTransaksional)}</p>
                   </div>
                 </motion.div>
 
