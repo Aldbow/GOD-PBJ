@@ -14,6 +14,11 @@ export function PengadaanLangsungView() {
 
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Drill-down states
+  const [selectedEselon1, setSelectedEselon1] = useState<string | null>(null);
+  const [selectedSatker, setSelectedSatker] = useState<string | null>(null);
+  const [selectedPPK, setSelectedPPK] = useState<string | null>(null);
+
   // Modal State
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,34 +69,111 @@ export function PengadaanLangsungView() {
     return 'Rp ' + m.toLocaleString('id-ID');
   };
 
-  const filteredData = data.filter((p) => {
+  // Base Context (Drill-down filter applied)
+  const baseData = data.filter((p) => {
+    const matchesEselon1 = !selectedEselon1 || (p.eselon1 || 'Tidak Diketahui') === selectedEselon1;
+    const matchesSatker = !selectedSatker || (p.satker || 'Tidak Diketahui') === selectedSatker;
+    const matchesPPK = !selectedPPK || (p.nama_ppk || 'Tidak Diketahui') === selectedPPK;
+    return matchesEselon1 && matchesSatker && matchesPPK;
+  });
+
+  const filteredData = baseData.filter((p) => {
     const query = searchQuery.toLowerCase();
     const matchesSearch =
       (p.rup_name && p.rup_name.toLowerCase().includes(query)) ||
       (p.kd_rup && String(p.kd_rup).toLowerCase().includes(query)) ||
       (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(query)) ||
       (p.satker && p.satker.toLowerCase().includes(query)) ||
+      (p.eselon1 && p.eselon1.toLowerCase().includes(query)) ||
       (p.nama_ppk && p.nama_ppk.toLowerCase().includes(query));
     return matchesSearch;
   });
 
   const totalPagu = data.reduce((s, d) => s + (Number(d.pagu) || 0), 0);
-  const totalRealisasi = data.reduce((s, d) => s + (Number(d.total) || 0), 0);
-  const totalBelumRealisasi = Math.max(0, totalPagu - totalRealisasi);
+  
+  // Realisasi and Summary calculated relative to current view or total? 
+  // Let's make summary cards absolute (top-level) or contextual. Usually contextual to filteredData.
+  const contextPagu = baseData.reduce((s, d) => s + (Number(d.pagu) || 0), 0);
+  const contextRealisasi = filteredData.reduce((s, d) => s + (Number(d.total) || 0), 0);
+  const contextBelumRealisasi = Math.max(0, contextPagu - contextRealisasi);
 
-  const persentase = totalPagu > 0 ? ((totalRealisasi / totalPagu) * 100).toFixed(1) : '0.0';
-  const persentaseBelumRealisasi = totalPagu > 0 ? ((totalBelumRealisasi / totalPagu) * 100).toFixed(1) : '0.0';
+  const persentase = contextPagu > 0 ? ((contextRealisasi / contextPagu) * 100).toFixed(1) : '0.0';
+  const persentaseBelumRealisasi = contextPagu > 0 ? ((contextBelumRealisasi / contextPagu) * 100).toFixed(1) : '0.0';
 
-  const totalPaket = data.length;
-  const paketSelesai = data.filter(p => (Number(p.total) || 0) > 0).length;
+  const totalPaket = filteredData.length;
+  const paketSelesai = filteredData.filter(p => (Number(p.total) || 0) > 0).length;
   const paketBelumSelesai = totalPaket - paketSelesai;
+
+  // Hierarchical Data Grouping
+  let groupedData: { name: string; totalPagu: number; totalRealisasi: number; count: number }[] = [];
+  let viewMode = 'ESELON1'; // ESELON1, SATKER, PPK, PAKET
+
+  const sortGroupedData = (groups: Record<string, any>) => {
+    return Object.values(groups).sort((a, b) => b.totalPagu - a.totalPagu);
+  };
+
+  if (!selectedEselon1) {
+    viewMode = 'ESELON1';
+    const groups: Record<string, any> = {};
+    filteredData.forEach(p => {
+      const key = p.eselon1 || 'Tidak Diketahui';
+      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
+      groups[key].totalPagu += (Number(p.pagu) || 0);
+      groups[key].totalRealisasi += (Number(p.total) || 0);
+      groups[key].count += 1;
+    });
+    groupedData = sortGroupedData(groups);
+  } else if (!selectedSatker) {
+    viewMode = 'SATKER';
+    const groups: Record<string, any> = {};
+    filteredData.forEach(p => {
+      const key = p.satker || 'Tidak Diketahui';
+      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
+      groups[key].totalPagu += (Number(p.pagu) || 0);
+      groups[key].totalRealisasi += (Number(p.total) || 0);
+      groups[key].count += 1;
+    });
+    groupedData = sortGroupedData(groups);
+  } else if (!selectedPPK) {
+    viewMode = 'PPK';
+    const groups: Record<string, any> = {};
+    filteredData.forEach(p => {
+      const key = p.nama_ppk || 'Tidak Diketahui';
+      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
+      groups[key].totalPagu += (Number(p.pagu) || 0);
+      groups[key].totalRealisasi += (Number(p.total) || 0);
+      groups[key].count += 1;
+    });
+    groupedData = sortGroupedData(groups);
+  } else {
+    viewMode = 'PAKET';
+  }
+
+  const handleGroupClick = (name: string) => {
+    if (viewMode === 'ESELON1') setSelectedEselon1(name);
+    else if (viewMode === 'SATKER') setSelectedSatker(name);
+    else if (viewMode === 'PPK') setSelectedPPK(name);
+  };
+
+  const handleBreadcrumbClick = (level: string) => {
+    if (level === 'ALL') {
+      setSelectedEselon1(null);
+      setSelectedSatker(null);
+      setSelectedPPK(null);
+    } else if (level === 'ESELON1') {
+      setSelectedSatker(null);
+      setSelectedPPK(null);
+    } else if (level === 'SATKER') {
+      setSelectedPPK(null);
+    }
+  };
 
   // Pagination for Paket view
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, selectedEselon1, selectedSatker, selectedPPK]);
 
   const sortedPackages = [...filteredData].sort((a, b) => (Number(b.pagu) || 0) - (Number(a.pagu) || 0));
 
@@ -105,6 +187,76 @@ export function PengadaanLangsungView() {
   
   const handlePrevPage = () => {
     if (currentPage > 1) setCurrentPage(p => p - 1);
+  };
+
+  const renderHierarchyCard = (item: { name: string; totalPagu: number; totalRealisasi: number; count: number }) => {
+    const pct = item.totalPagu > 0 ? (item.totalRealisasi / item.totalPagu) * 100 : 0;
+    const clampedPct = Math.min(Math.max(pct, 0), 100);
+    const sisaPagu = Math.max(item.totalPagu - item.totalRealisasi, 0);
+    
+    const themeColor = clampedPct > 75 ? '#06b6d4' : clampedPct > 40 ? '#f97316' : '#ef4444'; 
+    const glowColor = clampedPct > 75 ? 'rgba(6, 182, 212, 0.4)' : clampedPct > 40 ? 'rgba(249, 115, 22, 0.4)' : 'rgba(239, 68, 68, 0.4)';
+    const bgTint = clampedPct > 75 ? 'rgba(6, 182, 212, 0.03)' : clampedPct > 40 ? 'rgba(249, 115, 22, 0.03)' : 'rgba(239, 68, 68, 0.03)';
+
+    return (
+      <motion.div
+        key={item.name}
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ scale: 1.01, y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
+        transition={{ duration: 0.2 }}
+        style={{ 
+          background: `linear-gradient(135deg, var(--surface) 40%, ${bgTint})`, 
+          border: '1px solid var(--border)', 
+          borderRadius: '12px', 
+          padding: '14px 16px', 
+          cursor: 'pointer', 
+          willChange: 'transform',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+        onClick={() => handleGroupClick(item.name)}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.2px', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 12 }} title={item.name}>{item.name}</h3>
+          <span style={{ background: 'var(--bg-page)', color: 'var(--text-secondary)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: '20px', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{item.count} Paket</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ position: 'relative', flex: 1, height: 6, background: 'var(--gray-200)', borderRadius: 3, overflow: 'hidden' }}>
+            <div 
+              style={{ 
+                height: '100%', 
+                width: `${clampedPct}%`, 
+                background: themeColor,
+                boxShadow: `0 0 8px ${glowColor}`,
+                borderRadius: 3,
+                transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' 
+              }} 
+            />
+          </div>
+          <span style={{ color: themeColor, fontSize: 13, fontWeight: 700, width: '40px', textAlign: 'right' }}>{pct.toFixed(1)}%</span>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'var(--bg-page)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 600, display: 'block', marginBottom: 2 }}>Pagu</span>
+            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-primary)' }}>{fmtRupiah(item.totalPagu)}</strong>
+          </div>
+          <div style={{ flex: 1, borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 600, display: 'block', marginBottom: 2 }}>Realisasi</span>
+            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: themeColor, textShadow: `0 0 8px ${glowColor}` }}>{fmtRupiah(item.totalRealisasi)}</strong>
+          </div>
+          <div style={{ flex: 1, borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 600, display: 'block', marginBottom: 2 }}>Sisa</span>
+            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)' }}>{fmtRupiah(sisaPagu)}</strong>
+          </div>
+        </div>
+      </motion.div>
+    );
   };
 
   return (
@@ -124,6 +276,31 @@ export function PengadaanLangsungView() {
         <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat data dari Supabase...</p>
       ) : (
         <>
+          {/* Breadcrumbs */}
+          {selectedEselon1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 13, color: 'var(--text-secondary)' }}>
+              <button onClick={() => handleBreadcrumbClick('ALL')} style={{ background: 'none', border: 'none', color: 'var(--info-600)', cursor: 'pointer', padding: 0, fontWeight: 500 }}>Semua Eselon 1</button>
+              <span>/</span>
+              {selectedSatker ? (
+                <>
+                  <button onClick={() => handleBreadcrumbClick('ESELON1')} style={{ background: 'none', border: 'none', color: 'var(--info-600)', cursor: 'pointer', padding: 0, fontWeight: 500 }}>{selectedEselon1}</button>
+                  <span>/</span>
+                  {selectedPPK ? (
+                    <>
+                      <button onClick={() => handleBreadcrumbClick('SATKER')} style={{ background: 'none', border: 'none', color: 'var(--info-600)', cursor: 'pointer', padding: 0, fontWeight: 500 }}>{selectedSatker}</button>
+                      <span>/</span>
+                      <span style={{ color: 'var(--text-primary)' }}>{selectedPPK}</span>
+                    </>
+                  ) : (
+                    <span style={{ color: 'var(--text-primary)' }}>{selectedSatker}</span>
+                  )}
+                </>
+              ) : (
+                <span style={{ color: 'var(--text-primary)' }}>{selectedEselon1}</span>
+              )}
+            </div>
+          )}
+
           {/* Summary Cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginBottom: 32 }}>
             <div>
@@ -139,7 +316,7 @@ export function PengadaanLangsungView() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Total Anggaran (Pagu)</p>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(totalPagu)}</p>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextPagu)}</p>
                   </div>
                 </motion.div>
 
@@ -150,7 +327,7 @@ export function PengadaanLangsungView() {
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Total Realisasi</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(totalRealisasi)}</p>
+                      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextRealisasi)}</p>
                       <Badge variant="default" style={{ background: 'var(--teal-100)', color: 'var(--teal-700)', border: 'none', padding: '2px 8px' }}>{persentase}%</Badge>
                     </div>
                   </div>
@@ -163,7 +340,7 @@ export function PengadaanLangsungView() {
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Sisa Anggaran</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(totalBelumRealisasi)}</p>
+                      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextBelumRealisasi)}</p>
                       <Badge variant="default" style={{ background: 'var(--amber-100)', color: 'var(--amber-700)', border: 'none', padding: '2px 8px' }}>{persentaseBelumRealisasi}%</Badge>
                     </div>
                   </div>
@@ -220,7 +397,7 @@ export function PengadaanLangsungView() {
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, border: '1px solid var(--border)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Progres Penyerapan Anggaran</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Total Pagu: {fmtRupiah(totalPagu)}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Total Pagu: {fmtRupiah(contextPagu)}</span>
               </div>
               <div style={{ height: 12, background: 'var(--bg-page)', borderRadius: 6, overflow: 'hidden', display: 'flex', border: '1px solid var(--border)' }}>
                 <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, Number(persentase))}%` }} transition={{ duration: 1 }} style={{ background: 'var(--teal-600)', height: '100%' }} />
@@ -244,68 +421,76 @@ export function PengadaanLangsungView() {
             />
           </div>
 
-          {/* Vertical Cards for Pakets */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {currentData.map((p, i) => (
-              <motion.div
-                key={p.kd_rup || i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.01, borderColor: 'var(--info-600)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-                transition={{ duration: 0.15 }}
-                style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', willChange: 'transform', display: 'flex', flexDirection: 'column', gap: 6 }}
-                onClick={() => { setSelectedItem(p); setIsModalOpen(true); }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }} title={p.rup_name}>{p.rup_name}</p>
-                  <Badge variant={(Number(p.total) || 0) > 0 ? 'rendah' : 'sedang'} style={{ padding: '2px 6px', fontSize: 9 }}>
-                    {(Number(p.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI'}
-                  </Badge>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--text-secondary)', flexWrap: 'wrap', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, background: 'var(--bg-page)', padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)' }} title="Kode RUP">RUP: {p.kd_rup || '-'}</span>
-                    <span>Pagu: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{fmtRupiah(Number(p.pagu))}</strong></span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span>Realisasi: <strong style={{ fontFamily: 'var(--font-mono)', color: ((Number(p.total) || 0) > (Number(p.pagu) || 0)) ? 'var(--red-600)' : 'var(--text-primary)' }}>{fmtRupiah(Number(p.total))}</strong></span>
-                    <strong style={{ fontFamily: 'var(--font-mono)', color: ((Number(p.total) || 0) > (Number(p.pagu) || 0)) ? 'var(--red-600)' : 'var(--teal-700)', background: ((Number(p.total) || 0) > (Number(p.pagu) || 0)) ? 'var(--red-100)' : 'var(--teal-100)', padding: '2px 6px', borderRadius: 4 }}>
-                      {Number(p.pagu) > 0 ? ((Number(p.total) / Number(p.pagu)) * 100).toFixed(1) : 0}%
-                    </strong>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-            
-            {sortedPackages.length === 0 && (
-              <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-tertiary)', border: '1px dashed var(--border)', borderRadius: 8 }}>
-                Tidak ada data ditemukan
-              </div>
-            )}
-            
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
-                <button 
-                  onClick={handlePrevPage} 
-                  disabled={currentPage === 1}
-                  style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === 1 ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
+          {/* Render Detail Cards for Eselon1/Satker/PPK or Vertical Cards for Pakets */}
+          {viewMode !== 'PAKET' ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16, paddingBottom: 40 }}>
+              <AnimatePresence>
+                {groupedData.map(item => renderHierarchyCard(item))}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {currentData.map((p, i) => (
+                <motion.div
+                  key={p.kd_rup || i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ scale: 1.01, borderColor: 'var(--info-600)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                  transition={{ duration: 0.15 }}
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', willChange: 'transform', display: 'flex', flexDirection: 'column', gap: 6 }}
+                  onClick={() => { setSelectedItem(p); setIsModalOpen(true); }}
                 >
-                  Sebelumnya
-                </button>
-                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  Halaman <strong style={{ color: 'var(--text-primary)' }}>{currentPage}</strong> dari {totalPages}
-                </span>
-                <button 
-                  onClick={handleNextPage} 
-                  disabled={currentPage === totalPages}
-                  style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === totalPages ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
-                >
-                  Selanjutnya
-                </button>
-              </div>
-            )}
-          </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }} title={p.rup_name}>{p.rup_name}</p>
+                    <Badge variant={(Number(p.total) || 0) > 0 ? 'rendah' : 'sedang'} style={{ padding: '2px 6px', fontSize: 9 }}>
+                      {(Number(p.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI'}
+                    </Badge>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--text-secondary)', flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, background: 'var(--bg-page)', padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)' }} title="Kode RUP">RUP: {p.kd_rup || '-'}</span>
+                      <span>Pagu: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{fmtRupiah(Number(p.pagu))}</strong></span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span>Realisasi: <strong style={{ fontFamily: 'var(--font-mono)', color: ((Number(p.total) || 0) > (Number(p.pagu) || 0)) ? 'var(--red-600)' : 'var(--text-primary)' }}>{fmtRupiah(Number(p.total))}</strong></span>
+                      <strong style={{ fontFamily: 'var(--font-mono)', color: ((Number(p.total) || 0) > (Number(p.pagu) || 0)) ? 'var(--red-600)' : 'var(--teal-700)', background: ((Number(p.total) || 0) > (Number(p.pagu) || 0)) ? 'var(--red-100)' : 'var(--teal-100)', padding: '2px 6px', borderRadius: 4 }}>
+                        {Number(p.pagu) > 0 ? ((Number(p.total) / Number(p.pagu)) * 100).toFixed(1) : 0}%
+                      </strong>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+              
+              {sortedPackages.length === 0 && (
+                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-tertiary)', border: '1px dashed var(--border)', borderRadius: 8 }}>
+                  Tidak ada data ditemukan
+                </div>
+              )}
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
+                  <button 
+                    onClick={handlePrevPage} 
+                    disabled={currentPage === 1}
+                    style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === 1 ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
+                  >
+                    Sebelumnya
+                  </button>
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                    Halaman <strong style={{ color: 'var(--text-primary)' }}>{currentPage}</strong> dari {totalPages}
+                  </span>
+                  <button 
+                    onClick={handleNextPage} 
+                    disabled={currentPage === totalPages}
+                    style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === totalPages ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
+                  >
+                    Selanjutnya
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -329,6 +514,7 @@ export function PengadaanLangsungView() {
 
             <div>
               <h4 style={{ fontSize: 14, margin: '0 0 8px', color: 'var(--text-primary)' }}>Informasi Instansi & Satker</h4>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Eselon 1: {selectedItem.eselon1 || '-'}</p>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Satuan Kerja: {selectedItem.satker || '-'}</p>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>PPK: {selectedItem.nama_ppk || '-'}</p>
             </div>
