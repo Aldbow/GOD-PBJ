@@ -310,7 +310,7 @@ export function PengadaanLangsungView() {
     );
   };
 
-  const renderVerticalHierarchyCard = (item: { name: string; totalPagu: number; totalRealisasi: number; count: number }, type: 'Satker' | 'PPK') => {
+  const renderVerticalHierarchyCard = (item: { name: string; totalPagu: number; totalRealisasi: number; count: number }, type: 'Satker' | 'PPK' | 'Tipe RUP') => {
     return (
       <motion.div
         key={item.name}
@@ -532,10 +532,10 @@ export function PengadaanLangsungView() {
                 {groupedData.map(item => renderHierarchyCard(item))}
               </AnimatePresence>
             </div>
-          ) : viewMode === 'SATKER' || viewMode === 'PPK' ? (
+          ) : viewMode === 'SATKER' || viewMode === 'PPK' || viewMode === 'TIPE_RUP' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 40 }}>
               <AnimatePresence>
-                {groupedData.map(item => renderVerticalHierarchyCard(item, viewMode === 'SATKER' ? 'Satker' : 'PPK'))}
+                {groupedData.map(item => renderVerticalHierarchyCard(item, viewMode === 'SATKER' ? 'Satker' : viewMode === 'PPK' ? 'PPK' : 'Tipe RUP'))}
               </AnimatePresence>
             </div>
           ) : (
