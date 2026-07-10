@@ -47,7 +47,7 @@ SELECT
     
     COALESCE(pl.nama_ppk, 'Anomali/Tidak Diketahui') AS nama_ppk,
     COALESCE(pl.nama_satker, t.nama_satker, 'Satker Tidak Diketahui') AS satker,
-    (SELECT m."UNIT KERJA" FROM master_data m WHERE m."KODE SATKER_str" = COALESCE(CAST(pl.kd_satker_str AS text), t.kd_satker_str) AND m."UNIT KERJA" IS NOT NULL LIMIT 1) AS eselon1,
+    (SELECT m."UNIT KERJA" FROM master_data m WHERE CAST(m."KODE SATKER_str" AS bigint) = CAST(COALESCE(CAST(pl.kd_satker_str AS text), t.kd_satker_str) AS bigint) AND m."UNIT KERJA" IS NOT NULL LIMIT 1) AS eselon1,
     pl.status_aktif_rup,
     
     COALESCE(t.nama_penyedia, p.nama_penyedia) AS kode_penyedia,
