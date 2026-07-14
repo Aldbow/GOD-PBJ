@@ -14,6 +14,7 @@ export function PengadaanLangsungView() {
   const [error, setError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMetode, setSelectedMetode] = useState<string>('Semua');
 
   // Hierarchy State from URL
   const router = useRouter();
@@ -110,8 +111,9 @@ export function PengadaanLangsungView() {
     if (selectedSatker) d = d.filter(item => (item.satker || 'Tidak Diketahui') === selectedSatker);
     if (selectedPPK) d = d.filter(item => (item.nama_ppk || 'Tidak Diketahui') === selectedPPK);
     if (selectedTipeRup) d = d.filter(item => (item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP') === selectedTipeRup);
+    if (selectedMetode !== 'Semua') d = d.filter(item => item.metode_pengadaan === selectedMetode);
     return d;
-  }, [data, selectedEselon1, selectedSatker, selectedPPK, selectedTipeRup]);
+  }, [data, selectedEselon1, selectedSatker, selectedPPK, selectedTipeRup, selectedMetode]);
 
   const filteredData = useMemo(() => {
     if (!searchQuery) return baseData;
@@ -245,7 +247,7 @@ export function PengadaanLangsungView() {
   const itemsPerPage = 10;
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedEselon1, selectedSatker, selectedPPK, selectedTipeRup]);
+  }, [searchQuery, selectedEselon1, selectedSatker, selectedPPK, selectedTipeRup, selectedMetode]);
 
   const sortedPackages = [...filteredData].sort((a, b) => (Number(b.pagu) || 0) - (Number(a.pagu) || 0));
 
@@ -535,7 +537,7 @@ export function PengadaanLangsungView() {
             </div>
           </div>
 
-          {/* Search */}
+          {/* Search and Filter */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
             <input
               type="text"
@@ -544,6 +546,15 @@ export function PengadaanLangsungView() {
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ flex: '1 1 300px', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
             />
+            <select
+              value={selectedMetode}
+              onChange={(e) => setSelectedMetode(e.target.value)}
+              style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', cursor: 'pointer' }}
+            >
+              <option value="Semua">Semua Metode</option>
+              <option value="Pengadaan Langsung">Pengadaan Langsung</option>
+              <option value="Dikecualikan">Dikecualikan</option>
+            </select>
           </div>
 
           {/* Render Detail Cards for Eselon1/Satker/PPK or Vertical Cards for Pakets */}
@@ -573,9 +584,14 @@ export function PengadaanLangsungView() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }} title={p.rup_name}>{p.rup_name}</p>
-                    <Badge variant={(Number(p.total) || 0) > 0 ? 'rendah' : 'sedang'} style={{ padding: '2px 6px', fontSize: 9 }}>
-                      {(Number(p.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI'}
-                    </Badge>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Badge variant="default" style={{ padding: '2px 6px', fontSize: 9, background: p.metode_pengadaan === 'Dikecualikan' ? 'var(--amber-100)' : 'var(--info-100)', color: p.metode_pengadaan === 'Dikecualikan' ? 'var(--amber-700)' : 'var(--info-700)', border: 'none' }}>
+                        {p.metode_pengadaan || 'Pengadaan Langsung'}
+                      </Badge>
+                      <Badge variant={(Number(p.total) || 0) > 0 ? 'rendah' : 'sedang'} style={{ padding: '2px 6px', fontSize: 9 }}>
+                        {(Number(p.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI'}
+                      </Badge>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--text-secondary)', flexWrap: 'wrap', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -639,7 +655,7 @@ export function PengadaanLangsungView() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, background: 'var(--bg-page)', padding: 16, borderRadius: 'var(--radius-lg)' }}>
               <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Kode RUP</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14 }}>{selectedItem.kd_rup}</span></div>
-              <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Metode Pengadaan</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14 }}>Pengadaan Langsung</span></div>
+              <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Metode Pengadaan</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14 }}>{selectedItem.metode_pengadaan || 'Pengadaan Langsung'}</span></div>
               <div style={{ gridColumn: '1 / -1', height: 1, background: 'var(--border)', margin: '8px 0' }} />
               <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Total Nilai Pagu</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--text-primary)' }}>{fmtRupiah(Number(selectedItem.pagu))}</span></div>
               <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Total Realisasi Keseluruhan</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--teal-600)', fontWeight: 700 }}>{fmtRupiah(Number(selectedItem.total))}</span></div>

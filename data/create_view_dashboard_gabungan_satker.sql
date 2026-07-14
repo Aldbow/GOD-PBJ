@@ -25,7 +25,7 @@ SELECT
     nama_ppk,
     status_aktif_rup,
     satker,
-    'Pengadaan Langsung' AS metode_pengadaan
+    metode_pengadaan
 FROM view_dashboard_pengadaan_langsung
 
 UNION ALL

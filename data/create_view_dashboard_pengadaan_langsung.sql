@@ -28,11 +28,13 @@ transaksional AS (
         MAX(nama_satker) as nama_satker,
         MAX(kd_satker_str) as kd_satker_str
     FROM non_tender_selesai
-    WHERE mtd_pemilihan = 'Pengadaan Langsung'
+    WHERE mtd_pemilihan IN ('Pengadaan Langsung', 'Dikecualikan')
     GROUP BY kd_rup
 ),
 gabungan_rup AS (
-    SELECT CAST(kd_rup AS text) as kd_rup FROM view_api_paket_pengadaan_langsung
+    SELECT CAST(kd_rup AS text) as kd_rup 
+    FROM view_paket_penyedia_master_data 
+    WHERE metode_pengadaan IN ('Pengadaan Langsung', 'Dikecualikan')
     UNION
     SELECT kd_rup FROM transaksional
 )
@@ -59,12 +61,17 @@ SELECT
     /* Penanda apakah RUP ini berasal dari SIRUP (tabel kiri) */
     CASE WHEN pl.kd_rup IS NOT NULL THEN true ELSE false END AS is_from_sirup,
     
+    /* Ekspos metode pengadaan asli agar bisa dibedakan di UI */
+    COALESCE(pl.metode_pengadaan, 'Tidak Diketahui') AS metode_pengadaan,
+    
     CASE 
         WHEN (COALESCE(p.total, 0) + COALESCE(t.total, 0)) > 0 THEN 'COMPLETED'
         ELSE 'BELUM REALISASI'
     END AS status
 FROM gabungan_rup g
 /* >>> MENGGUNAKAN SPLIT_PART UNTUK MENGAMBIL RUP PERTAMA SEBAGAI PENGHUBUNG PPK <<< */
-LEFT JOIN view_api_paket_pengadaan_langsung pl ON CAST(pl.kd_rup AS text) = split_part(g.kd_rup, ';', 1)
+LEFT JOIN (
+    SELECT * FROM view_paket_penyedia_master_data WHERE metode_pengadaan IN ('Pengadaan Langsung', 'Dikecualikan')
+) pl ON CAST(pl.kd_rup AS text) = split_part(g.kd_rup, ';', 1)
 LEFT JOIN pencatatan p ON p.kd_rup_paket = g.kd_rup
 LEFT JOIN transaksional t ON t.kd_rup = g.kd_rup;
