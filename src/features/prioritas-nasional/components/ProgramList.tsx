@@ -15,11 +15,11 @@ interface ProgramListProps {
   initialData: MasterDataPN[];
 }
 
-type SortOption = 'realisasi' | 'anggaran';
+type SortOption = 'rvro_desc' | 'rvro_asc' | 'anggaran_desc' | 'anggaran_asc';
 
 export function ProgramList({ initialData }: ProgramListProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('realisasi');
+  const [sortBy, setSortBy] = useState<SortOption>('rvro_desc');
 
   const filteredData = useMemo(() => {
     const filtered = initialData.filter((item) => {
@@ -30,16 +30,16 @@ export function ProgramList({ initialData }: ProgramListProps) {
       );
     });
 
-    // Apply sorting
+    // Apply sorting based on percentage fields
     return filtered.sort((a, b) => {
-      if (sortBy === 'realisasi') {
-        const valA = parseIndonesianNumber(a['Realisasi Anggaran']);
-        const valB = parseIndonesianNumber(b['Realisasi Anggaran']);
-        return valB - valA;
+      if (sortBy === 'rvro_desc') {
+        return parseIndonesianNumber(b['% Capaian Fisik/Volume']) - parseIndonesianNumber(a['% Capaian Fisik/Volume']);
+      } else if (sortBy === 'rvro_asc') {
+        return parseIndonesianNumber(a['% Capaian Fisik/Volume']) - parseIndonesianNumber(b['% Capaian Fisik/Volume']);
+      } else if (sortBy === 'anggaran_desc') {
+        return parseIndonesianNumber(b['% Capaian Anggaran']) - parseIndonesianNumber(a['% Capaian Anggaran']);
       } else {
-        const valA = parseIndonesianNumber(a['Pagu (Capaian)']);
-        const valB = parseIndonesianNumber(b['Pagu (Capaian)']);
-        return valB - valA;
+        return parseIndonesianNumber(a['% Capaian Anggaran']) - parseIndonesianNumber(b['% Capaian Anggaran']);
       }
     });
   }, [initialData, searchQuery, sortBy]);
@@ -140,8 +140,10 @@ export function ProgramList({ initialData }: ProgramListProps) {
               onFocus={(e) => e.target.style.borderColor = 'var(--info-500)'}
               onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
             >
-              <option value="realisasi">Urutkan: Realisasi Terbanyak</option>
-              <option value="anggaran">Urutkan: Anggaran (Pagu) Terbesar</option>
+              <option value="rvro_desc">Persentase RVRO Terbesar</option>
+              <option value="rvro_asc">Persentase RVRO Terkecil</option>
+              <option value="anggaran_desc">Persentase Realisasi Anggaran Terbesar</option>
+              <option value="anggaran_asc">Persentase Realisasi Anggaran Terkecil</option>
             </select>
             <div style={{ position: 'absolute', top: 0, bottom: 0, right: '16px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)' }}><polyline points="6 9 12 15 18 9"></polyline></svg>
