@@ -1,9 +1,12 @@
 -- Hindari timeout
 SET statement_timeout = '10min';
 
-/* Hapus view yang lama terlebih dahulu dengan CASCADE agar view dependen (gabungan) ikut terhapus */
-DROP MATERIALIZED VIEW IF EXISTS view_dashboard_pengadaan_langsung CASCADE;
-DROP VIEW IF EXISTS view_dashboard_pengadaan_langsung CASCADE;
+DO $$
+BEGIN
+    DROP VIEW IF EXISTS view_dashboard_pengadaan_langsung CASCADE;
+EXCEPTION WHEN wrong_object_type THEN
+    DROP MATERIALIZED VIEW IF EXISTS view_dashboard_pengadaan_langsung CASCADE;
+END $$;
 
 CREATE MATERIALIZED VIEW view_dashboard_pengadaan_langsung AS
 WITH pencatatan AS (

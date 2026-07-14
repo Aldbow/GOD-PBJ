@@ -1,8 +1,12 @@
 -- Hindari timeout saat pembuatan Materialized View
 SET statement_timeout = '10min';
 
-DROP MATERIALIZED VIEW IF EXISTS view_dashboard_epurchasing_v6 CASCADE;
-DROP VIEW IF EXISTS view_dashboard_epurchasing_v6 CASCADE;
+DO $$
+BEGIN
+    DROP VIEW IF EXISTS view_dashboard_epurchasing_v6 CASCADE;
+EXCEPTION WHEN wrong_object_type THEN
+    DROP MATERIALIZED VIEW IF EXISTS view_dashboard_epurchasing_v6 CASCADE;
+END $$;
 
 CREATE MATERIALIZED VIEW view_dashboard_epurchasing_v6 AS
 SELECT 
