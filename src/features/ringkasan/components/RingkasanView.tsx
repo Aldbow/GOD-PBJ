@@ -6,7 +6,8 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { RealisasiChart } from './RealisasiChart';
 import { Badge } from '@/components/ui/Badge';
 import { motion, Variants } from 'framer-motion';
-import { Satker, Package } from '@/types';
+import { Package } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -25,16 +26,44 @@ export function RingkasanView() {
   const [risks, setRisks] = useState<{ satkerName: string, pkg: Package }[]>([]);
 
   useEffect(() => {
-    // Fetch top risks from all satkers
-    fetch('/api/satker')
-      .then(res => res.json())
-      .then((data: Satker[]) => {
-        const topRisks = data.map(s => ({
-          satkerName: s.name,
-          pkg: s.packages[0] // just picking the first for the summary
-        }));
+    // Fetch top risks from all satkers directly from Supabase
+    const fetchRisks = async () => {
+      const { data, error } = await supabase
+        .from('view_dashboard_gabungan_satker')
+        .select('*')
+        .limit(5);
+
+      if (data && !error) {
+        const topRisks = data.map((row: any) => {
+          const paguNum = Number(row.pagu) || 0;
+          const totalNum = Number(row.total) || 0;
+          const realisasi = paguNum > 0 ? Math.round((totalNum / paguNum) * 100) : 0;
+          let risiko: 'tinggi' | 'sedang' | 'rendah' = 'rendah';
+          if (paguNum > 1000000000 && realisasi === 0) {
+            risiko = 'tinggi';
+          } else if (realisasi < 50 && row.status !== 'Selesai' && row.status !== 'COMPLETED') {
+            risiko = 'sedang';
+          }
+          
+          return {
+            satkerName: row.satker,
+            pkg: {
+              id: row.kd_rup,
+              satkerId: row.satker,
+              nama: row.rup_name || 'Tidak Diketahui',
+              nilai: paguNum / 1000000000,
+              spse: row.status || 'BELUM REALISASI',
+              sirup: row.status_aktif_rup === true || row.status_aktif_rup === 'true',
+              realisasi: Math.min(realisasi, 100),
+              risiko,
+              pic: row.nama_ppk || 'Tidak Diketahui'
+            }
+          };
+        });
         setRisks(topRisks);
-      });
+      }
+    };
+    fetchRisks();
   }, []);
 
   return (
@@ -95,7 +124,7 @@ export function RingkasanView() {
               <p style={{ fontSize: 13, fontWeight: 500, margin: 0 }}>{r.pkg.nama}</p>
               <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '3px 0 0' }}>Satker: {r.satkerName} · PIC: {r.pkg.pic} · {r.pkg.sirup ? 'sesuai SIRUP' : 'SIRUP belum sesuai'}</p>
             </div>
-            <a href="/drilldown" style={{ fontSize: 12, color: 'var(--info-600)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0, textDecoration: 'none' }}>Lihat detail →</a>
+            <a href={`/drilldown?satker=${encodeURIComponent(r.satkerName)}`} style={{ fontSize: 12, color: 'var(--info-600)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0, textDecoration: 'none' }}>Lihat detail →</a>
           </motion.div>
         ))}
       </motion.div>
