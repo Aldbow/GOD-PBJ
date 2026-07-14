@@ -1,7 +1,11 @@
-/* Hapus view yang lama terlebih dahulu agar tidak terjadi error bentrok kolom */
-DROP VIEW IF EXISTS view_dashboard_penunjukan_langsung;
+-- Hindari timeout
+SET statement_timeout = '10min';
 
-CREATE OR REPLACE VIEW view_dashboard_penunjukan_langsung AS
+/* Hapus view yang lama terlebih dahulu agar tidak terjadi error bentrok kolom */
+DROP MATERIALIZED VIEW IF EXISTS view_dashboard_penunjukan_langsung CASCADE;
+DROP VIEW IF EXISTS view_dashboard_penunjukan_langsung CASCADE;
+
+CREATE MATERIALIZED VIEW view_dashboard_penunjukan_langsung AS
 WITH pencatatan AS (
     SELECT 
         kd_rup_paket, 

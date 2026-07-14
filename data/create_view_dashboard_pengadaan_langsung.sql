@@ -1,7 +1,11 @@
+-- Hindari timeout
+SET statement_timeout = '10min';
+
 /* Hapus view yang lama terlebih dahulu dengan CASCADE agar view dependen (gabungan) ikut terhapus */
+DROP MATERIALIZED VIEW IF EXISTS view_dashboard_pengadaan_langsung CASCADE;
 DROP VIEW IF EXISTS view_dashboard_pengadaan_langsung CASCADE;
 
-CREATE OR REPLACE VIEW view_dashboard_pengadaan_langsung AS
+CREATE MATERIALIZED VIEW view_dashboard_pengadaan_langsung AS
 WITH pencatatan AS (
     SELECT 
         kd_rup_paket, 
