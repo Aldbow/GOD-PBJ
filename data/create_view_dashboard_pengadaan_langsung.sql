@@ -1,5 +1,5 @@
-/* Hapus view yang lama terlebih dahulu agar tidak terjadi error bentrok kolom */
-DROP VIEW IF EXISTS view_dashboard_pengadaan_langsung;
+/* Hapus view yang lama terlebih dahulu dengan CASCADE agar view dependen (gabungan) ikut terhapus */
+DROP VIEW IF EXISTS view_dashboard_pengadaan_langsung CASCADE;
 
 CREATE OR REPLACE VIEW view_dashboard_pengadaan_langsung AS
 WITH pencatatan AS (
