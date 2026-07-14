@@ -334,7 +334,7 @@ export function PengadaanLangsungView() {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>{item.name}</p>
-          <Badge variant="outline" style={{ background: 'var(--bg-page)', color: 'var(--text-secondary)' }}>
+          <Badge variant="default" style={{ background: 'var(--bg-page)', color: 'var(--text-secondary)' }}>
             {item.count} RUP
           </Badge>
         </div>
