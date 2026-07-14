@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, CheckCircle2, Clock, Wallet, CheckSquare, ListTodo, CheckCircle, TrendingUp } from 'lucide-react';
 
@@ -23,10 +24,14 @@ export function SwakelolaView() {
   const [showAbnormal, setShowAbnormal] = useState(false);
   const [showNoMasterData, setShowNoMasterData] = useState(false);
 
-  // Drill-down states
-  const [selectedEselon1, setSelectedEselon1] = useState<string | null>(null);
-  const [selectedSatker, setSelectedSatker] = useState<string | null>(null);
-  const [selectedPPK, setSelectedPPK] = useState<string | null>(null);
+  // Drill-down states from URL
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  const selectedEselon1 = searchParams.get('e1') || null;
+  const selectedSatker = searchParams.get('s') || null;
+  const selectedPPK = searchParams.get('p') || null;
   
   // History State
   const [historyData, setHistoryData] = useState<any[]>([]);
@@ -219,22 +224,27 @@ export function SwakelolaView() {
   }
 
   const handleGroupClick = (name: string) => {
-    if (viewMode === 'ESELON1') setSelectedEselon1(name);
-    else if (viewMode === 'SATKER') setSelectedSatker(name);
-    else if (viewMode === 'PPK') setSelectedPPK(name);
+    const params = new URLSearchParams(searchParams.toString());
+    if (viewMode === 'ESELON1') params.set('e1', name);
+    else if (viewMode === 'SATKER') params.set('s', name);
+    else if (viewMode === 'PPK') params.set('p', name);
+    
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   const handleBreadcrumbClick = (level: string) => {
+    const params = new URLSearchParams(searchParams.toString());
     if (level === 'ALL') {
-      setSelectedEselon1(null);
-      setSelectedSatker(null);
-      setSelectedPPK(null);
+      params.delete('e1');
+      params.delete('s');
+      params.delete('p');
     } else if (level === 'ESELON1') {
-      setSelectedSatker(null);
-      setSelectedPPK(null);
+      params.delete('s');
+      params.delete('p');
     } else if (level === 'SATKER') {
-      setSelectedPPK(null);
+      params.delete('p');
     }
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   // Pagination for Paket view

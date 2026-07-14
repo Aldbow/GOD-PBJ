@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Wallet, TrendingUp, ListTodo, Search, CheckCircle2, Clock, FileText, CreditCard } from 'lucide-react';
 
@@ -14,11 +15,15 @@ export function PengadaanLangsungView() {
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Hierarchy State
-  const [selectedEselon1, setSelectedEselon1] = useState<string | null>(null);
-  const [selectedSatker, setSelectedSatker] = useState<string | null>(null);
-  const [selectedPPK, setSelectedPPK] = useState<string | null>(null);
-  const [selectedTipeRup, setSelectedTipeRup] = useState<string | null>(null);
+  // Hierarchy State from URL
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  const selectedEselon1 = searchParams.get('e1') || null;
+  const selectedSatker = searchParams.get('s') || null;
+  const selectedPPK = searchParams.get('p') || null;
+  const selectedTipeRup = searchParams.get('t') || null;
 
   // Modal State
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
@@ -206,28 +211,33 @@ export function PengadaanLangsungView() {
   }
 
   const handleGroupClick = (name: string) => {
-    if (viewMode === 'ESELON1') setSelectedEselon1(name);
-    else if (viewMode === 'SATKER') setSelectedSatker(name);
-    else if (viewMode === 'PPK') setSelectedPPK(name);
-    else if (viewMode === 'TIPE_RUP') setSelectedTipeRup(name);
+    const params = new URLSearchParams(searchParams.toString());
+    if (viewMode === 'ESELON1') params.set('e1', name);
+    else if (viewMode === 'SATKER') params.set('s', name);
+    else if (viewMode === 'PPK') params.set('p', name);
+    else if (viewMode === 'TIPE_RUP') params.set('t', name);
+    
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   const handleBreadcrumbClick = (level: string) => {
+    const params = new URLSearchParams(searchParams.toString());
     if (level === 'ALL') {
-      setSelectedEselon1(null);
-      setSelectedSatker(null);
-      setSelectedPPK(null);
-      setSelectedTipeRup(null);
+      params.delete('e1');
+      params.delete('s');
+      params.delete('p');
+      params.delete('t');
     } else if (level === 'ESELON1') {
-      setSelectedSatker(null);
-      setSelectedPPK(null);
-      setSelectedTipeRup(null);
+      params.delete('s');
+      params.delete('p');
+      params.delete('t');
     } else if (level === 'SATKER') {
-      setSelectedPPK(null);
-      setSelectedTipeRup(null);
+      params.delete('p');
+      params.delete('t');
     } else if (level === 'PPK') {
-      setSelectedTipeRup(null);
+      params.delete('t');
     }
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   // Pagination for Paket view
