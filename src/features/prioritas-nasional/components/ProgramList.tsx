@@ -3,48 +3,82 @@
 import React, { useState, useMemo } from 'react';
 import { MasterDataPN } from '@/types';
 import { ProgramCard } from './ProgramCard';
-import { Search, Filter, SlidersHorizontal, AlertCircle } from 'lucide-react';
+import { Search, AlertCircle, LayoutDashboard, ArrowUpDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DashboardMetrics } from './DashboardMetrics';
+import { DashboardCharts } from './DashboardCharts';
+
+import { parseIndonesianNumber } from '../utils';
 
 interface ProgramListProps {
   initialData: MasterDataPN[];
 }
 
+type SortOption = 'realisasi' | 'anggaran';
+
 export function ProgramList({ initialData }: ProgramListProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('All');
-
-  const uniqueStatuses = useMemo(() => {
-    const statuses = new Set(initialData.map(d => d.Status).filter(Boolean));
-    return ['All', ...Array.from(statuses)];
-  }, [initialData]);
+  const [sortBy, setSortBy] = useState<SortOption>('realisasi');
 
   const filteredData = useMemo(() => {
-    return initialData.filter((item) => {
-      const matchesSearch = 
+    const filtered = initialData.filter((item) => {
+      return (
         item['Nama RO']?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item['Kode RO']?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.Unit?.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesStatus = statusFilter === 'All' || item.Status === statusFilter;
-
-      return matchesSearch && matchesStatus;
+        item.Unit?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     });
-  }, [initialData, searchQuery, statusFilter]);
+
+    // Apply sorting
+    return filtered.sort((a, b) => {
+      if (sortBy === 'realisasi') {
+        const valA = parseIndonesianNumber(a['Realisasi Anggaran']);
+        const valB = parseIndonesianNumber(b['Realisasi Anggaran']);
+        return valB - valA;
+      } else {
+        const valA = parseIndonesianNumber(a['Pagu (Capaian)']);
+        const valB = parseIndonesianNumber(b['Pagu (Capaian)']);
+        return valB - valA;
+      }
+    });
+  }, [initialData, searchQuery, sortBy]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      {/* Header and Controls */}
+      
+      {/* Dashboard Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ padding: '10px', background: 'var(--info-100)', borderRadius: '12px' }}>
+          <LayoutDashboard size={28} color="var(--info-600)" />
+        </div>
+        <div>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)', margin: '0 0 4px 0' }}>
+            Dashboard Program Prioritas Nasional
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '15px' }}>
+            Pantau ringkasan performa dan kelola pencapaian anggaran serta fisik dari setiap RO.
+          </p>
+        </div>
+      </div>
+
+      {/* Metrics Cards */}
+      <DashboardMetrics data={initialData} />
+
+      {/* Charts Section */}
+      <DashboardCharts data={initialData} />
+
+      {/* Search and List Header */}
       <div style={{ 
         background: 'var(--surface)', 
         padding: '24px', 
         borderRadius: 'var(--radius-lg)', 
         border: '1px solid var(--border)',
+        marginTop: '16px'
       }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--text-primary)', margin: '0 0 4px 0' }}>Daftar Program Prioritas Nasional</h1>
-            <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '14px' }}>Pantau dan kelola pencapaian anggaran serta fisik dari setiap RO.</p>
+            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--text-primary)', margin: '0 0 4px 0' }}>Rincian Program RO</h2>
+            <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '14px' }}>Daftar detail dari seluruh program prioritas nasional.</p>
           </div>
           
           <div style={{ 
@@ -59,45 +93,54 @@ export function ProgramList({ initialData }: ProgramListProps) {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
           <div style={{ position: 'relative', flex: '1 1 300px' }}>
-            <div style={{ position: 'absolute', top: 0, bottom: 0, left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+            <div style={{ position: 'absolute', top: 0, bottom: 0, left: '16px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
               <Search size={20} color="var(--text-tertiary)" />
             </div>
             <input
               type="text"
               placeholder="Cari berdasarkan Nama RO, Kode RO, atau Unit..."
               style={{
-                width: '100%', padding: '12px 12px 12px 40px', 
+                width: '100%', padding: '14px 14px 14px 48px', 
                 border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
                 background: 'var(--bg-page)', color: 'var(--text-primary)', 
-                fontSize: '14px', outline: 'none'
+                fontSize: '15px', outline: 'none',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
               }}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--info-500)';
+                e.target.style.boxShadow = '0 0 0 3px var(--info-100)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--border)';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
           
           <div style={{ position: 'relative', flex: '1 1 200px' }}>
-            <div style={{ position: 'absolute', top: 0, bottom: 0, left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-              <Filter size={18} color="var(--text-tertiary)" />
+            <div style={{ position: 'absolute', top: 0, bottom: 0, left: '16px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+              <ArrowUpDown size={18} color="var(--text-tertiary)" />
             </div>
             <select
               style={{
-                width: '100%', padding: '12px 36px 12px 36px', 
+                width: '100%', padding: '14px 36px 14px 44px', 
                 border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
                 background: 'var(--bg-page)', color: 'var(--text-primary)', 
-                fontSize: '14px', outline: 'none', cursor: 'pointer', appearance: 'none'
+                fontSize: '15px', outline: 'none', cursor: 'pointer', appearance: 'none',
+                transition: 'border-color 0.2s ease'
               }}
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              onFocus={(e) => e.target.style.borderColor = 'var(--info-500)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
             >
-              {uniqueStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {status === 'All' ? 'Semua Status' : status}
-                </option>
-              ))}
+              <option value="realisasi">Urutkan: Realisasi Terbanyak</option>
+              <option value="anggaran">Urutkan: Anggaran (Pagu) Terbesar</option>
             </select>
-            <div style={{ position: 'absolute', top: 0, bottom: 0, right: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-              <SlidersHorizontal size={16} color="var(--text-tertiary)" />
+            <div style={{ position: 'absolute', top: 0, bottom: 0, right: '16px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)' }}><polyline points="6 9 12 15 18 9"></polyline></svg>
             </div>
           </div>
         </div>
@@ -106,8 +149,8 @@ export function ProgramList({ initialData }: ProgramListProps) {
       {/* Grid of Cards */}
       {filteredData.length > 0 ? (
         <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
+          display: 'flex', 
+          flexDirection: 'column',
           gap: '24px' 
         }}>
           <AnimatePresence>
@@ -131,14 +174,17 @@ export function ProgramList({ initialData }: ProgramListProps) {
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px', marginTop: 0 }}>Tidak ada program ditemukan</h3>
           <p style={{ color: 'var(--text-secondary)', maxWidth: '380px', margin: '0 0 24px 0', fontSize: '14px' }}>
-            Coba sesuaikan kata kunci pencarian atau ubah filter status untuk menemukan program yang Anda cari.
+            Coba sesuaikan kata kunci pencarian untuk menemukan program yang Anda cari.
           </p>
           <button 
-            onClick={() => { setSearchQuery(''); setStatusFilter('All'); }}
+            onClick={() => setSearchQuery('')}
             style={{
               padding: '10px 16px', background: 'var(--info-100)', color: 'var(--info-600)',
-              borderRadius: 'var(--radius-md)', fontWeight: 500, border: 'none', cursor: 'pointer', fontSize: '14px'
+              borderRadius: 'var(--radius-md)', fontWeight: 500, border: 'none', cursor: 'pointer', fontSize: '14px',
+              transition: 'background 0.2s ease'
             }}
+            onMouseOver={(e) => e.currentTarget.style.background = 'var(--info-200)'}
+            onMouseOut={(e) => e.currentTarget.style.background = 'var(--info-100)'}
           >
             Reset Pencarian
           </button>
