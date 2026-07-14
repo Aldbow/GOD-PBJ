@@ -12,7 +12,7 @@ import { Satker, Package, RiskLevel } from '@/types';
 
 export function DrilldownView() {
   const [satkers, setSatkers] = useState<{ value: string, label: string }[]>([]);
-  const [selectedId, setSelectedId] = useState<string>('binapenta');
+  const [selectedId, setSelectedId] = useState<string>('');
   const [satkerData, setSatkerData] = useState<Satker | null>(null);
   const [loading, setLoading] = useState(true);
   const [riskFilter, setRiskFilter] = useState<'semua' | RiskLevel>('semua');
@@ -24,7 +24,11 @@ export function DrilldownView() {
     fetch('/api/satker')
       .then(res => res.json())
       .then((data: Satker[]) => {
-        setSatkers(data.map(s => ({ value: s.id, label: s.name })));
+        const formatted = data.map(s => ({ value: s.id, label: s.name }));
+        setSatkers(formatted);
+        if (formatted.length > 0) {
+          setSelectedId(formatted[0].value);
+        }
       });
   }, []);
 
