@@ -1,3 +1,6 @@
+-- Hindari timeout saat pembuatan Materialized View (set menjadi 10 menit atau 0 untuk unlimited)
+SET statement_timeout = '10min';
+
 -- Drop as a materialized view (if it was created as a materialized view previously)
 DROP MATERIALIZED VIEW IF EXISTS view_prioritas_nasional CASCADE;
 -- Then drop as a normal view (if it was created as a normal view)
