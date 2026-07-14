@@ -92,7 +92,7 @@ const formatLabel = (label: string, maxLen = 38) => {
 };
 
 export function DashboardCharts({ data }: DashboardChartsProps) {
-  const { paguRealisasiData, sisaPaguData, distribusiUnitData } = useMemo(() => {
+  const { paguRealisasiData, sisaPaguData, distribusiUnitData, distribusiUnitMeta, distribusiUnitTotal } = useMemo(() => {
     const programMap: Record<string, { pagu: number; realisasi: number; sisa: number }> = {};
     const unitMap: Record<string, number> = {};
 
