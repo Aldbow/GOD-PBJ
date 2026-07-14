@@ -23,7 +23,7 @@ export function PengadaanLangsungView() {
   // Modal State
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   // History State
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -58,16 +58,16 @@ export function PengadaanLangsungView() {
         let allData: any[] = [];
         let offset = 0;
         const limit = 1000;
-        
+
         while (true) {
           const { data, error } = await supabase
             .from('view_dashboard_pengadaan_langsung')
             .select('*')
             .range(offset, offset + limit - 1);
-            
+
           if (error) throw error;
           if (!data || data.length === 0) break;
-          
+
           allData = [...allData, ...data];
           if (data.length < limit) break;
           offset += limit;
@@ -111,7 +111,7 @@ export function PengadaanLangsungView() {
   const filteredData = useMemo(() => {
     if (!searchQuery) return baseData;
     const q = searchQuery.toLowerCase();
-    return baseData.filter(p => 
+    return baseData.filter(p =>
       (p.rup_name && p.rup_name.toLowerCase().includes(q)) ||
       (p.kd_rup && String(p.kd_rup).toLowerCase().includes(q)) ||
       (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(q)) ||
@@ -122,17 +122,17 @@ export function PengadaanLangsungView() {
   }, [baseData, searchQuery]);
 
   const totalPagu = data.reduce((s, d) => s + (Number(d.pagu) || 0), 0);
-  
+
   // Realisasi and Summary calculated relative to current view or total? 
   // Let's make summary cards absolute (top-level) or contextual. Usually contextual to filteredData.
   // Kiri (Left Join context)
   const contextPagu = baseData.filter(p => p.is_from_sirup !== false).reduce((s, d) => s + (Number(d.pagu) || 0), 0);
-  
+
   // Kanan
   const contextRealisasi = filteredData.reduce((s, d) => s + (Number(d.total) || 0), 0);
   const contextRealisasiPencatatan = filteredData.reduce((s, d) => s + (Number(d.total_pencatatan) || 0), 0);
   const contextRealisasiTransaksional = filteredData.reduce((s, d) => s + (Number(d.total_transaksional) || 0), 0);
-  
+
   // Sisa Anggaran = Kiri - Kanan
   const contextBelumRealisasi = Math.max(0, contextPagu - contextRealisasi);
 
@@ -246,7 +246,7 @@ export function PengadaanLangsungView() {
   const handleNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(p => p + 1);
   };
-  
+
   const handlePrevPage = () => {
     if (currentPage > 1) setCurrentPage(p => p - 1);
   };
@@ -255,8 +255,8 @@ export function PengadaanLangsungView() {
     const pct = item.totalPagu > 0 ? (item.totalRealisasi / item.totalPagu) * 100 : 0;
     const clampedPct = Math.min(Math.max(pct, 0), 100);
     const sisaPagu = Math.max(item.totalPagu - item.totalRealisasi, 0);
-    
-    const themeColor = clampedPct > 75 ? '#06b6d4' : clampedPct > 40 ? '#f97316' : '#ef4444'; 
+
+    const themeColor = clampedPct > 75 ? '#06b6d4' : clampedPct > 40 ? '#f97316' : '#ef4444';
     const glowColor = clampedPct > 75 ? 'rgba(6, 182, 212, 0.4)' : clampedPct > 40 ? 'rgba(249, 115, 22, 0.4)' : 'rgba(239, 68, 68, 0.4)';
     const bgTint = clampedPct > 75 ? 'rgba(6, 182, 212, 0.03)' : clampedPct > 40 ? 'rgba(249, 115, 22, 0.03)' : 'rgba(239, 68, 68, 0.03)';
 
@@ -267,12 +267,12 @@ export function PengadaanLangsungView() {
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ scale: 1.01, y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
         transition={{ duration: 0.2 }}
-        style={{ 
-          background: `linear-gradient(135deg, var(--surface) 40%, ${bgTint})`, 
-          border: '1px solid var(--border)', 
-          borderRadius: '12px', 
-          padding: '14px 16px', 
-          cursor: 'pointer', 
+        style={{
+          background: `linear-gradient(135deg, var(--surface) 40%, ${bgTint})`,
+          border: '1px solid var(--border)',
+          borderRadius: '12px',
+          padding: '14px 16px',
+          cursor: 'pointer',
           willChange: 'transform',
           display: 'flex',
           flexDirection: 'column',
@@ -289,15 +289,15 @@ export function PengadaanLangsungView() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ position: 'relative', flex: 1, height: 6, background: 'var(--gray-200)', borderRadius: 3, overflow: 'hidden' }}>
-            <div 
-              style={{ 
-                height: '100%', 
-                width: `${clampedPct}%`, 
+            <div
+              style={{
+                height: '100%',
+                width: `${clampedPct}%`,
                 background: themeColor,
                 boxShadow: `0 0 8px ${glowColor}`,
                 borderRadius: 3,
-                transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' 
-              }} 
+                transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
             />
           </div>
           <span style={{ color: themeColor, fontSize: 13, fontWeight: 700, width: '40px', textAlign: 'right' }}>{pct.toFixed(1)}%</span>
@@ -358,7 +358,7 @@ export function PengadaanLangsungView() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 24, fontWeight: 600, margin: '0 0 4px', color: 'var(--text-primary)' }}>Realisasi Pengadaan Langsung</h1>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>Data dari pencatatan Non-Tender Pengadaan Langsung (SIRUP & SIKaP)</p>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>Data dari pencatatan Non-Tender Pengadaan Langsung</p>
       </div>
 
       {error && (
@@ -404,7 +404,7 @@ export function PengadaanLangsungView() {
                 Ringkasan Keuangan
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-                
+
                 <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', borderLeft: '4px solid var(--info-600)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                   <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--info-100)', color: 'var(--info-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Wallet size={24} />
@@ -471,7 +471,7 @@ export function PengadaanLangsungView() {
                 Status Paket Pengadaan Langsung
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-                
+
                 {/* Total Paket */}
                 <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                   <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--bg-page)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
@@ -507,7 +507,7 @@ export function PengadaanLangsungView() {
 
               </div>
             </div>
-            
+
             {/* Visual Progress Bar */}
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, border: '1px solid var(--border)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -519,8 +519,8 @@ export function PengadaanLangsungView() {
                 <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, Number(persentaseBelumRealisasi))}%` }} transition={{ duration: 1 }} style={{ background: 'var(--amber-600)', height: '100%' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--teal-600)' }}/> Terealisasi ({persentase}%)</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--amber-600)' }}/> Sisa ({persentaseBelumRealisasi}%)</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--teal-600)' }} /> Terealisasi ({persentase}%)</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--amber-600)' }} /> Sisa ({persentaseBelumRealisasi}%)</span>
               </div>
             </div>
           </div>
@@ -581,18 +581,18 @@ export function PengadaanLangsungView() {
                   </div>
                 </motion.div>
               ))}
-              
+
               {sortedPackages.length === 0 && (
                 <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-tertiary)', border: '1px dashed var(--border)', borderRadius: 8 }}>
                   Tidak ada data ditemukan
                 </div>
               )}
-              
+
               {/* Pagination Controls */}
               {totalPages > 1 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
-                  <button 
-                    onClick={handlePrevPage} 
+                  <button
+                    onClick={handlePrevPage}
                     disabled={currentPage === 1}
                     style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === 1 ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
                   >
@@ -601,8 +601,8 @@ export function PengadaanLangsungView() {
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                     Halaman <strong style={{ color: 'var(--text-primary)' }}>{currentPage}</strong> dari {totalPages}
                   </span>
-                  <button 
-                    onClick={handleNextPage} 
+                  <button
+                    onClick={handleNextPage}
                     disabled={currentPage === totalPages}
                     style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === totalPages ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
                   >
@@ -649,14 +649,14 @@ export function PengadaanLangsungView() {
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Status Paket: <strong style={{ color: 'var(--info-600)' }}>{(Number(selectedItem.total) || 0) > 0 ? 'Terdapat Realisasi' : 'Belum Ada Realisasi'}</strong></p>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Status Aktif RUP: {selectedItem.status_aktif_rup === true ? 'Aktif' : 'Tidak / N/A'}</p>
             </div>
-            
+
             {/* History Section */}
             <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
               <h4 style={{ fontSize: 14, margin: '0 0 16px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 Riwayat Kaji Ulang RUP
                 {loadingHistory && <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 400 }}>Memuat...</span>}
               </h4>
-              
+
               {!loadingHistory && historyData.length === 0 ? (
                 <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>
                   Tidak ada riwayat kaji ulang (perubahan) untuk RUP ini.
@@ -672,7 +672,7 @@ export function PengadaanLangsungView() {
                           <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--teal-500)', zIndex: 1, border: '2px solid var(--surface)' }} />
                           {!isLast && <div style={{ width: 2, flex: 1, background: 'var(--border)', margin: '4px 0' }} />}
                         </div>
-                        
+
                         {/* Content */}
                         <div style={{ paddingBottom: isLast ? 0 : 20, flex: 1 }}>
                           <div style={{ background: 'var(--bg-page)', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
@@ -682,11 +682,11 @@ export function PengadaanLangsungView() {
                                 {new Date(hist.tgl_kaji_ulang).toLocaleString('id-ID')}
                               </span>
                             </div>
-                            
+
                             <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: '0 0 6px', fontWeight: 500 }}>
                               RUP {hist.kd_rup_lama} ➔ <span style={{ color: 'var(--teal-600)' }}>RUP {hist.kd_rup_baru}</span>
                             </p>
-                            
+
                             {hist.alasan_kajiulang && (
                               <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, fontStyle: 'italic', background: 'var(--surface)', padding: '6px 10px', borderRadius: '4px' }}>
                                 "{hist.alasan_kajiulang}"
