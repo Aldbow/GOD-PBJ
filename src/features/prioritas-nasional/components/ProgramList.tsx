@@ -7,6 +7,7 @@ import { Search, AlertCircle, LayoutDashboard, ArrowUpDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardMetrics } from './DashboardMetrics';
 import { DashboardCharts } from './DashboardCharts';
+import { DashboardLeaderboard } from './DashboardLeaderboard';
 
 import { parseIndonesianNumber } from '../utils';
 
@@ -63,6 +64,9 @@ export function ProgramList({ initialData }: ProgramListProps) {
 
       {/* Metrics Cards */}
       <DashboardMetrics data={initialData} />
+
+      {/* Leaderboard */}
+      <DashboardLeaderboard data={initialData} />
 
       {/* Charts Section */}
       <DashboardCharts data={initialData} />
