@@ -87,8 +87,7 @@ export function PengadaanLangsungView() {
 
         setData(allData);
       } catch (e: any) {
-        console.error(e);
-        setError(e.message || 'Gagal memuat data dari Supabase.');
+        setError(e?.message || 'Gagal memuat data dari Supabase.');
       } finally {
         setLoading(false);
       }

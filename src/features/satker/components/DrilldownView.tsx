@@ -23,12 +23,23 @@ export function DrilldownView() {
   useEffect(() => {
     fetch('/api/satker')
       .then(res => res.json())
-      .then((data: Satker[]) => {
-        const formatted = data.map(s => ({ value: s.id, label: s.name }));
+      .then((data: any) => {
+        if (data.error) {
+          console.error("Failed to load satkers:", data.error);
+          setSatkers([]);
+          setLoading(false);
+          return;
+        }
+        const formatted = data.map((s: Satker) => ({ value: s.id, label: s.name }));
         setSatkers(formatted);
         if (formatted.length > 0) {
           setSelectedId(formatted[0].value);
         }
+      })
+      .catch(err => {
+        console.error("Network error:", err);
+        setSatkers([]);
+        setLoading(false);
       });
   }, []);
 

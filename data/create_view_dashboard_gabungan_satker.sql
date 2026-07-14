@@ -1,7 +1,8 @@
 -- Hapus view yang lama (jika ada)
-DROP VIEW IF EXISTS view_dashboard_gabungan_satker;
+DROP MATERIALIZED VIEW IF EXISTS view_dashboard_gabungan_satker CASCADE;
+DROP VIEW IF EXISTS view_dashboard_gabungan_satker CASCADE;
 
-CREATE OR REPLACE VIEW view_dashboard_gabungan_satker AS
+CREATE MATERIALIZED VIEW view_dashboard_gabungan_satker AS
 SELECT 
     CAST(kd_rup AS TEXT) as kd_rup,
     rup_name,
@@ -41,3 +42,6 @@ SELECT
     satker,
     'Penunjukan Langsung' AS metode_pengadaan
 FROM view_dashboard_penunjukan_langsung;
+
+-- Berikan akses ke API Supabase (anon & authenticated roles)
+GRANT SELECT ON view_dashboard_gabungan_satker TO anon, authenticated;

@@ -1,4 +1,7 @@
-CREATE OR REPLACE VIEW view_dashboard_epurchasing_v6 AS
+DROP MATERIALIZED VIEW IF EXISTS view_dashboard_epurchasing_v6 CASCADE;
+DROP VIEW IF EXISTS view_dashboard_epurchasing_v6 CASCADE;
+
+CREATE MATERIALIZED VIEW view_dashboard_epurchasing_v6 AS
 SELECT 
     COALESCE(m.kd_rup, e.rup_code::bigint) as kd_rup, 
     COALESCE(m.nama_paket, e.rup_name) as rup_name,
@@ -20,3 +23,6 @@ SELECT
 FROM view_paket_penyedia_master_data m
 FULL OUTER JOIN paket_e_purchasing e ON m.kd_rup::text = e.rup_code::text
 WHERE (e.status NOT ILIKE '%cancel%' OR e.status IS NULL);
+
+-- Berikan akses ke API Supabase (anon & authenticated roles)
+GRANT SELECT ON view_dashboard_epurchasing_v6 TO anon, authenticated;

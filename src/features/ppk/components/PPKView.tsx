@@ -110,7 +110,7 @@ export function PPKView() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
               {pkgs.length > 0 ? pkgs.map((p, i) => (
                 <motion.div 
-                  key={p.id} 
+                  key={`${p.id}-${i}`} 
                   initial={{ opacity: 0, x: -10 }} 
                   animate={{ opacity: 1, x: 0 }} 
                   whileHover={{ x: 4, borderColor: 'var(--info-600)' }}
