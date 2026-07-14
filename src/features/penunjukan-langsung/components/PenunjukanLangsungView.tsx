@@ -366,8 +366,8 @@ export function PenunjukanLangsungView() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 600, margin: '0 0 4px', color: 'var(--text-primary)' }}>Realisasi Pengadaan Langsung</h1>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>Data dari pencatatan Non-Tender Pengadaan Langsung</p>
+        <h1 style={{ fontSize: 24, fontWeight: 600, margin: '0 0 4px', color: 'var(--text-primary)' }}>Realisasi Penunjukan Langsung</h1>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>Data dari pencatatan Non-Tender Penunjukan Langsung</p>
       </div>
 
       {error && (
