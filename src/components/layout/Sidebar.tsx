@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './Sidebar.module.css';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Users, Component, ShoppingCart, Package } from 'lucide-react';
+import { LayoutDashboard, Users, Component, ShoppingCart, Package, Target } from 'lucide-react';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -16,6 +16,7 @@ export function Sidebar() {
     { name: 'Drill-down satker', href: '/drilldown', icon: <Component size={18} /> },
     { name: 'Realisasi E-Purchasing V6', href: '/epurchasing', icon: <ShoppingCart size={18} /> },
     { name: 'Realisasi Pengadaan Langsung', href: '/pengadaan-langsung', icon: <Package size={18} /> },
+    { name: 'Realisasi Penunjukan Langsung', href: '/penunjukan-langsung', icon: <Target size={18} /> },
     { name: 'Realisasi Swakelola', href: '/swakelola', icon: <Package size={18} /> },
   ];
 
