@@ -1,48 +1,59 @@
 import { NextResponse } from 'next/server';
-import { satkerData } from '../db';
+import { supabase } from '@/lib/supabase';
 import { Package } from '@/types';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
 
-  // Simulate network delay for premium loading animations
-  await new Promise(resolve => setTimeout(resolve, 600));
-
   if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-  let foundPkg: Package | null = null;
-  let satkerName = '';
-  
-  for (const satker of Object.values(satkerData)) {
-    const pkg = satker.packages.find(p => p.id === id);
-    if (pkg) {
-      foundPkg = { ...pkg };
-      satkerName = satker.name;
-      break;
-    }
+  const { data, error } = await supabase
+    .from('view_dashboard_gabungan_satker')
+    .select('*')
+    .eq('kd_rup', id)
+    .single();
+
+  if (error || !data) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  if (!foundPkg) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  // Attach dynamic dummy details
-  foundPkg.deskripsi = `Paket ${foundPkg.nama} ini dikelola oleh ${satkerName} dan bertujuan untuk mendukung efektivitas serta efisiensi operasional Kementerian. Pelaksanaan proyek ini sangat vital bagi pencapaian target Indikator Kinerja Utama (IKU).`;
+  const paguNum = Number(data.pagu) || 0;
+  const totalNum = Number(data.total) || 0;
+  const realisasi = paguNum > 0 ? Math.round((totalNum / paguNum) * 100) : 0;
   
-  if (foundPkg.risiko === 'tinggi') {
-    foundPkg.alasanRisiko = 'Terjadi keterlambatan pada tahapan sebelumnya. Dokumen spesifikasi teknis mengalami revisi berulang, dan terdapat indikasi penumpukan pencairan dana di akhir tahun yang berpotensi menyebabkan masalah likuiditas atau gagal kontrak.';
-  } else if (foundPkg.risiko === 'sedang') {
-    foundPkg.alasanRisiko = 'Proses berjalan, namun ada keterlambatan minor. Beberapa penyesuaian terkait integrasi data SIRUP belum terpublikasi secara sempurna atau progres fisik yang sedikit meleset dari kurva ideal.';
-  } else {
-    foundPkg.alasanRisiko = 'Paket berjalan dengan sangat baik sesuai timeline rencana kerja. Tidak teridentifikasi adanya risiko signifikan yang dapat menghambat pelaksanaan pengadaan.';
+  let risiko: 'tinggi' | 'sedang' | 'rendah' = 'rendah';
+  if (paguNum > 1000000000 && realisasi === 0) {
+    risiko = 'tinggi';
+  } else if (realisasi < 50 && data.status !== 'Selesai' && data.status !== 'COMPLETED') {
+    risiko = 'sedang';
   }
 
-  foundPkg.timeline = [
-    { date: '12 Jan 2026', event: 'Perencanaan dan Pengumuman RUP' },
-    { date: '28 Feb 2026', event: 'Persiapan Pengadaan (Reviu Dokumen)' },
-    { date: '15 Mar 2026', event: 'Pelaksanaan Pemilihan Penyedia' },
-    { date: '10 Apr 2026', event: 'Penandatanganan Kontrak' },
-    { date: 'Saat ini', event: `Status: ${foundPkg.spse}` }
-  ];
+  let alasanRisiko = 'Paket berjalan dengan wajar sesuai timeline rencana kerja.';
+  if (risiko === 'tinggi') {
+    alasanRisiko = 'Terindikasi penumpukan pencairan dana di akhir tahun atau hambatan kontraktual serius karena realisasi 0% pada pagu di atas 1 Miliar.';
+  } else if (risiko === 'sedang') {
+    alasanRisiko = 'Progres fisik/keuangan sedikit meleset dari kurva ideal. Perlu pengawasan lebih ketat terhadap komitmen penyedia.';
+  }
 
-  return NextResponse.json({ ...foundPkg, satkerName });
+  const foundPkg: Package = {
+    id: data.kd_rup,
+    satkerId: data.satker,
+    nama: data.rup_name || 'Tidak Diketahui',
+    nilai: paguNum / 1000000000,
+    spse: data.status || 'BELUM REALISASI',
+    sirup: data.status_aktif_rup === true || data.status_aktif_rup === 'true',
+    realisasi: Math.min(realisasi, 100),
+    risiko,
+    pic: data.nama_ppk || 'Tidak Diketahui',
+    deskripsi: `Paket ${data.rup_name || ''} ini dikelola oleh ${data.satker} melalui metode ${data.metode_pengadaan}. Proyek ini vital bagi pencapaian target Indikator Kinerja Utama.`,
+    alasanRisiko,
+    timeline: [
+      { date: 'Sesuai SIRUP', event: 'Perencanaan dan Pengumuman RUP' },
+      { date: 'Otomatis', event: `Metode: ${data.metode_pengadaan}` },
+      { date: 'Saat ini', event: `Status: ${data.status || 'BELUM REALISASI'}` }
+    ]
+  };
+
+  return NextResponse.json({ ...foundPkg, satkerName: data.satker });
 }
