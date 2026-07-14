@@ -53,7 +53,7 @@ export function Sidebar() {
       </nav>
 
       <div className={styles.sidebarFoot}>
-        Prototipe v0.1<br />Aksi perubahan — Kemnaker<br />Data ilustratif, 22 Jun 2026
+        Prototipe v0.1<br />UKPBJ, Kemnaker<br />
       </div>
     </aside>
   );
