@@ -130,23 +130,34 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
       ],
     };
 
-    // Chart 3: Distribusi Pagu per Unit (Doughnut)
+    // Chart 3: Distribusi Pagu per Unit (Doughnut) — full names, no truncation
     const unitEntries = Object.entries(unitMap).sort((a, b) => b[1] - a[1]).slice(0, 7);
+    const donutColors = [
+      CHART_COLORS.teal, CHART_COLORS.sky, CHART_COLORS.violet,
+      CHART_COLORS.amber, CHART_COLORS.rose, CHART_COLORS.emerald,
+      'rgba(100, 116, 139, 0.85)',
+    ];
     const distribusiUnit = {
-      labels: unitEntries.map(([name]) => name.length > 30 ? name.substring(0, 30) + '...' : name),
+      labels: unitEntries.map(([name]) => name), // full names, no truncation
       datasets: [{
         data: unitEntries.map(([, v]) => v),
-        backgroundColor: [
-          CHART_COLORS.teal, CHART_COLORS.sky, CHART_COLORS.violet,
-          CHART_COLORS.amber, CHART_COLORS.rose, CHART_COLORS.emerald,
-          'rgba(100, 116, 139, 0.85)',
-        ],
-        borderWidth: 2,
+        backgroundColor: donutColors,
+        borderWidth: 3,
         borderColor: 'var(--surface)',
+        hoverBorderWidth: 4,
+        hoverOffset: 6,
       }],
     };
+    const distribusiUnitMeta = unitEntries.map(([name, val], i) => ({
+      name,
+      val,
+      color: donutColors[i],
+    }));
+    const distribusiUnitTotal = unitEntries.reduce((s, [, v]) => s + v, 0);
 
-    return { paguRealisasiData: paguRealisasi, sisaPaguData: sisaPagu, distribusiUnitData: distribusiUnit };
+    return { paguRealisasiData: paguRealisasi, sisaPaguData: sisaPagu, distribusiUnitData: distribusiUnit, distribusiUnitMeta, distribusiUnitTotal };
+
+
   }, [data]);
 
   const barOptionsPaguRealisasi = makeBarOptions(rupiah);
@@ -155,17 +166,9 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
   const doughnutOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: '62%',
+    cutout: '68%',
     plugins: {
-      legend: {
-        position: 'right' as const,
-        labels: {
-          color: CHART_COLORS.fontColor,
-          font: { size: 11, weight: 500 as const },
-          boxWidth: 14,
-          padding: 12,
-        },
-      },
+      legend: { display: false }, // Custom legend rendered as HTML below
       tooltip: {
         callbacks: {
           label: (ctx: { label?: string; parsed: number; dataset: { data: number[] } }) => {
@@ -232,17 +235,39 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
           </div>
         </motion.div>
 
-        {/* Insight #3 — Distribusi Pagu per Unit */}
+        {/* Insight #3 — Distribusi Pagu per Unit dengan Custom Legend */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          style={{ ...cardStyle, minHeight: '380px' }}
+          style={{ ...cardStyle, minHeight: '420px' }}
         >
           <h3 style={titleStyle}>Distribusi Beban Pagu per Unit Kerja</h3>
           <p style={subtitleStyle}>Porsi tanggung jawab anggaran prioritas nasional antar unit</p>
-          <div style={{ flex: 1, position: 'relative' }}>
-            <Doughnut data={distribusiUnitData} options={doughnutOptions} />
+
+          {/* Chart + Custom Legend layout */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Doughnut chart */}
+            <div style={{ position: 'relative', height: '220px' }}>
+              <Doughnut data={distribusiUnitData} options={doughnutOptions} />
+            </div>
+
+            {/* Custom Legend list */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {distribusiUnitMeta.map((item, i) => {
+                const pct = distribusiUnitTotal > 0 ? ((item.val / distribusiUnitTotal) * 100) : 0;
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {/* Color swatch */}
+                    <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: item.color, flexShrink: 0 }} />
+                    {/* Name — full, wraps if needed */}
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', flex: 1, lineHeight: 1.4 }}>{item.name}</span>
+                    {/* Percentage */}
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', flexShrink: 0 }}>{pct.toFixed(1)}%</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </motion.div>
       </div>
