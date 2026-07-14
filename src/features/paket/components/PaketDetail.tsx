@@ -15,10 +15,17 @@ export function PaketDetail({ id }: { id: string }) {
     fetch(`/api/paket?id=${id}`)
       .then(res => res.json())
       .then(resData => {
-        setData(resData);
+        if (resData.error) {
+          setData(null);
+        } else {
+          setData(resData);
+        }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setData(null);
+        setLoading(false);
+      });
   }, [id]);
 
   if (loading) {
