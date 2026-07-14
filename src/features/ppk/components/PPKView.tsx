@@ -18,17 +18,23 @@ export function PPKView() {
   const [loading, setLoading] = useState(true);
   const [selectedPkgId, setSelectedPkgId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Fetch roster
   useEffect(() => {
     fetch('/api/ppk')
       .then(res => res.json())
-      .then((data: PPK[]) => {
+      .then((data: any) => {
+        if (data.error || !Array.isArray(data)) {
+          setErrorMsg(data.error || 'Terjadi kesalahan sistem.');
+          return;
+        }
         setRoster(data);
         if (data.length > 0) {
           setSelectedId(data[0].id);
         }
-      });
+      })
+      .catch(e => setErrorMsg(e.message));
   }, []);
 
   // Fetch details when selectedId changes
@@ -38,11 +44,20 @@ export function PPKView() {
     fetch(`/api/ppk?id=${selectedId}`)
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          setErrorMsg(data.error);
+          return;
+        }
         setPpkData(data);
+        setLoading(false);
+      })
+      .catch(e => {
+        setErrorMsg(e.message);
         setLoading(false);
       });
   }, [selectedId]);
 
+  if (errorMsg) return <div style={{ padding: 20, color: 'var(--red-600)' }}><h3>Error Data</h3><p>{errorMsg}</p><p>Mohon eksekusi: <code>NOTIFY pgrst, 'reload schema';</code> di Supabase SQL Editor.</p></div>;
   if (!roster.length) return <div style={{ padding: 20 }}>Loading...</div>;
 
   const fmtRupiah = (m: number) => 'Rp ' + m.toFixed(2).replace('.', ',') + ' M';

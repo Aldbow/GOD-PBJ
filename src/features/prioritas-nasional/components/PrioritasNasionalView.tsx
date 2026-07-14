@@ -337,13 +337,13 @@ export function PrioritasNasionalView() {
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>Pemantauan Master Data RO dan Agregasi Realisasi Terpadu</p>
       </div>
 
-      {error && (
+      {error ? (
         <div style={{ background: 'var(--red-100)', color: 'var(--red-600)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
-          {error}. Pastikan view_prioritas_nasional sudah dieksekusi di Supabase.
+          <h3>Error Data</h3>
+          <p>{error}</p>
+          <p>Mohon eksekusi: <code>NOTIFY pgrst, 'reload schema';</code> di Supabase SQL Editor.</p>
         </div>
-      )}
-
-      {loading ? (
+      ) : loading ? (
         <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat data dari Supabase...</p>
       ) : (
         <>
