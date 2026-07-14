@@ -91,9 +91,6 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
               <div style={{ padding: '8px', background: ACCENT_BG, borderRadius: '10px' }}>
                 <BarChart2 size={20} color={ACCENT} />
               </div>
-              <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: ACCENT, textTransform: 'uppercase' }}>
-                Indeks Kinerja Nasional
-              </span>
             </div>
             <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px 0' }}>
               Rekapitulasi Capaian Program
