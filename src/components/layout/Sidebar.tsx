@@ -13,6 +13,7 @@ export function Sidebar() {
   const links = [
     { name: 'Ringkasan', href: '/', icon: <LayoutDashboard size={18} /> },
     { name: 'Prioritas Nasional', href: '/prioritas-nasional', icon: <Target size={18} /> },
+    { name: 'Master Data PN', href: '/program-prioritas', icon: <Target size={18} /> },
     { name: 'Tampilan PPK', href: '/ppk', icon: <Users size={18} /> },
     { name: 'Drill-down satker', href: '/drilldown', icon: <Component size={18} /> },
     { name: 'Realisasi E-Purchasing V6', href: '/epurchasing', icon: <ShoppingCart size={18} /> },

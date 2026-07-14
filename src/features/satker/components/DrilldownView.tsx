@@ -19,15 +19,14 @@ export function DrilldownView() {
   const [selectedPkgId, setSelectedPkgId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
   // Fetch all satker lists for dropdown
   useEffect(() => {
     fetch('/api/satker')
       .then(res => res.json())
       .then((data: any) => {
-        if (data.error || !Array.isArray(data)) {
-          setErrorMsg(data.error || 'Terjadi kesalahan sistem.');
+        if (data.error) {
+          console.error("Failed to load satkers:", data.error);
+          setSatkers([]);
           setLoading(false);
           return;
         }
@@ -38,7 +37,8 @@ export function DrilldownView() {
         }
       })
       .catch(err => {
-        setErrorMsg(err.message);
+        console.error("Network error:", err);
+        setSatkers([]);
         setLoading(false);
       });
   }, []);
@@ -79,13 +79,6 @@ export function DrilldownView() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
-      {errorMsg && (
-        <div style={{ background: 'var(--red-100)', color: 'var(--red-600)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
-          <h3>Error Data</h3>
-          <p>{errorMsg}</p>
-          <p>Mohon eksekusi: <code>NOTIFY pgrst, 'reload schema';</code> di Supabase SQL Editor.</p>
-        </div>
-      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
         <div>
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 6px' }}>Pilih satuan kerja</p>

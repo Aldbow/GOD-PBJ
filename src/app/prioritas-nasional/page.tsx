@@ -1,5 +1,10 @@
+import { Suspense } from 'react';
 import { PrioritasNasionalView } from '@/features/prioritas-nasional/components/PrioritasNasionalView';
 
 export default function PrioritasNasionalPage() {
-  return <PrioritasNasionalView />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PrioritasNasionalView />
+    </Suspense>
+  );
 }

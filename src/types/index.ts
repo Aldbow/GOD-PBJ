@@ -37,3 +37,20 @@ export interface DashboardMetrics {
   targetITKP: number;
   skorITKP: number;
 }
+
+export interface MasterDataPN {
+  id: string;
+  No: string;
+  Unit: string;
+  'Kode RO': string;
+  'Nama RO': string;
+  Satuan: string;
+  'Target Volume (Capaian)': string;
+  'Pagu (Capaian)': string;
+  'Realisasi Anggaran': string;
+  'Realisasi Volume': string;
+  '% Capaian Anggaran': string;
+  '% Capaian Fisik/Volume': string;
+  'Selisih Pagu': string;
+  Status: string;
+}
