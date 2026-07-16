@@ -19,7 +19,6 @@ FROM
 LEFT JOIN 
     master_data m
 ON 
-    p.kd_satker_str::text = m."KODE SATKER_str" 
-    AND p.nama_ppk = m."KODE PPK"
+    p.kd_satker_str::text = m."KODE SATKER_str"
 ORDER BY 
     p.kd_rup;
