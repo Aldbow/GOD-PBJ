@@ -1,7 +1,7 @@
--- Script untuk menggabungkan (join) tabel api_paket_penyedia_terumumkan dengan master_data
+-- Script untuk menggabungkan (join) tabel api_paket_swakelola_terumumkan dengan master_data
 -- Diperbarui dengan DISTINCT ON untuk menghindari duplikasi data akibat 1 Satker memiliki banyak PPK
 
-CREATE OR REPLACE VIEW view_paket_penyedia_master_data AS
+CREATE OR REPLACE VIEW view_paket_swakelola_master_data AS
 SELECT DISTINCT ON (p.kd_rup)
     p.*,
     m."NO",
@@ -15,7 +15,7 @@ SELECT DISTINCT ON (p.kd_rup)
     m."NAMA PPK" AS "MASTER_NAMA_PPK",
     m."NIP PPK" AS "MASTER_NIP_PPK"
 FROM 
-    api_paket_penyedia_terumumkan p
+    api_paket_swakelola_terumumkan p
 LEFT JOIN 
     master_data m
 ON 
