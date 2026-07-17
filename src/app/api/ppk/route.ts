@@ -17,8 +17,21 @@ export async function GET(request: Request) {
     }
 
     const satkerName = data[0].satker;
-    
-    const packages: Package[] = data.map((row: any) => {
+
+    // Satu RUP bisa muncul beberapa kali (mis. 1 paket e-purchasing dengan banyak order_id).
+    // Gabungkan per kd_rup: jumlahkan realisasi (total) agar hitungan paket & realisasi tidak dobel.
+    const byRup = new Map<string, any>();
+    for (const row of data as any[]) {
+      const key = String(row.kd_rup);
+      const existing = byRup.get(key);
+      if (existing) {
+        existing.total = (Number(existing.total) || 0) + (Number(row.total) || 0);
+      } else {
+        byRup.set(key, { ...row, total: Number(row.total) || 0 });
+      }
+    }
+
+    const packages: Package[] = Array.from(byRup.values()).map((row: any) => {
       const paguNum = Number(row.pagu) || 0;
       const totalNum = Number(row.total) || 0;
       const realisasi = paguNum > 0 ? Math.round((totalNum / paguNum) * 100) : 0;

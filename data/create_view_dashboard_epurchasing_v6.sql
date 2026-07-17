@@ -5,7 +5,7 @@ SELECT
     COALESCE(m.pagu, 0) as pagu, 
     m.tgl_pengumuman_paket, 
     m.status_aktif_rup, 
-    COALESCE(m."MASTER_NAMA_PPK", 'Tidak Diketahui') as nama_ppk, 
+    COALESCE(m."MASTER_NAMA_PPK", m.nama_ppk, 'Tidak Diketahui') as nama_ppk,
     COALESCE(m."UNIT KERJA", 
         (SELECT v."UNIT KERJA" FROM view_paket_penyedia_master_data v WHERE UPPER(v."SATUAN KERJA") = UPPER(e.nama_satker) AND v."UNIT KERJA" IS NOT NULL LIMIT 1),
         'Tidak Diketahui'

@@ -47,10 +47,15 @@ SELECT
     COALESCE(t.total, 0) AS total_transaksional,
     (COALESCE(p.total, 0) + COALESCE(t.total, 0)) AS total,
     
-    /* Kembalikan nama PPK ke asalnya, karena kita akan menarik data dari split_part */
-    COALESCE(pl.nama_ppk, 'Anomali/Tidak Diketahui') AS nama_ppk,
-    COALESCE(pl.nama_satker, t.nama_satker, 'Satker Tidak Diketahui') AS satker,
-    (SELECT m."UNIT KERJA" FROM master_data m WHERE LTRIM(m."KODE SATKER_str", '0') = LTRIM(COALESCE(CAST(pl.kd_satker_str AS text), t.kd_satker_str), '0') AND m."UNIT KERJA" IS NOT NULL LIMIT 1) AS eselon1,
+    /* Utamakan nama PPK asli dari master (unmasking); fallback ke nama_ppk SIRUP (masking, identitas tetap benar) */
+    COALESCE(pl."MASTER_NAMA_PPK", pl.nama_ppk, 'Anomali/Tidak Diketahui') AS nama_ppk,
+    /* Utamakan Biro (SATUAN KERJA) dari master; fallback ke nama_satker SIRUP */
+    COALESCE(pl."SATUAN KERJA", pl.nama_satker, t.nama_satker, 'Satker Tidak Diketahui') AS satker,
+    /* Eselon-1 diambil dari base view (sudah terisi bila satker cocok); subquery hanya jalan untuk RUP tanpa pl */
+    COALESCE(
+        pl."UNIT KERJA",
+        (SELECT m."UNIT KERJA" FROM master_data m WHERE LTRIM(m."KODE SATKER_str", '0') = LTRIM(COALESCE(CAST(pl.kd_satker_str AS text), t.kd_satker_str), '0') AND m."UNIT KERJA" IS NOT NULL LIMIT 1)
+    ) AS eselon1,
     pl.status_aktif_rup,
     
     COALESCE(t.nama_penyedia, p.nama_penyedia) AS kode_penyedia,
