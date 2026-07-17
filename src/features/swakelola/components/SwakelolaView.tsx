@@ -19,6 +19,7 @@ export function SwakelolaView() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [tipeSwakelolaFilter, setTipeSwakelolaFilter] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [sortBy, setSortBy] = useState('PCT_DESC');
   const [showAbnormal, setShowAbnormal] = useState(false);
@@ -148,8 +149,9 @@ export function SwakelolaView() {
     });
     const matchesAbnormal = !showAbnormal || ((p.total || 0) > (p.pagu || 0));
     const matchesNoMasterData = !showNoMasterData || (p.nama_ppk === 'Tidak Diketahui' && (p.total || 0) > 0);
+    const matchesTipe = tipeSwakelolaFilter.length === 0 || tipeSwakelolaFilter.includes(String(p.tipe_swakelola));
 
-    return matchesSearch && matchesStatus && matchesAbnormal && matchesNoMasterData;
+    return matchesSearch && matchesStatus && matchesAbnormal && matchesNoMasterData && matchesTipe;
   });
 
   // Calculate stats based on current view
@@ -252,7 +254,7 @@ export function SwakelolaView() {
   const itemsPerPage = 10;
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, sortBy, selectedEselon1, selectedSatker, selectedPPK]);
+  }, [searchQuery, statusFilter, tipeSwakelolaFilter, sortBy, selectedEselon1, selectedSatker, selectedPPK]);
 
   // Sort packages for the lowest level view
   const sortedPackages = [...filteredData].sort((a, b) => {
@@ -532,7 +534,7 @@ export function SwakelolaView() {
                 style={{ padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: showAdvanced ? 'var(--info-100)' : 'var(--surface)', color: showAdvanced ? 'var(--info-700)' : 'var(--text-primary)', cursor: 'pointer', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}
               >
                 {showAdvanced ? 'Tutup Filter Lanjutan' : 'Filter Lanjutan'}
-                {(statusFilter.length > 0 || sortBy !== 'PAGU_DESC' || showAbnormal || showNoMasterData) && (
+                {(statusFilter.length > 0 || tipeSwakelolaFilter.length > 0 || sortBy !== 'PAGU_DESC' || showAbnormal || showNoMasterData) && (
                   <Badge variant="default">Aktif</Badge>
                 )}
               </button>
@@ -580,6 +582,37 @@ export function SwakelolaView() {
                           })}
                           {statusFilter.length > 0 && (
                             <button onClick={() => setStatusFilter([])} style={{ background: 'none', border: 'none', color: 'var(--red-500)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', padding: '6px' }}>Reset Status</button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Tipe Swakelola */}
+                      <div>
+                        <h4 style={{ fontSize: 13, margin: '0 0 10px', color: 'var(--text-secondary)' }}>Pilih Tipe Swakelola</h4>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          {['1', '2', '3', '4'].map((tipe) => {
+                            const isSelected = tipeSwakelolaFilter.includes(tipe);
+                            return (
+                              <button
+                                key={tipe}
+                                onClick={() => {
+                                  if (isSelected) setTipeSwakelolaFilter(tipeSwakelolaFilter.filter(t => t !== tipe));
+                                  else setTipeSwakelolaFilter([...tipeSwakelolaFilter, tipe]);
+                                }}
+                                style={{ 
+                                  padding: '6px 12px', borderRadius: '20px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                                  background: isSelected ? 'var(--info-600)' : 'var(--surface)', 
+                                  color: isSelected ? 'white' : 'var(--text-secondary)',
+                                  border: `1px solid ${isSelected ? 'var(--info-600)' : 'var(--border)'}`,
+                                  transition: 'all 0.2s'
+                                }}
+                              >
+                                Tipe {tipe}
+                              </button>
+                            );
+                          })}
+                          {tipeSwakelolaFilter.length > 0 && (
+                            <button onClick={() => setTipeSwakelolaFilter([])} style={{ background: 'none', border: 'none', color: 'var(--red-500)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', padding: '6px' }}>Reset Tipe</button>
                           )}
                         </div>
                       </div>
@@ -655,7 +688,7 @@ export function SwakelolaView() {
 
                     <div style={{ textAlign: 'right', marginTop: 8 }}>
                       <button 
-                        onClick={() => { setSortBy('PCT_DESC'); setStatusFilter([]); setShowAbnormal(false); setShowNoMasterData(false); }}
+                        onClick={() => { setSortBy('PCT_DESC'); setStatusFilter([]); setTipeSwakelolaFilter([]); setShowAbnormal(false); setShowNoMasterData(false); }}
                         style={{ padding: '8px 16px', background: 'var(--red-100)', color: 'var(--red-600)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                       >
                         Reset Semua Filter & Urutan

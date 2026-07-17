@@ -15,7 +15,7 @@ SELECT
     
     COALESCE(e.status_swakelola_pct_ket, 'BELUM REALISASI') as status,
     COALESCE(e.total_realisasi, 0) as total,
-    e.tipe_swakelola,
+    COALESCE(e.tipe_swakelola::text, m.tipe_swakelola::text) as tipe_swakelola,
     e.kd_swakelola_pct as order_id,
     '' as kode_penyedia
 FROM view_paket_swakelola_master_data m

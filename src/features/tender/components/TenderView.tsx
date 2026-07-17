@@ -1,101 +1,28 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Wallet, TrendingUp, ListTodo, Search, CheckCircle2, Clock, FileText, CreditCard } from 'lucide-react';
 
-const DUMMY_DATA = [
-  {
-    kd_rup: "1001",
-    rup_name: "Pengadaan Server Utama",
-    satker: "Pusdatin",
-    eselon1: "Sekretariat Jenderal",
-    nama_ppk: "Budi Santoso",
-    pagu: 1500000000,
-    total: 1450000000,
-    total_pencatatan: 0,
-    total_transaksional: 1450000000,
-    metode_pengadaan: "Tender",
-    is_multiple_rup: false,
-    is_from_sirup: true,
-    status_aktif_rup: true,
-    kode_penyedia: "PT. Teknologi Bangsa"
-  },
-  {
-    kd_rup: "1002",
-    rup_name: "Pembangunan Gedung Arsip",
-    satker: "Biro Umum",
-    eselon1: "Sekretariat Jenderal",
-    nama_ppk: "Siti Rahmawati",
-    pagu: 5000000000,
-    total: 2000000000,
-    total_pencatatan: 500000000,
-    total_transaksional: 1500000000,
-    metode_pengadaan: "Tender",
-    is_multiple_rup: false,
-    is_from_sirup: true,
-    status_aktif_rup: true,
-    kode_penyedia: "CV. Karya Makmur"
-  },
-  {
-    kd_rup: "1003",
-    rup_name: "Pengadaan Kendaraan Dinas",
-    satker: "Biro Perlengkapan",
-    eselon1: "Sekretariat Jenderal",
-    nama_ppk: "Ahmad Fauzi",
-    pagu: 2500000000,
-    total: 0,
-    total_pencatatan: 0,
-    total_transaksional: 0,
-    metode_pengadaan: "Tender",
-    is_multiple_rup: false,
-    is_from_sirup: true,
-    status_aktif_rup: true,
-    kode_penyedia: null
-  },
-  {
-    kd_rup: "1004",
-    rup_name: "Penyediaan Lisensi Software Keuangan",
-    satker: "Biro Keuangan",
-    eselon1: "Sekretariat Jenderal",
-    nama_ppk: "Budi Santoso",
-    pagu: 800000000,
-    total: 750000000,
-    total_pencatatan: 750000000,
-    total_transaksional: 0,
-    metode_pengadaan: "Tender",
-    is_multiple_rup: true,
-    is_from_sirup: true,
-    status_aktif_rup: true,
-    kode_penyedia: "PT. Solusi Digital"
-  },
-  {
-    kd_rup: "1005",
-    rup_name: "Renovasi Aula Utama",
-    satker: "Biro Umum",
-    eselon1: "Sekretariat Jenderal",
-    nama_ppk: "Siti Rahmawati",
-    pagu: 3200000000,
-    total: 3100000000,
-    total_pencatatan: 0,
-    total_transaksional: 3100000000,
-    metode_pengadaan: "Tender",
-    is_multiple_rup: false,
-    is_from_sirup: true,
-    status_aktif_rup: true,
-    kode_penyedia: "PT. Konstruksi Hebat"
-  }
-];
-
 export function TenderView() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMetode, setSelectedMetode] = useState<string>('Semua');
+  const [selectedMetodes, setSelectedMetodes] = useState<string[]>([]);
+  const [sortConfig, setSortConfig] = useState<{key: 'pagu' | 'total', direction: 'asc' | 'desc'} | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const toggleMetode = (metode: string) => {
+    setSelectedMetodes(prev => 
+      prev.includes(metode) ? prev.filter(m => m !== metode) : [...prev, metode]
+    );
+  };
 
   // Hierarchy State from URL
   const router = useRouter();
@@ -111,14 +38,86 @@ export function TenderView() {
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Load Dummy Data
+  // History State
+  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Fetch History Effect
   useEffect(() => {
-    // Simulate network latency
-    const timer = setTimeout(() => {
-      setData(DUMMY_DATA);
-      setLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    if (isModalOpen && selectedItem?.kd_rup) {
+      const fetchHistory = async () => {
+        setLoadingHistory(true);
+        try {
+          // kd_rup could be a single ID or multiple separated by ';'
+          const rupIds = String(selectedItem.kd_rup).split(';').filter(Boolean);
+          
+          let allHistory: any[] = [];
+          
+          await Promise.all(rupIds.map(async (rupId) => {
+            const { data, error } = await supabase.rpc('get_rup_history', {
+              target_rup: parseInt(rupId, 10)
+            });
+            if (error) throw error;
+            if (data) {
+              allHistory = [...allHistory, ...data];
+            }
+          }));
+
+          // Sort descending by date
+          allHistory.sort((a, b) => new Date(b.tgl_kaji_ulang).getTime() - new Date(a.tgl_kaji_ulang).getTime());
+          
+          setHistoryData(allHistory);
+        } catch (e) {
+          console.error("Failed to fetch history", e);
+          setHistoryData([]);
+        } finally {
+          setLoadingHistory(false);
+        }
+      };
+      fetchHistory();
+    } else {
+      setHistoryData([]);
+    }
+  }, [isModalOpen, selectedItem]);
+
+  // Load Real Data from Supabase
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        let allData: any[] = [];
+        let offset = 0;
+        const limit = 1000;
+
+        while (true) {
+          const { data, error } = await supabase
+            .from('view_dashboard_tender')
+            .select('*')
+            .range(offset, offset + limit - 1);
+
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+
+          allData = [...allData, ...data];
+          if (data.length < limit) break;
+          offset += limit;
+        }
+
+        if (allData.length === 0) {
+          setData([]);
+          setLoading(false);
+          return;
+        }
+
+        setData(allData);
+      } catch (e: any) {
+        console.error(e);
+        setError(e.message || 'Gagal memuat data dari Supabase.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
   }, []);
 
   const fmtRupiah = (m: number) => {
@@ -135,27 +134,38 @@ export function TenderView() {
     if (selectedSatker) d = d.filter(item => (item.satker || 'Tidak Diketahui') === selectedSatker);
     if (selectedPPK) d = d.filter(item => (item.nama_ppk || 'Tidak Diketahui') === selectedPPK);
     if (selectedTipeRup) d = d.filter(item => (item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP') === selectedTipeRup);
-    if (selectedMetode !== 'Semua') d = d.filter(item => item.metode_pengadaan === selectedMetode);
+    if (selectedMetodes.length > 0) d = d.filter(item => selectedMetodes.includes(item.metode_pengadaan));
     return d;
-  }, [data, selectedEselon1, selectedSatker, selectedPPK, selectedTipeRup, selectedMetode]);
+  }, [data, selectedEselon1, selectedSatker, selectedPPK, selectedTipeRup, selectedMetodes]);
 
   const filteredData = useMemo(() => {
-    if (!searchQuery) return baseData;
-    const q = searchQuery.toLowerCase();
-    return baseData.filter(p =>
-      (p.rup_name && p.rup_name.toLowerCase().includes(q)) ||
-      (p.kd_rup && String(p.kd_rup).toLowerCase().includes(q)) ||
-      (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(q)) ||
-      (p.satker && p.satker.toLowerCase().includes(q)) ||
-      (p.eselon1 && p.eselon1.toLowerCase().includes(q)) ||
-      (p.nama_ppk && p.nama_ppk.toLowerCase().includes(q))
-    );
-  }, [baseData, searchQuery]);
+    let result = baseData;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(p =>
+        (p.rup_name && p.rup_name.toLowerCase().includes(q)) ||
+        (p.kd_rup && String(p.kd_rup).toLowerCase().includes(q)) ||
+        (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(q)) ||
+        (p.satker && p.satker.toLowerCase().includes(q)) ||
+        (p.eselon1 && p.eselon1.toLowerCase().includes(q)) ||
+        (p.nama_ppk && p.nama_ppk.toLowerCase().includes(q))
+      );
+    }
+    
+    if (sortConfig) {
+      result = [...result].sort((a, b) => {
+        const valA = Number(a[sortConfig.key]) || 0;
+        const valB = Number(b[sortConfig.key]) || 0;
+        return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
+      });
+    } else {
+      result = [...result].sort((a, b) => (Number(b.pagu) || 0) - (Number(a.pagu) || 0));
+    }
+    return result;
+  }, [baseData, searchQuery, sortConfig]);
 
-  const contextPagu = baseData.filter(p => p.is_from_sirup !== false).reduce((s, d) => s + (Number(d.pagu) || 0), 0);
+  const contextPagu = baseData.reduce((s, d) => s + (Number(d.pagu) || 0), 0);
   const contextRealisasi = filteredData.reduce((s, d) => s + (Number(d.total) || 0), 0);
-  const contextRealisasiPencatatan = filteredData.reduce((s, d) => s + (Number(d.total_pencatatan) || 0), 0);
-  const contextRealisasiTransaksional = filteredData.reduce((s, d) => s + (Number(d.total_transaksional) || 0), 0);
   const contextBelumRealisasi = Math.max(0, contextPagu - contextRealisasi);
 
   const persentase = contextPagu > 0 ? ((contextRealisasi / contextPagu) * 100).toFixed(1) : '0.0';
@@ -163,8 +173,8 @@ export function TenderView() {
 
   const countRup = (kd_rup: any) => String(kd_rup || '').split(';').length;
 
-  const totalPaket = filteredData.filter(p => p.is_from_sirup !== false).reduce((sum, p) => sum + countRup(p.kd_rup), 0);
-  const paketSelesai = filteredData.filter(p => p.is_from_sirup !== false && (Number(p.total) || 0) > 0).reduce((sum, p) => sum + countRup(p.kd_rup), 0);
+  const totalPaket = filteredData.reduce((sum, p) => sum + countRup(p.kd_rup), 0);
+  const paketSelesai = filteredData.filter(p => (Number(p.total) || 0) > 0).reduce((sum, p) => sum + countRup(p.kd_rup), 0);
   const paketBelumSelesai = totalPaket - paketSelesai;
 
   // Hierarchical Data Grouping
@@ -257,9 +267,9 @@ export function TenderView() {
   const itemsPerPage = 10;
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedEselon1, selectedSatker, selectedPPK, selectedTipeRup, selectedMetode]);
+  }, [searchQuery, selectedEselon1, selectedSatker, selectedPPK, selectedTipeRup, selectedMetodes, sortConfig]);
 
-  const sortedPackages = [...filteredData].sort((a, b) => (Number(b.pagu) || 0) - (Number(a.pagu) || 0));
+  const sortedPackages = filteredData;
 
   const totalPages = Math.ceil(sortedPackages.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -380,11 +390,17 @@ export function TenderView() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 24, fontWeight: 600, margin: '0 0 4px', color: 'var(--text-primary)' }}>Realisasi Tender</h1>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>Data dummy pencatatan Tender</p>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>Data riil dari integrasi tabel tender_selesai_nilai</p>
       </div>
 
+      {error && (
+        <div style={{ background: 'var(--red-100)', color: 'var(--red-600)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
+          {error}. Pastikan View SQL sudah dieksekusi di Supabase.
+        </div>
+      )}
+
       {loading ? (
-        <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat data dummy...</p>
+        <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat data dari Supabase...</p>
       ) : (
         <>
           {/* Breadcrumbs */}
@@ -436,7 +452,7 @@ export function TenderView() {
                     <TrendingUp size={24} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Total Realisasi Keseluruhan</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Total Realisasi</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <p style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextRealisasi)}</p>
                       <Badge variant="default" style={{ background: 'var(--teal-100)', color: 'var(--teal-700)', border: 'none', padding: '2px 8px' }}>{persentase}%</Badge>
@@ -444,25 +460,6 @@ export function TenderView() {
                   </div>
                 </motion.div>
 
-                <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', borderLeft: '4px solid var(--indigo-500)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--indigo-100)', color: 'var(--indigo-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileText size={24} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Realisasi Pencatatan</p>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextRealisasiPencatatan)}</p>
-                  </div>
-                </motion.div>
-
-                <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', borderLeft: '4px solid var(--purple-500)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--purple-100)', color: 'var(--purple-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CreditCard size={24} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Realisasi Transaksional</p>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextRealisasiTransaksional)}</p>
-                  </div>
-                </motion.div>
 
                 <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', borderLeft: '4px solid var(--amber-600)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                   <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--amber-100)', color: 'var(--amber-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -541,24 +538,105 @@ export function TenderView() {
             </div>
           </div>
 
-          {/* Search and Filter */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-            <input
-              type="text"
-              placeholder="Cari nama paket, kode RUP, penyedia..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ flex: '1 1 300px', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
-            />
-            <select
-              value={selectedMetode}
-              onChange={(e) => setSelectedMetode(e.target.value)}
-              style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', cursor: 'pointer' }}
-            >
-              <option value="Semua">Semua Metode</option>
-              <option value="Tender">Tender</option>
-              <option value="Tender Cepat">Tender Cepat</option>
-            </select>
+          {/* Filters & Search */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="Cari nama paket, kode RUP, penyedia..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ flex: '1 1 300px', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
+              />
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                style={{ padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: showAdvanced ? 'var(--info-100)' : 'var(--surface)', color: showAdvanced ? 'var(--info-700)' : 'var(--text-primary)', cursor: 'pointer', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}
+              >
+                {showAdvanced ? 'Tutup Filter Lanjutan' : 'Filter Lanjutan'}
+                {(selectedMetodes.length > 0 || sortConfig !== null) && (
+                  <Badge variant="default">Aktif</Badge>
+                )}
+              </button>
+            </div>
+
+            <AnimatePresence>
+              {showAdvanced && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }} 
+                  animate={{ height: 'auto', opacity: 1 }} 
+                  exit={{ height: 0, opacity: 0 }} 
+                  style={{ overflow: 'hidden' }}
+                >
+                  <div style={{ background: 'var(--bg-page)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
+                      {/* Metode Pengadaan */}
+                      <div>
+                        <h4 style={{ fontSize: 13, margin: '0 0 10px', color: 'var(--text-secondary)' }}>Metode Pengadaan (Bisa Lebih Dari Satu)</h4>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          {['Tender', 'Seleksi', 'Tender Cepat', 'Pembayaran untuk Kontrak Tahun Jamak'].map(metode => {
+                            const isSelected = selectedMetodes.includes(metode);
+                            return (
+                              <button
+                                key={metode}
+                                onClick={() => toggleMetode(metode)}
+                                style={{ 
+                                  padding: '6px 12px', borderRadius: '20px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                                  background: isSelected ? 'var(--info-600)' : 'var(--surface)', 
+                                  color: isSelected ? 'white' : 'var(--text-secondary)',
+                                  border: `1px solid ${isSelected ? 'var(--info-600)' : 'var(--border)'}`,
+                                  transition: 'all 0.2s'
+                                }}
+                              >
+                                {metode}
+                              </button>
+                            );
+                          })}
+                          {selectedMetodes.length > 0 && (
+                            <button onClick={() => setSelectedMetodes([])} style={{ background: 'none', border: 'none', color: 'var(--red-500)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', padding: '6px' }}>Reset Metode</button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Sorting Option */}
+                      <div>
+                        <h4 style={{ fontSize: 13, margin: '0 0 10px', color: 'var(--text-secondary)' }}>Urutkan Data Berdasarkan</h4>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          {[
+                            { key: 'pagu', direction: 'desc', label: 'Pagu Tertinggi' },
+                            { key: 'pagu', direction: 'asc', label: 'Pagu Terendah' },
+                            { key: 'total', direction: 'desc', label: 'Realisasi Tertinggi' },
+                            { key: 'total', direction: 'asc', label: 'Realisasi Terendah' },
+                          ].map((opt) => {
+                            const isSelected = sortConfig?.key === opt.key && sortConfig?.direction === opt.direction;
+                            return (
+                              <button
+                                key={`${opt.key}-${opt.direction}`}
+                                onClick={() => {
+                                  if (isSelected) setSortConfig(null);
+                                  else setSortConfig({ key: opt.key as 'pagu' | 'total', direction: opt.direction as 'asc' | 'desc' });
+                                }}
+                                style={{
+                                  padding: '8px 14px', borderRadius: '20px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                                  background: isSelected ? 'var(--teal-600)' : 'var(--surface)',
+                                  color: isSelected ? 'white' : 'var(--text-secondary)',
+                                  border: `1px solid ${isSelected ? 'var(--teal-600)' : 'var(--border)'}`,
+                                  transition: 'all 0.2s',
+                                  boxShadow: isSelected ? '0 4px 12px rgba(13, 148, 136, 0.2)' : 'none'
+                                }}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Render Detail Cards for Eselon1/Satker/PPK or Vertical Cards for Pakets */}
@@ -662,9 +740,7 @@ export function TenderView() {
               <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Metode Pengadaan</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14 }}>{selectedItem.metode_pengadaan || 'Tender'}</span></div>
               <div style={{ gridColumn: '1 / -1', height: 1, background: 'var(--border)', margin: '8px 0' }} />
               <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Total Nilai Pagu</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--text-primary)' }}>{fmtRupiah(Number(selectedItem.pagu))}</span></div>
-              <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Total Realisasi Keseluruhan</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--teal-600)', fontWeight: 700 }}>{fmtRupiah(Number(selectedItem.total))}</span></div>
-              <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>- Realisasi (Pencatatan)</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-secondary)' }}>{fmtRupiah(Number(selectedItem.total_pencatatan || 0))}</span></div>
-              <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>- Realisasi (Transaksional)</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-secondary)' }}>{fmtRupiah(Number(selectedItem.total_transaksional || 0))}</span></div>
+              <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Total Realisasi</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--teal-600)', fontWeight: 700 }}>{fmtRupiah(Number(selectedItem.total))}</span></div>
             </div>
 
             <div>
@@ -679,6 +755,58 @@ export function TenderView() {
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Status Paket: <strong style={{ color: 'var(--info-600)' }}>{(Number(selectedItem.total) || 0) > 0 ? 'Terdapat Realisasi' : 'Belum Ada Realisasi'}</strong></p>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Status Aktif RUP: {selectedItem.status_aktif_rup === true ? 'Aktif' : 'Tidak / N/A'}</p>
             </div>
+
+            {/* History Section */}
+            <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <h4 style={{ fontSize: 14, margin: '0 0 16px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                Riwayat Kaji Ulang RUP
+                {loadingHistory && <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 400 }}>Memuat...</span>}
+              </h4>
+              
+              {!loadingHistory && historyData.length === 0 ? (
+                <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>
+                  Tidak ada riwayat kaji ulang (perubahan) untuk RUP ini.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
+                  {historyData.map((hist, index) => {
+                    const isLast = index === historyData.length - 1;
+                    return (
+                      <div key={index} style={{ display: 'flex', gap: 16, position: 'relative' }}>
+                        {/* Timeline Graphic */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24, flexShrink: 0 }}>
+                          <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--teal-500)', zIndex: 1, border: '2px solid var(--surface)' }} />
+                          {!isLast && <div style={{ width: 2, flex: 1, background: 'var(--border)', margin: '4px 0' }} />}
+                        </div>
+                        
+                        {/* Content */}
+                        <div style={{ paddingBottom: isLast ? 0 : 20, flex: 1 }}>
+                          <div style={{ background: 'var(--bg-page)', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                              <Badge variant="default">{hist.jenis_revisi}</Badge>
+                              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                                {new Date(hist.tgl_kaji_ulang).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                            
+                            <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: '0 0 6px', fontWeight: 500 }}>
+                              RUP {hist.kd_rup_lama} ➔ <span style={{ color: 'var(--teal-600)' }}>RUP {hist.kd_rup_baru}</span>
+                            </p>
+                            
+                            {hist.alasan_kajiulang && (
+                              <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, fontStyle: 'italic', background: 'var(--surface)', padding: '6px 10px', borderRadius: '4px' }}>
+                                "{hist.alasan_kajiulang}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
           </div>
         )}
       </Modal>
