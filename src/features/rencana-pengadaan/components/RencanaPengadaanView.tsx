@@ -3,6 +3,15 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
+import { Select } from '@/components/ui/Select';
+import styles from './RencanaPengadaanView.module.css';
+
+const SORT_OPTIONS = [
+  { value: 'NAMA_ASC', label: 'Nama Satuan Kerja (A-Z)' },
+  { value: 'NAMA_DESC', label: 'Nama Satuan Kerja (Z-A)' },
+  { value: 'BELANJA_DESC', label: 'Belanja Pengadaan (Tertinggi)' },
+  { value: 'BELANJA_ASC', label: 'Belanja Pengadaan (Terendah)' },
+];
 
 export function RencanaPengadaanView() {
   const [data, setData] = useState<any[]>([]);
@@ -98,64 +107,57 @@ export function RencanaPengadaanView() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       {error && (
-        <div style={{ background: 'var(--red-100)', color: 'var(--red-600)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
+        <div className={styles.errorBox}>
           {error}
         </div>
       )}
 
       {loading ? (
-        <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat data dari Supabase...</p>
+        <p className={styles.loading}>Memuat data dari Supabase...</p>
       ) : (
         <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <input
-                type="text"
-                placeholder="Cari nama satuan kerja..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ flex: '1 1 300px', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
-              />
+          <div className={styles.toolbar}>
+            <input
+              type="text"
+              placeholder="Cari nama satuan kerja..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={styles.search}
+            />
 
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Urutkan:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  style={{ padding: '9px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', cursor: 'pointer' }}
-                >
-                  <option value="NAMA_ASC">Nama Satuan Kerja (A-Z)</option>
-                  <option value="NAMA_DESC">Nama Satuan Kerja (Z-A)</option>
-                  <option value="BELANJA_DESC">Belanja Pengadaan (Tertinggi)</option>
-                  <option value="BELANJA_ASC">Belanja Pengadaan (Terendah)</option>
-                </select>
-              </div>
+            <div className={styles.sortWrap}>
+              <span className={styles.sortLabel}>Urutkan:</span>
+              <Select
+                options={SORT_OPTIONS}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              />
             </div>
           </div>
 
-          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
               <thead>
-                <tr style={{ background: 'var(--bg-page)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
-                  <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>No</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Nama Satuan Kerja</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Belanja Pengadaan</th>
+                <tr className={styles.thead}>
+                  <th className={styles.th}>No</th>
+                  <th className={styles.th}>Nama Satuan Kerja</th>
+                  <th className={`${styles.th} ${styles.thRight}`}>Belanja Pengadaan</th>
                 </tr>
               </thead>
               <tbody>
                 {currentData.length > 0 ? (
                   currentData.map((item, index) => (
-                    <tr key={index} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--gray-50)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                      <td style={{ padding: '12px 16px', color: 'var(--text-tertiary)' }}>{startIndex + index + 1}</td>
-                      <td style={{ padding: '12px 16px', color: 'var(--text-primary)', fontWeight: 500 }}>{item.nama_satuan_kerja || '-'}</td>
-                      <td style={{ padding: '12px 16px', color: 'var(--text-primary)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                    <tr key={index} className={styles.row}>
+                      <td className={styles.cellNo}>{startIndex + index + 1}</td>
+                      <td className={styles.cellName}>{item.nama_satuan_kerja || '-'}</td>
+                      <td className={styles.cellVal}>
                         {fmtRupiah(Number(item.belanja_pengadaan))}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={3} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                    <td colSpan={3} className={styles.empty}>
                       Tidak ada data yang ditemukan
                     </td>
                   </tr>
@@ -165,21 +167,21 @@ export function RencanaPengadaanView() {
           </div>
 
           {totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '10px 0' }}>
+            <div className={styles.pagination}>
               <button
                 onClick={handlePrevPage}
                 disabled={currentPage === 1}
-                style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === 1 ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
+                className={styles.pageBtn}
               >
                 Sebelumnya
               </button>
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              <span className={styles.pageInfo}>
                 Halaman <strong style={{ color: 'var(--text-primary)' }}>{currentPage}</strong> dari {totalPages}
               </span>
               <button
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages}
-                style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === totalPages ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
+                className={styles.pageBtn}
               >
                 Selanjutnya
               </button>

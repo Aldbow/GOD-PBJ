@@ -4,6 +4,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Badge } from '@/components/ui/Badge';
 import { EselonBarRow } from '@/components/ui/EselonBarRow';
+import { SearchInput } from '@/components/ui/SearchInput';
+import { ErrorBox } from '@/components/ui/ErrorBox';
 import { Modal } from '@/components/ui/Modal';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -316,9 +318,9 @@ export function PenunjukanLangsungView() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       {error && (
-        <div style={{ background: 'var(--red-100)', color: 'var(--red-600)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
+        <ErrorBox>
           {error}. Pastikan View SQL sudah dieksekusi di Supabase.
-        </div>
+        </ErrorBox>
       )}
 
       {loading ? (
@@ -481,12 +483,10 @@ export function PenunjukanLangsungView() {
 
           {/* Search */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-            <input
-              type="text"
+            <SearchInput
               placeholder="Cari nama paket, kode RUP, penyedia..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ flex: '1 1 300px', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
             />
           </div>
 

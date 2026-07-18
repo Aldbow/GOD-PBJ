@@ -1,0 +1,154 @@
+.errorBox {
+  background: var(--red-100);
+  color: var(--red-600);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--red-600) 22%, transparent);
+  margin-bottom: 20px;
+}
+
+.loading {
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.search {
+  flex: 1 1 300px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+}
+
+.search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.search::placeholder {
+  color: var(--text-tertiary);
+}
+
+.sortWrap {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.sortLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.tableWrap {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.thead {
+  background: var(--bg-page);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.th {
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.thRight {
+  text-align: right;
+}
+
+.row {
+  border-bottom: 1px solid var(--border);
+  transition: background-color var(--dur-fast) ease;
+}
+
+.row:hover {
+  background: var(--surface-hover);
+}
+
+.cellNo {
+  padding: 12px 16px;
+  color: var(--text-tertiary);
+}
+
+.cellName {
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.cellVal {
+  padding: 12px 16px;
+  color: var(--text-primary);
+  text-align: right;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding: 10px 0;
+}
+
+.pageBtn {
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.pageBtn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.pageBtn:disabled {
+  background: var(--surface-2);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+.pageInfo {
+  font-size: 13px;
+  color: var(--text-secondary);
+}

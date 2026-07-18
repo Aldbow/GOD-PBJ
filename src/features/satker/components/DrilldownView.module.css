@@ -1,0 +1,116 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.selectLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+}
+
+.filterGroup {
+  display: flex;
+  gap: 6px;
+}
+
+.filterBtn {
+  font-size: 12px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.filterBtn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.filterBtn.active {
+  background: var(--info-100);
+  color: var(--info-600);
+  border-color: color-mix(in srgb, var(--info-600) 45%, var(--border));
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.pkgList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pkgCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+}
+
+.pkgCard:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  box-shadow: var(--shadow-md);
+}
+
+.pkgTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.pkgName {
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.pkgStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.statLabel {
+  color: var(--text-tertiary);
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11px;
+}
+
+.statVal {
+  font-family: var(--font-mono);
+}
+
+.loading,
+.emptyState {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.loading {
+  color: var(--text-tertiary);
+}

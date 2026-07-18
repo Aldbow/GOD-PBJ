@@ -41,6 +41,20 @@
   --info-700: #164B82;
   --info-100: #E8F1FB;
 
+  /* Extended palette — badge metode, chart, track */
+  --gray-50: #F9FAFB;
+  --gray-100: #F3F4F6;
+  --gray-200: #E5E7EB;
+  --indigo-100: #E0E7FF;
+  --indigo-500: #6366F1;
+  --indigo-600: #4F46E5;
+  --purple-100: #F3E8FF;
+  --purple-500: #A855F7;
+  --purple-600: #9333EA;
+  --orange-500: #F97316;
+  --teal-500: #14B8A6;
+  --red-500: #EF4444;
+
   /* Accent alias (brand) */
   --accent: var(--teal-600);
   --accent-soft: var(--teal-100);
@@ -116,6 +130,20 @@
   --info-600: #5B9BF0;
   --info-700: #7CB0F5;
   --info-100: rgba(91, 155, 240, 0.12);
+
+  /* Extended palette — badge metode, chart, track */
+  --gray-50: #1A2130;
+  --gray-100: #222C3D;
+  --gray-200: rgba(255, 255, 255, 0.10);
+  --indigo-100: rgba(129, 140, 248, 0.15);
+  --indigo-500: #818CF8;
+  --indigo-600: #A5B4FC;
+  --purple-100: rgba(192, 132, 252, 0.15);
+  --purple-500: #C084FC;
+  --purple-600: #D8B4FE;
+  --orange-500: #FB923C;
+  --teal-500: #2DD4A8;
+  --red-500: #F87171;
 
   --accent: var(--teal-600);
   --accent-soft: var(--teal-100);
