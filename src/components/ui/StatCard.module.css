@@ -1,0 +1,71 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 16px 18px;
+  min-height: 104px;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: transparent;
+  transition: background var(--dur-fast) ease;
+}
+.good::after { background: var(--teal-600); }
+.warn::after { background: var(--amber-600); }
+.danger::after { background: var(--red-600); }
+
+.label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.danger .label {
+  color: var(--red-600);
+}
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-top: auto;
+}
+
+.value {
+  font-family: var(--font-mono);
+  font-size: 27px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+.danger .value {
+  color: var(--red-600);
+}
+
+.unit {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.hint {
+  font-size: 11px;
+  margin: 9px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+}
+.hintGood { color: var(--teal-600); }
+.hintWarn { color: var(--amber-600); }
+.hintDanger { color: var(--red-600); }

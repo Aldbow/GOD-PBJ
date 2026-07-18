@@ -4,27 +4,33 @@
   border-radius: var(--radius-lg);
   padding: 16px;
   box-shadow: var(--card-shadow);
-  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease,
+    box-shadow var(--dur-med) ease, transform var(--dur-med) ease;
 }
 
 .interactive {
   cursor: pointer;
 }
 .interactive:hover {
-  border-color: var(--info-600);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  box-shadow: var(--shadow-md);
 }
 
+/* Semantic variants — subtle tint + colored left rail */
 .danger {
   background: var(--red-100);
-  border-color: transparent;
+  border-color: color-mix(in srgb, var(--red-600) 22%, transparent);
+  box-shadow: none;
 }
 
 .warning {
   background: var(--amber-100);
-  border-color: transparent;
+  border-color: color-mix(in srgb, var(--amber-600) 22%, transparent);
+  box-shadow: none;
 }
 
 .info {
   background: var(--info-100);
-  border-color: transparent;
+  border-color: color-mix(in srgb, var(--info-600) 22%, transparent);
+  box-shadow: none;
 }

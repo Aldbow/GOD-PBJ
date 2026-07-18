@@ -6,15 +6,25 @@ import styles from './Topbar.module.css';
 import { ThemeToggle } from './ThemeToggle';
 import { usePathname } from 'next/navigation';
 
+const TITLES: Record<string, string> = {
+  '/': 'Ringkasan Kementerian',
+  '/ppk': 'Tampilan PPK',
+  '/drilldown': 'Drill-down Satuan Kerja',
+  '/rencana-pengadaan': 'Rencana Umum Pengadaan',
+  '/epurchasing': 'Realisasi E-Purchasing V6',
+  '/tender': 'Realisasi Tender',
+  '/pengadaan-langsung': 'Realisasi Pengadaan Langsung',
+  '/penunjukan-langsung': 'Realisasi Penunjukan Langsung',
+  '/swakelola': 'Realisasi Swakelola',
+};
+
 export function Topbar() {
   const pathname = usePathname();
   const [spseSync, setSpseSync] = useState('');
   const [sirupSync, setSirupSync] = useState('');
 
   // Determine Title
-  let title = 'Ringkasan Kementerian';
-  if (pathname === '/ppk') title = 'Tampilan PPK';
-  if (pathname === '/drilldown') title = 'Drill-down Satuan Kerja';
+  const title = TITLES[pathname] ?? 'Ringkasan Kementerian';
 
   // Mock sync timers
   useEffect(() => {
@@ -40,19 +50,23 @@ export function Topbar() {
 
   return (
     <header className={styles.topbar}>
-      <h1>{title}</h1>
+      <div className={styles.titleWrap}>
+        <span className={styles.eyebrow}>DEWA-PBJ</span>
+        <h1>{title}</h1>
+      </div>
       <div className={styles.controlsRow}>
         <div className={styles.syncRow}>
           <span className={styles.syncItem}>
             <span className={`${styles.dot} ${styles.ok}`} />
-            SPSE · <span className={styles.mono}>{spseSync}</span>
+            <span className={styles.syncLabel}>SPSE</span>
+            <span className={styles.mono}>{spseSync}</span>
           </span>
           <span className={styles.syncItem}>
             <span className={`${styles.dot} ${styles.warn}`} />
-            SIRUP · <span className={styles.mono}>{sirupSync}</span>
+            <span className={styles.syncLabel}>SIRUP</span>
+            <span className={styles.mono}>{sirupSync}</span>
           </span>
         </div>
-
 
         <ThemeToggle />
       </div>

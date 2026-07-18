@@ -1,0 +1,63 @@
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.segBtn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+}
+
+.segBtn:hover {
+  color: var(--text-primary);
+}
+
+.segBtn.active {
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.legend {
+  display: flex;
+  gap: 18px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 14px 0 12px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.swatch {
+  width: 12px;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+.swatchDashed {
+  background-image: linear-gradient(90deg, currentColor 60%, transparent 0);
+  background-size: 6px 3px;
+  background-repeat: repeat-x;
+  height: 3px;
+}
+
+.chartWrap {
+  position: relative;
+  height: 240px;
+}

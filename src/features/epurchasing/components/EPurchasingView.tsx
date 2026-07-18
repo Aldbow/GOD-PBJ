@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { EselonBarRow } from '@/components/ui/EselonBarRow';
 import { Modal } from '@/components/ui/Modal';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -367,11 +368,6 @@ export function EPurchasingView() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 600, margin: '0 0 4px', color: 'var(--text-primary)' }}>Realisasi E-Purchasing V6</h1>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>Data langsung dari Supabase Database (Gabungan INAPROC & SIRUP)</p>
-      </div>
-
       {error && (
         <div style={{ background: 'var(--red-100)', color: 'var(--red-600)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
           {error}. Pastikan URL dan KEY Supabase di .env.local valid.
@@ -725,6 +721,24 @@ export function EPurchasingView() {
                   </button>
                 </div>
               )}
+            </div>
+          ) : viewMode === 'ESELON1' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <AnimatePresence>
+                {groupedData.map((item, i) => (
+                  <EselonBarRow
+                    key={item.name}
+                    name={item.name}
+                    pagu={item.totalPagu}
+                    realisasi={item.totalRealisasi}
+                    count={item.count}
+                    countLabel="Paket"
+                    index={i}
+                    onClick={() => handleGroupClick(item.name)}
+                    formatRupiah={fmtRupiah}
+                  />
+                ))}
+              </AnimatePresence>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

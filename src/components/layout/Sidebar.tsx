@@ -4,23 +4,40 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './Sidebar.module.css';
-import { motion } from 'framer-motion';
 import { LayoutDashboard, Users, Component, ShoppingCart, Package, Target, Briefcase, FileText } from 'lucide-react';
+
+type NavLink = { name: string; href: string; icon: React.ReactNode };
+type NavGroup = { label: string | null; links: NavLink[] };
+
+const groups: NavGroup[] = [
+  {
+    label: null,
+    links: [
+      { name: 'Ringkasan', href: '/', icon: <LayoutDashboard size={18} /> },
+    ],
+  },
+  {
+    label: 'Perencanaan',
+    links: [
+      { name: 'Tampilan PPK', href: '/ppk', icon: <Users size={18} /> },
+      { name: 'Drill-down satker', href: '/drilldown', icon: <Component size={18} /> },
+      { name: 'Rencana Umum Pengadaan', href: '/rencana-pengadaan', icon: <FileText size={18} /> },
+    ],
+  },
+  {
+    label: 'Realisasi',
+    links: [
+      { name: 'Realisasi E-Purchasing V6', href: '/epurchasing', icon: <ShoppingCart size={18} /> },
+      { name: 'Realisasi Tender', href: '/tender', icon: <Briefcase size={18} /> },
+      { name: 'Realisasi Pengadaan Langsung', href: '/pengadaan-langsung', icon: <Package size={18} /> },
+      { name: 'Realisasi Penunjukan Langsung', href: '/penunjukan-langsung', icon: <Target size={18} /> },
+      { name: 'Realisasi Swakelola', href: '/swakelola', icon: <Package size={18} /> },
+    ],
+  },
+];
 
 export function Sidebar() {
   const pathname = usePathname();
-
-  const links = [
-    { name: 'Ringkasan', href: '/', icon: <LayoutDashboard size={18} /> },
-    { name: 'Tampilan PPK', href: '/ppk', icon: <Users size={18} /> },
-    { name: 'Drill-down satker', href: '/drilldown', icon: <Component size={18} /> },
-    { name: 'Rencana Umum Pengadaan', href: '/rencana-pengadaan', icon: <FileText size={18} /> },
-    { name: 'Realisasi E-Purchasing V6', href: '/epurchasing', icon: <ShoppingCart size={18} /> },
-    { name: 'Realisasi Tender', href: '/tender', icon: <Briefcase size={18} /> },
-    { name: 'Realisasi Pengadaan Langsung', href: '/pengadaan-langsung', icon: <Package size={18} /> },
-    { name: 'Realisasi Penunjukan Langsung', href: '/penunjukan-langsung', icon: <Target size={18} /> },
-    { name: 'Realisasi Swakelola', href: '/swakelola', icon: <Package size={18} /> },
-  ];
 
   return (
     <aside className={styles.sidebar}>
@@ -33,27 +50,32 @@ export function Sidebar() {
       </div>
 
       <nav className={styles.nav}>
-        {links.map((link) => {
-          const isActive = pathname === link.href;
-          return (
-            <Link key={link.href} href={link.href} className={`${styles.navBtn} ${isActive ? styles.active : ''}`}>
-              {link.icon}
-              {link.name}
-              {isActive && (
-                <motion.div
-                  layoutId="sidebar-active"
-                  className={styles.activeIndicator}
-                  initial={false}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-              )}
-            </Link>
-          );
-        })}
+        {groups.map((group, gi) => (
+          <div key={gi} className={styles.group}>
+            {group.label && <p className={styles.groupLabel}>{group.label}</p>}
+            {group.links.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`${styles.navBtn} ${isActive ? styles.active : ''}`}
+                >
+                  <span className={styles.navIcon}>{link.icon}</span>
+                  <span className={styles.navLabel}>{link.name}</span>
+                  {isActive && <span className={styles.activeIndicator} />}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className={styles.sidebarFoot}>
-        Prototipe v0.1<br />Aksi perubahan — Kemnaker<br />Data ilustratif, 22 Jun 2026
+        <span className={styles.footVersion}>Prototipe v0.1</span>
+        Aksi perubahan — Kemnaker
+        <br />
+        Data ilustratif, 22 Jun 2026
       </div>
     </aside>
   );

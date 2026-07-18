@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
 import { TenderView } from '@/features/tender/components/TenderView';
+import { PageTransition } from '@/components/layout/PageTransition';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   title: 'Realisasi Tender - Dewa-PBJ',
@@ -8,8 +10,10 @@ export const metadata: Metadata = {
 
 export default function TenderPage() {
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
-      <TenderView />
-    </div>
+    <PageTransition>
+      <Suspense fallback={<p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat dasbor...</p>}>
+        <TenderView />
+      </Suspense>
+    </PageTransition>
   );
 }

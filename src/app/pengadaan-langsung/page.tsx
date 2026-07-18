@@ -1,4 +1,5 @@
 import { PengadaanLangsungView } from '@/features/pengadaan-langsung/components/PengadaanLangsungView';
+import { PageTransition } from '@/components/layout/PageTransition';
 import { Suspense } from 'react';
 
 export const metadata = {
@@ -8,10 +9,10 @@ export const metadata = {
 
 export default function PengadaanLangsungPage() {
   return (
-    <div style={{ padding: '24px 32px' }}>
+    <PageTransition>
       <Suspense fallback={<p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat dasbor...</p>}>
         <PengadaanLangsungView />
       </Suspense>
-    </div>
+    </PageTransition>
   );
 }

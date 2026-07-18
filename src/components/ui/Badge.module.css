@@ -1,29 +1,38 @@
 .badge {
   font-size: 11px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 6px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
-  display: inline-block;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.6;
+  border: 1px solid transparent;
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease;
 }
 
 .tinggi {
   background: var(--red-100);
   color: var(--red-600);
+  border-color: color-mix(in srgb, var(--red-600) 22%, transparent);
 }
 
 .sedang {
   background: var(--amber-100);
   color: var(--amber-600);
+  border-color: color-mix(in srgb, var(--amber-600) 22%, transparent);
 }
 
 .rendah {
   background: var(--teal-100);
   color: var(--teal-600);
+  border-color: color-mix(in srgb, var(--teal-600) 22%, transparent);
 }
 
 .default {
-  background: var(--border);
+  background: var(--surface-2);
   color: var(--text-secondary);
+  border-color: var(--border);
 }

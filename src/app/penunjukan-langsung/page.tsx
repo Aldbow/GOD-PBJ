@@ -1,4 +1,5 @@
 import { PenunjukanLangsungView } from '@/features/penunjukan-langsung/components/PenunjukanLangsungView';
+import { PageTransition } from '@/components/layout/PageTransition';
 import { Suspense } from 'react';
 
 export const metadata = {
@@ -8,10 +9,10 @@ export const metadata = {
 
 export default function PenunjukanLangsungPage() {
   return (
-    <div style={{ padding: '24px 32px' }}>
+    <PageTransition>
       <Suspense fallback={<p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat dasbor...</p>}>
         <PenunjukanLangsungView />
       </Suspense>
-    </div>
+    </PageTransition>
   );
 }

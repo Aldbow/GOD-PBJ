@@ -5,21 +5,26 @@
 .track {
   height: 8px;
   background: var(--track-bg);
-  border-radius: 4px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
   position: relative;
 }
 
 .fill {
   height: 100%;
-  background: var(--info-600);
-  border-radius: 4px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--info-600) 82%, #fff),
+    var(--info-600)
+  );
 }
 
 .label {
   font-size: 11px;
   color: var(--info-600);
   text-align: right;
-  margin: 4px 0 0;
+  margin: 5px 0 0;
   font-family: var(--font-mono);
+  letter-spacing: -0.02em;
 }
