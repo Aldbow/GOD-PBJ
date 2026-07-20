@@ -1,0 +1,162 @@
+.section {
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.accent-info { border-left: 4px solid var(--info-600); }
+.accent-teal { border-left: 4px solid var(--teal-600); }
+.accent-amber { border-left: 4px solid var(--amber-600); }
+.accent-indigo { border-left: 4px solid var(--indigo-500); }
+.accent-purple { border-left: 4px solid var(--purple-500); }
+.accent-neutral { border: 1px solid var(--border); }
+
+.iconWrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.iconWrap-info { background: var(--info-100); color: var(--info-600); }
+.iconWrap-teal { background: var(--teal-100); color: var(--teal-600); }
+.iconWrap-amber { background: var(--amber-100); color: var(--amber-600); }
+.iconWrap-indigo { background: var(--indigo-100); color: var(--indigo-600); }
+.iconWrap-purple { background: var(--purple-100); color: var(--purple-600); }
+.iconWrap-neutral { background: var(--bg-page); color: var(--text-secondary); border: 1px solid var(--border); }
+
+.cardBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.cardLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
+  font-weight: 500;
+}
+
+.cardValueRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cardValue {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.cardBadge {
+  padding: 2px 8px;
+  border: none;
+}
+
+.badge-good { background: var(--teal-100); color: var(--teal-700); }
+.badge-warn { background: var(--amber-100); color: var(--amber-700); }
+
+.progressCard {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.progressHead {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.progressTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.progressTotal {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.progressTrack {
+  height: 12px;
+  background: var(--bg-page);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  border: 1px solid var(--border);
+}
+
+.progressDone {
+  background: var(--teal-600);
+  height: 100%;
+}
+
+.progressRemaining {
+  background: var(--amber-600);
+  height: 100%;
+}
+
+.progressLegend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legendDotDone { background: var(--teal-600); }
+.legendDotRemaining { background: var(--amber-600); }

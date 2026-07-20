@@ -1,64 +1,72 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Wallet, TrendingUp, ListTodo, Package, CheckCircle2, Clock, FileText, CreditCard } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { fmtRupiah, countRup } from '@/lib/format';
+import { fetchRupHistory, type RupHistoryEntry } from '@/lib/paket/rupHistory';
+import { useOrgFilters } from '@/hooks/useOrgFilters';
+import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
+import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
+import { MetricGrid, DualProgressBar } from '@/components/paket/SummaryCards';
+import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
+import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
 import { Badge } from '@/components/ui/Badge';
-import { EselonBarRow } from '@/components/ui/EselonBarRow';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { ErrorBox } from '@/components/ui/ErrorBox';
-import { Modal } from '@/components/ui/Modal';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Wallet, TrendingUp, ListTodo, Search, CheckCircle2, Clock, FileText, CreditCard } from 'lucide-react';
+import styles from '@/components/paket/paketView.module.css';
+
+const STATUS_OPTIONS = [
+  { value: 'SUDAH', label: 'Terdapat Realisasi' },
+  { value: 'BELUM', label: 'Belum Terealisasi' },
+];
+
+const TIPE_RUP_OPTIONS = [
+  { value: 'Single RUP', label: 'Single RUP' },
+  { value: 'Multiple RUP', label: 'Multiple RUP' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'PAGU_DESC', label: 'Pagu Tertinggi' },
+  { value: 'PAGU_ASC', label: 'Pagu Terendah' },
+  { value: 'REAL_DESC', label: 'Realisasi Tertinggi' },
+  { value: 'REAL_ASC', label: 'Realisasi Terendah' },
+];
 
 export function PenunjukanLangsungView() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const { eselon1, satker, ppk, search, setEselon1, setSatker, setPpk, setSearch } = useOrgFilters();
 
-  // Hierarchy State from URL
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [tipeRupFilter, setTipeRupFilter] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<string[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const selectedEselon1 = searchParams.get('e1') || null;
-  const selectedSatker = searchParams.get('s') || null;
-  const selectedPPK = searchParams.get('p') || null;
-  const selectedTipeRup = searchParams.get('t') || null;
-
-  // Modal State
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // History State
-  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [historyData, setHistoryData] = useState<RupHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Fetch History Effect
   useEffect(() => {
-    if (selectedItem) {
-      const fetchHistory = async () => {
-        setLoadingHistory(true);
-        try {
-          const { data, error } = await supabase.rpc('get_rup_history', {
-            target_rup: parseInt(selectedItem.kd_rup)
-          });
-          if (error) throw error;
-          setHistoryData(data || []);
-        } catch (e) {
-          console.error("Failed to fetch history", e);
-          setHistoryData([]);
-        } finally {
-          setLoadingHistory(false);
-        }
-      };
-      fetchHistory();
-    } else {
+    if (!isModalOpen || !selectedItem) {
       setHistoryData([]);
+      return;
     }
-  }, [selectedItem]);
+    let cancelled = false;
+    setLoadingHistory(true);
+    fetchRupHistory(selectedItem.kd_rup).then((result) => {
+      if (!cancelled) {
+        setHistoryData(result);
+        setLoadingHistory(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isModalOpen, selectedItem]);
 
   useEffect(() => {
     async function fetchData() {
@@ -66,27 +74,17 @@ export function PenunjukanLangsungView() {
         let allData: any[] = [];
         let offset = 0;
         const limit = 1000;
-
         while (true) {
           const { data, error } = await supabase
             .from('view_dashboard_penunjukan_langsung')
             .select('*')
             .range(offset, offset + limit - 1);
-
           if (error) throw error;
           if (!data || data.length === 0) break;
-
           allData = [...allData, ...data];
           if (data.length < limit) break;
           offset += limit;
         }
-
-        if (allData.length === 0) {
-          setData([]);
-          setLoading(false);
-          return;
-        }
-
         setData(allData);
       } catch (e: any) {
         console.error(e);
@@ -95,580 +93,320 @@ export function PenunjukanLangsungView() {
         setLoading(false);
       }
     }
-
     fetchData();
   }, []);
 
-  const fmtRupiah = (m: number) => {
-    if (!m) return 'Rp 0';
-    if (m >= 1e9) return 'Rp ' + (m / 1e9).toFixed(2).replace('.', ',') + ' M';
-    if (m >= 1e6) return 'Rp ' + (m / 1e6).toFixed(2).replace('.', ',') + ' Jt';
-    return 'Rp ' + m.toLocaleString('id-ID');
-  };
-
-  // Base Context (Drill-down filter applied)
   const baseData = useMemo(() => {
     let d = data;
-    if (selectedEselon1) d = d.filter(item => (item.eselon1 || 'Tidak Diketahui') === selectedEselon1);
-    if (selectedSatker) d = d.filter(item => (item.satker || 'Tidak Diketahui') === selectedSatker);
-    if (selectedPPK) d = d.filter(item => (item.nama_ppk || 'Tidak Diketahui') === selectedPPK);
-    if (selectedTipeRup) d = d.filter(item => (item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP') === selectedTipeRup);
+    if (eselon1) d = d.filter((item) => (item.eselon1 || 'Tidak Diketahui') === eselon1);
+    if (satker) d = d.filter((item) => (item.satker || 'Tidak Diketahui') === satker);
+    if (ppk) d = d.filter((item) => (item.nama_ppk || 'Tidak Diketahui') === ppk);
+    if (tipeRupFilter.length > 0) {
+      d = d.filter((item) => tipeRupFilter.includes(item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP'));
+    }
     return d;
-  }, [data, selectedEselon1, selectedSatker, selectedPPK, selectedTipeRup]);
+  }, [data, eselon1, satker, ppk, tipeRupFilter]);
 
   const filteredData = useMemo(() => {
-    if (!searchQuery) return baseData;
-    const q = searchQuery.toLowerCase();
-    return baseData.filter(p =>
-      (p.rup_name && p.rup_name.toLowerCase().includes(q)) ||
-      (p.kd_rup && String(p.kd_rup).toLowerCase().includes(q)) ||
-      (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(q)) ||
-      (p.satker && p.satker.toLowerCase().includes(q)) ||
-      (p.eselon1 && p.eselon1.toLowerCase().includes(q)) ||
-      (p.nama_ppk && p.nama_ppk.toLowerCase().includes(q))
-    );
-  }, [baseData, searchQuery]);
+    let d = baseData;
+    if (search) {
+      const q = search.toLowerCase();
+      d = d.filter(
+        (p) =>
+          (p.rup_name && p.rup_name.toLowerCase().includes(q)) ||
+          (p.kd_rup && String(p.kd_rup).toLowerCase().includes(q)) ||
+          (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(q)) ||
+          (p.satker && p.satker.toLowerCase().includes(q)) ||
+          (p.eselon1 && p.eselon1.toLowerCase().includes(q)) ||
+          (p.nama_ppk && p.nama_ppk.toLowerCase().includes(q))
+      );
+    }
+    if (statusFilter.length > 0) {
+      d = d.filter((p) => {
+        const hasRealisasi = (Number(p.total) || 0) > 0;
+        return statusFilter.includes(hasRealisasi ? 'SUDAH' : 'BELUM');
+      });
+    }
+    return d;
+  }, [baseData, search, statusFilter]);
 
-  const totalPagu = data.reduce((s, d) => s + (Number(d.pagu) || 0), 0);
-
-  // Realisasi and Summary calculated relative to current view or total? 
-  // Let's make summary cards absolute (top-level) or contextual. Usually contextual to filteredData.
-  // Kiri (Left Join context)
-  const contextPagu = baseData.filter(p => p.is_from_sirup !== false).reduce((s, d) => s + (Number(d.pagu) || 0), 0);
-
-  // Kanan
+  const contextPagu = baseData.filter((p) => p.is_from_sirup !== false).reduce((s, d) => s + (Number(d.pagu) || 0), 0);
   const contextRealisasi = filteredData.reduce((s, d) => s + (Number(d.total) || 0), 0);
   const contextRealisasiPencatatan = filteredData.reduce((s, d) => s + (Number(d.total_pencatatan) || 0), 0);
   const contextRealisasiTransaksional = filteredData.reduce((s, d) => s + (Number(d.total_transaksional) || 0), 0);
-
-  // Sisa Anggaran = Kiri - Kanan
   const contextBelumRealisasi = Math.max(0, contextPagu - contextRealisasi);
+  const persentase = contextPagu > 0 ? (contextRealisasi / contextPagu) * 100 : 0;
+  const persentaseBelumRealisasi = contextPagu > 0 ? (contextBelumRealisasi / contextPagu) * 100 : 0;
 
-  const persentase = contextPagu > 0 ? ((contextRealisasi / contextPagu) * 100).toFixed(1) : '0.0';
-  const persentaseBelumRealisasi = contextPagu > 0 ? ((contextBelumRealisasi / contextPagu) * 100).toFixed(1) : '0.0';
-
-  const countRup = (kd_rup: any) => String(kd_rup || '').split(';').length;
-
-  const totalPaket = filteredData.filter(p => p.is_from_sirup !== false).reduce((sum, p) => sum + countRup(p.kd_rup), 0);
-  const paketSelesai = filteredData.filter(p => p.is_from_sirup !== false && (Number(p.total) || 0) > 0).reduce((sum, p) => sum + countRup(p.kd_rup), 0);
+  const totalPaket = filteredData.filter((p) => p.is_from_sirup !== false).reduce((sum, p) => sum + countRup(p.kd_rup), 0);
+  const paketSelesai = filteredData
+    .filter((p) => p.is_from_sirup !== false && (Number(p.total) || 0) > 0)
+    .reduce((sum, p) => sum + countRup(p.kd_rup), 0);
   const paketBelumSelesai = totalPaket - paketSelesai;
 
-  // Hierarchical Data Grouping
-  let groupedData: { name: string; totalPagu: number; totalRealisasi: number; count: number }[] = [];
-  let viewMode = 'ESELON1'; // ESELON1, SATKER, PPK, PAKET
-
-  const sortGroupedData = (groups: Record<string, any>) => {
-    return Object.values(groups).sort((a, b) => {
-      const pctA = a.totalPagu > 0 ? a.totalRealisasi / a.totalPagu : 0;
-      const pctB = b.totalPagu > 0 ? b.totalRealisasi / b.totalPagu : 0;
+  const activeSort = sortBy[0];
+  const sortedPackages = useMemo(() => {
+    const copy = [...filteredData];
+    copy.sort((a, b) => {
+      if (activeSort === 'PAGU_DESC') return (Number(b.pagu) || 0) - (Number(a.pagu) || 0);
+      if (activeSort === 'PAGU_ASC') return (Number(a.pagu) || 0) - (Number(b.pagu) || 0);
+      if (activeSort === 'REAL_DESC') return (Number(b.total) || 0) - (Number(a.total) || 0);
+      if (activeSort === 'REAL_ASC') return (Number(a.total) || 0) - (Number(b.total) || 0);
+      const pctA = (Number(a.pagu) || 0) > 0 ? (Number(a.total) || 0) / (Number(a.pagu) || 0) : 0;
+      const pctB = (Number(b.pagu) || 0) > 0 ? (Number(b.total) || 0) / (Number(b.pagu) || 0) : 0;
       return pctB - pctA;
     });
-  };
+    return copy;
+  }, [filteredData, activeSort]);
 
-  if (!selectedEselon1) {
-    viewMode = 'ESELON1';
-    const groups: Record<string, any> = {};
-    filteredData.forEach(p => {
-      const key = p.eselon1 || 'Tidak Diketahui';
-      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
-      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
-      groups[key].totalPagu += p.is_from_sirup !== false ? (Number(p.pagu) || 0) : 0;
-      groups[key].totalRealisasi += (Number(p.total) || 0);
-      groups[key].count += p.is_from_sirup !== false ? countRup(p.kd_rup) : 0;
-    });
-    groupedData = sortGroupedData(groups);
-  } else if (!selectedSatker) {
-    viewMode = 'SATKER';
-    const groups: Record<string, any> = {};
-    filteredData.forEach(p => {
-      const key = p.satker || 'Tidak Diketahui';
-      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
-      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
-      groups[key].totalPagu += p.is_from_sirup !== false ? (Number(p.pagu) || 0) : 0;
-      groups[key].totalRealisasi += (Number(p.total) || 0);
-      groups[key].count += p.is_from_sirup !== false ? countRup(p.kd_rup) : 0;
-    });
-    groupedData = sortGroupedData(groups);
-  } else if (!selectedPPK) {
-    viewMode = 'PPK';
-    const groups: Record<string, any> = {};
-    filteredData.forEach(p => {
-      const key = p.nama_ppk || 'Tidak Diketahui';
-      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
-      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
-      groups[key].totalPagu += p.is_from_sirup !== false ? (Number(p.pagu) || 0) : 0;
-      groups[key].totalRealisasi += (Number(p.total) || 0);
-      groups[key].count += p.is_from_sirup !== false ? countRup(p.kd_rup) : 0;
-    });
-    groupedData = sortGroupedData(groups);
-  } else if (!selectedTipeRup) {
-    viewMode = 'TIPE_RUP';
-    const groups: Record<string, any> = {};
-    filteredData.forEach(p => {
-      const key = p.is_multiple_rup ? 'Multiple RUP' : 'Single RUP';
-      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
-      if (!groups[key]) groups[key] = { name: key, totalPagu: 0, totalRealisasi: 0, count: 0 };
-      groups[key].totalPagu += p.is_from_sirup !== false ? (Number(p.pagu) || 0) : 0;
-      groups[key].totalRealisasi += (Number(p.total) || 0);
-      groups[key].count += p.is_from_sirup !== false ? countRup(p.kd_rup) : 0;
-    });
-    groupedData = sortGroupedData(groups);
-  } else {
-    viewMode = 'PAKET';
-  }
+  const hasActiveExtraFilters = statusFilter.length > 0 || tipeRupFilter.length > 0 || sortBy.length > 0;
 
-  const handleGroupClick = (name: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (viewMode === 'ESELON1') params.set('e1', name);
-    else if (viewMode === 'SATKER') params.set('s', name);
-    else if (viewMode === 'PPK') params.set('p', name);
-    else if (viewMode === 'TIPE_RUP') params.set('t', name);
-    
-    router.push(`${pathname}?${params.toString()}`);
-  };
-
-  const handleBreadcrumbClick = (level: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (level === 'ALL') {
-      params.delete('e1');
-      params.delete('s');
-      params.delete('p');
-      params.delete('t');
-    } else if (level === 'ESELON1') {
-      params.delete('s');
-      params.delete('p');
-      params.delete('t');
-    } else if (level === 'SATKER') {
-      params.delete('p');
-      params.delete('t');
-    } else if (level === 'PPK') {
-      params.delete('t');
-    }
-    router.push(`${pathname}?${params.toString()}`);
-  };
-
-  // Pagination for Paket view
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedEselon1, selectedSatker, selectedPPK, selectedTipeRup]);
-
-  const sortedPackages = [...filteredData].sort((a, b) => {
-    const pctA = (Number(a.pagu) || 0) > 0 ? (Number(a.total) || 0) / (Number(a.pagu) || 0) : 0;
-    const pctB = (Number(b.pagu) || 0) > 0 ? (Number(b.total) || 0) / (Number(b.pagu) || 0) : 0;
-    return pctB - pctA;
-  });
-
-  const totalPages = Math.ceil(sortedPackages.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentData = sortedPackages.slice(startIndex, startIndex + itemsPerPage);
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(p => p + 1);
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage(p => p - 1);
-  };
-
-  const renderVerticalHierarchyCard = (item: { name: string; totalPagu: number; totalRealisasi: number; count: number }, type: 'Satker' | 'PPK' | 'Tipe RUP') => {
-    const pct = item.totalPagu > 0 ? (item.totalRealisasi / item.totalPagu) * 100 : 0;
-    const clampedPct = Math.min(Math.max(pct, 0), 100);
-    const themeColor = clampedPct > 75 ? '#06b6d4' : clampedPct > 40 ? '#f97316' : '#ef4444';
-    const glowColor = clampedPct > 75 ? 'rgba(6, 182, 212, 0.4)' : clampedPct > 40 ? 'rgba(249, 115, 22, 0.4)' : 'rgba(239, 68, 68, 0.4)';
-    return (
-      <motion.div
-        key={item.name}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ scale: 1.01, borderColor: 'var(--info-600)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-        transition={{ duration: 0.15 }}
-        style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 16px', cursor: 'pointer', willChange: 'transform', display: 'flex', flexDirection: 'column', gap: 8 }}
-        onClick={() => handleGroupClick(item.name)}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>{item.name}</p>
-          <Badge variant="default" style={{ background: 'var(--bg-page)', color: 'var(--text-secondary)' }}>
-            {item.count} RUP
+  const columns: PaketColumn<any>[] = useMemo(
+    () => [
+      {
+        key: 'nama',
+        label: 'Nama Paket',
+        render: (p) => (
+          <div className={styles.nameCell}>
+            <span className={styles.nameText} title={p.rup_name}>
+              {p.rup_name}
+            </span>
+            <span className={styles.rupCode}>RUP: {p.kd_rup || '-'}</span>
+          </div>
+        ),
+      },
+      { key: 'satker', label: 'Satker', render: (p) => <span className={styles.mutedCell}>{p.satker || '-'}</span> },
+      { key: 'ppk', label: 'PPK', render: (p) => <span className={styles.mutedCell}>{p.nama_ppk || '-'}</span> },
+      {
+        key: 'tipe',
+        label: 'Tipe RUP',
+        render: (p) => <span className={styles.mutedCell}>{p.is_multiple_rup ? 'Multiple RUP' : 'Single RUP'}</span>,
+      },
+      {
+        key: 'pagu',
+        label: 'Pagu',
+        align: 'right',
+        sortAccessor: (p) => Number(p.pagu) || 0,
+        render: (p) => <span className={styles.monoCell}>{fmtRupiah(Number(p.pagu))}</span>,
+      },
+      {
+        key: 'realisasi',
+        label: 'Realisasi',
+        align: 'right',
+        sortAccessor: (p) => Number(p.total) || 0,
+        render: (p) => {
+          const over = (Number(p.total) || 0) > (Number(p.pagu) || 0);
+          return <span className={`${styles.monoCell} ${over ? styles.overBudget : ''}`}>{fmtRupiah(Number(p.total))}</span>;
+        },
+      },
+      {
+        key: 'pct',
+        label: '%',
+        align: 'right',
+        sortAccessor: (p) => ((Number(p.pagu) || 0) > 0 ? (Number(p.total) || 0) / (Number(p.pagu) || 0) : 0),
+        render: (p) => {
+          const pct = (Number(p.pagu) || 0) > 0 ? (Number(p.total) / Number(p.pagu)) * 100 : 0;
+          const over = (Number(p.total) || 0) > (Number(p.pagu) || 0);
+          return <strong className={`${styles.pctBadge} ${over ? styles.pctOver : styles.pctNormal}`}>{pct.toFixed(1)}%</strong>;
+        },
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        align: 'center',
+        render: (p) => (
+          <Badge variant={(Number(p.total) || 0) > 0 ? 'rendah' : 'sedang'} className={styles.statusBadge}>
+            {(Number(p.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI'}
           </Badge>
-        </div>
-        {/* Progress Bar (konsisten dengan E-Purchasing) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ position: 'relative', flex: 1, height: 6, background: 'var(--track-bg)', borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${clampedPct}%`, background: themeColor, boxShadow: `0 0 8px ${glowColor}`, borderRadius: 3, transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' }} />
-          </div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)', flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <span>Level: <strong style={{ color: 'var(--text-primary)' }}>{type}</strong></span>
-            <span>Pagu: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{fmtRupiah(item.totalPagu)}</strong></span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span>Realisasi: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-600)' }}>{fmtRupiah(item.totalRealisasi)}</strong></span>
-            <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--teal-700)', background: 'var(--teal-100)', padding: '2px 8px', borderRadius: 4 }}>
-              {item.totalPagu > 0 ? ((item.totalRealisasi / item.totalPagu) * 100).toFixed(1) : 0}%
-            </strong>
-          </div>
-        </div>
-      </motion.div>
-    );
-  };
+        ),
+      },
+    ],
+    []
+  );
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
-      {error && (
-        <ErrorBox>
-          {error}. Pastikan View SQL sudah dieksekusi di Supabase.
-        </ErrorBox>
-      )}
+      {error && <ErrorBox>{error}. Pastikan View SQL sudah dieksekusi di Supabase.</ErrorBox>}
 
       {loading ? (
-        <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat data dari Supabase...</p>
+        <p className={styles.loadingText}>Memuat data dari Supabase...</p>
       ) : (
         <>
-          {/* Breadcrumbs */}
-          {selectedEselon1 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 13, color: 'var(--text-secondary)' }}>
-              <button onClick={() => handleBreadcrumbClick('ALL')} style={{ background: 'none', border: 'none', color: 'var(--info-600)', cursor: 'pointer', padding: 0, fontWeight: 500 }}>Semua Eselon 1</button>
-              <span>/</span>
-              {selectedSatker ? (
-                <>
-                  <button onClick={() => handleBreadcrumbClick('ESELON1')} style={{ background: 'none', border: 'none', color: 'var(--info-600)', cursor: 'pointer', padding: 0, fontWeight: 500 }}>{selectedEselon1}</button>
-                  <span>/</span>
-                  {selectedPPK ? (
-                    <>
-                      <button onClick={() => handleBreadcrumbClick('SATKER')} style={{ background: 'none', border: 'none', color: 'var(--info-600)', cursor: 'pointer', padding: 0, fontWeight: 500 }}>{selectedSatker}</button>
-                      <span>/</span>
-                      <span style={{ color: 'var(--text-primary)' }}>{selectedPPK}</span>
-                    </>
-                  ) : (
-                    <span style={{ color: 'var(--text-primary)' }}>{selectedSatker}</span>
-                  )}
-                </>
-              ) : (
-                <span style={{ color: 'var(--text-primary)' }}>{selectedEselon1}</span>
-              )}
-            </div>
-          )}
+          <MetricGrid
+            title="Ringkasan Keuangan"
+            icon={Wallet}
+            cards={[
+              { key: 'pagu', icon: Wallet, label: 'Total Anggaran (Pagu)', value: fmtRupiah(contextPagu), accent: 'info' },
+              {
+                key: 'real',
+                icon: TrendingUp,
+                label: 'Total Realisasi Keseluruhan',
+                value: fmtRupiah(contextRealisasi),
+                badge: `${persentase.toFixed(1)}%`,
+                badgeTone: 'good',
+                accent: 'teal',
+              },
+              { key: 'pencatatan', icon: FileText, label: 'Realisasi Pencatatan', value: fmtRupiah(contextRealisasiPencatatan), accent: 'indigo' },
+              { key: 'transaksional', icon: CreditCard, label: 'Realisasi Transaksional', value: fmtRupiah(contextRealisasiTransaksional), accent: 'purple' },
+              {
+                key: 'sisa',
+                icon: ListTodo,
+                label: 'Sisa Anggaran',
+                value: fmtRupiah(contextBelumRealisasi),
+                badge: `${persentaseBelumRealisasi.toFixed(1)}%`,
+                badgeTone: 'warn',
+                accent: 'amber',
+              },
+            ]}
+          />
 
-          {/* Summary Cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginBottom: 32 }}>
-            <div>
-              <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Wallet size={18} color="var(--info-600)" />
-                Ringkasan Keuangan
-              </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+          <MetricGrid
+            title="Status Paket Penunjukan Langsung"
+            icon={Package}
+            cards={[
+              { key: 'total', icon: Package, label: 'Total Seluruh RUP', value: totalPaket, accent: 'neutral' },
+              { key: 'selesai', icon: CheckCircle2, label: 'Terdapat Realisasi', value: paketSelesai, accent: 'teal' },
+              { key: 'belum', icon: Clock, label: 'Belum Terealisasi', value: paketBelumSelesai, accent: 'amber' },
+            ]}
+          />
 
-                <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', borderLeft: '4px solid var(--info-600)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--info-100)', color: 'var(--info-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Wallet size={24} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Total Anggaran (Pagu)</p>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextPagu)}</p>
-                  </div>
-                </motion.div>
-
-                <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', borderLeft: '4px solid var(--teal-600)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--teal-100)', color: 'var(--teal-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <TrendingUp size={24} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Total Realisasi Keseluruhan</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextRealisasi)}</p>
-                      <Badge variant="default" style={{ background: 'var(--teal-100)', color: 'var(--teal-700)', border: 'none', padding: '2px 8px' }}>{persentase}%</Badge>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', borderLeft: '4px solid var(--indigo-500)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--indigo-100)', color: 'var(--indigo-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileText size={24} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Realisasi Pencatatan</p>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextRealisasiPencatatan)}</p>
-                  </div>
-                </motion.div>
-
-                <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', borderLeft: '4px solid var(--purple-500)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--purple-100)', color: 'var(--purple-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CreditCard size={24} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Realisasi Transaksional</p>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextRealisasiTransaksional)}</p>
-                  </div>
-                </motion.div>
-
-                <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', borderLeft: '4px solid var(--amber-600)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--amber-100)', color: 'var(--amber-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ListTodo size={24} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Sisa Anggaran</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{fmtRupiah(contextBelumRealisasi)}</p>
-                      <Badge variant="default" style={{ background: 'var(--amber-100)', color: 'var(--amber-700)', border: 'none', padding: '2px 8px' }}>{persentaseBelumRealisasi}%</Badge>
-                    </div>
-                  </div>
-                </motion.div>
-
-              </div>
-            </div>
-
-            {/* Section: Status Paket */}
-            <div>
-              <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Package size={18} color="var(--info-600)" />
-                Status Paket Pengadaan Langsung
-              </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-
-                {/* Total Paket */}
-                <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--border)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--bg-page)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
-                    <Package size={24} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px', fontWeight: 500 }}>Total Seluruh RUP</p>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{totalPaket}</p>
-                  </div>
-                </motion.div>
-
-                {/* Selesai */}
-                <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--teal-100)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--teal-100)', color: 'var(--teal-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CheckCircle2 size={24} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--teal-700)', margin: '0 0 4px', fontWeight: 500 }}>Terdapat Realisasi</p>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 700, margin: 0, color: 'var(--teal-700)' }}>{paketSelesai}</p>
-                  </div>
-                </motion.div>
-
-                {/* Belum Selesai */}
-                <motion.div whileHover={{ y: -2 }} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid var(--amber-100)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--amber-100)', color: 'var(--amber-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Clock size={24} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: 'var(--amber-700)', margin: '0 0 4px', fontWeight: 500 }}>Belum Terealisasi</p>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 700, margin: 0, color: 'var(--amber-700)' }}>{paketBelumSelesai}</p>
-                  </div>
-                </motion.div>
-
-              </div>
-            </div>
-
-            {/* Visual Progress Bar */}
-            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 20, border: '1px solid var(--border)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Progres Penyerapan Anggaran</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Total Pagu: {fmtRupiah(contextPagu)}</span>
-              </div>
-              <div style={{ height: 12, background: 'var(--bg-page)', borderRadius: 6, overflow: 'hidden', display: 'flex', border: '1px solid var(--border)' }}>
-                <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, Number(persentase))}%` }} transition={{ duration: 1 }} style={{ background: 'var(--teal-600)', height: '100%' }} />
-                <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, Number(persentaseBelumRealisasi))}%` }} transition={{ duration: 1 }} style={{ background: 'var(--amber-600)', height: '100%' }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--teal-600)' }} /> Terealisasi ({persentase}%)</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--amber-600)' }} /> Sisa ({persentaseBelumRealisasi}%)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Search */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-            <SearchInput
-              placeholder="Cari nama paket, kode RUP, penyedia..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+          <div className={styles.progressWrap}>
+            <DualProgressBar
+              title="Progres Penyerapan Anggaran"
+              totalLabel={`Total Pagu: ${fmtRupiah(contextPagu)}`}
+              donePct={persentase}
+              remainingPct={persentaseBelumRealisasi}
+              doneLabel="Terealisasi"
+              remainingLabel="Sisa"
             />
           </div>
 
-          {/* Render Detail Cards for Eselon1/Satker/PPK or Vertical Cards for Pakets */}
-          {viewMode === 'ESELON1' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 40 }}>
-              <AnimatePresence>
-                {groupedData.map((item, i) => (
-                  <EselonBarRow
-                    key={item.name}
-                    name={item.name}
-                    pagu={item.totalPagu}
-                    realisasi={item.totalRealisasi}
-                    count={item.count}
-                    countLabel="Paket"
-                    index={i}
-                    onClick={() => handleGroupClick(item.name)}
-                    formatRupiah={fmtRupiah}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-          ) : viewMode === 'SATKER' || viewMode === 'PPK' || viewMode === 'TIPE_RUP' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 40 }}>
-              <AnimatePresence>
-                {groupedData.map(item => renderVerticalHierarchyCard(item, viewMode === 'SATKER' ? 'Satker' : viewMode === 'PPK' ? 'PPK' : 'Tipe RUP'))}
-              </AnimatePresence>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {currentData.map((p, i) => (
-                <motion.div
-                  key={p.kd_rup || i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ scale: 1.01, borderColor: 'var(--info-600)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-                  transition={{ duration: 0.15 }}
-                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', willChange: 'transform', display: 'flex', flexDirection: 'column', gap: 6 }}
-                  onClick={() => { setSelectedItem(p); setIsModalOpen(true); }}
+          <div className={styles.filterHead}>
+            <span className={styles.filterHeadTitle}>Filter</span>
+            <button type="button" className={styles.advancedToggle} onClick={() => setShowAdvanced((v) => !v)}>
+              Filter Lanjutan {hasActiveExtraFilters && <Badge variant="rendah">Aktif</Badge>}
+            </button>
+          </div>
+
+          <OrgFilterBar
+            data={data}
+            eselon1={eselon1}
+            satker={satker}
+            ppk={ppk}
+            search={search}
+            onEselon1Change={setEselon1}
+            onSatkerChange={setSatker}
+            onPpkChange={setPpk}
+            onSearchChange={setSearch}
+          />
+
+          {showAdvanced && (
+            <div className={styles.advancedPanel}>
+              <div className={styles.filterRow}>
+                <span className={styles.filterLabel}>Status</span>
+                <FilterPillGroup options={STATUS_OPTIONS} selected={statusFilter} onChange={setStatusFilter} />
+              </div>
+              <div className={styles.filterRow}>
+                <span className={styles.filterLabel}>Tipe RUP</span>
+                <FilterPillGroup options={TIPE_RUP_OPTIONS} selected={tipeRupFilter} onChange={setTipeRupFilter} multi={false} />
+              </div>
+              <div className={styles.filterRow}>
+                <span className={styles.filterLabel}>Urutkan</span>
+                <FilterPillGroup options={SORT_OPTIONS} selected={sortBy} onChange={setSortBy} multi={false} />
+              </div>
+              {hasActiveExtraFilters && (
+                <button
+                  type="button"
+                  className={styles.resetAllBtn}
+                  onClick={() => {
+                    setStatusFilter([]);
+                    setTipeRupFilter([]);
+                    setSortBy([]);
+                  }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }} title={p.rup_name}>{p.rup_name}</p>
-                    <Badge variant={(Number(p.total) || 0) > 0 ? 'rendah' : 'sedang'} style={{ padding: '2px 6px', fontSize: 9 }}>
-                      {(Number(p.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI'}
-                    </Badge>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--text-secondary)', flexWrap: 'wrap', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, background: 'var(--bg-page)', padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)' }} title="Kode RUP">RUP: {p.kd_rup || '-'}</span>
-                      <span>Pagu: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{fmtRupiah(Number(p.pagu))}</strong></span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span>Realisasi: <strong style={{ fontFamily: 'var(--font-mono)', color: ((Number(p.total) || 0) > (Number(p.pagu) || 0)) ? 'var(--red-600)' : 'var(--text-primary)' }}>{fmtRupiah(Number(p.total))}</strong></span>
-                      <strong style={{ fontFamily: 'var(--font-mono)', color: ((Number(p.total) || 0) > (Number(p.pagu) || 0)) ? 'var(--red-600)' : 'var(--teal-700)', background: ((Number(p.total) || 0) > (Number(p.pagu) || 0)) ? 'var(--red-100)' : 'var(--teal-100)', padding: '2px 6px', borderRadius: 4 }}>
-                        {Number(p.pagu) > 0 ? ((Number(p.total) / Number(p.pagu)) * 100).toFixed(1) : 0}%
-                      </strong>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-
-              {sortedPackages.length === 0 && (
-                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-tertiary)', border: '1px dashed var(--border)', borderRadius: 8 }}>
-                  Tidak ada data ditemukan
-                </div>
-              )}
-
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
-                  <button
-                    onClick={handlePrevPage}
-                    disabled={currentPage === 1}
-                    style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === 1 ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
-                  >
-                    Sebelumnya
-                  </button>
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                    Halaman <strong style={{ color: 'var(--text-primary)' }}>{currentPage}</strong> dari {totalPages}
-                  </span>
-                  <button
-                    onClick={handleNextPage}
-                    disabled={currentPage === totalPages}
-                    style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', background: currentPage === totalPages ? 'var(--gray-100)' : 'var(--surface)', border: '1px solid var(--border)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? 'var(--text-tertiary)' : 'var(--text-primary)', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
-                  >
-                    Selanjutnya
-                  </button>
-                </div>
+                  Reset Semua Filter &amp; Urutan
+                </button>
               )}
             </div>
           )}
+
+          <PaketTable
+            columns={columns}
+            rows={sortedPackages}
+            getRowKey={(p, i) => p.kd_rup || i}
+            onRowClick={(p) => {
+              setSelectedItem(p);
+              setIsModalOpen(true);
+            }}
+          />
         </>
       )}
 
-      {/* Detail Card Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Detail Pengadaan Langsung">
+      <PaketDetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Detail Penunjukan Langsung"
+        historyData={historyData}
+        loadingHistory={loadingHistory}
+      >
         {selectedItem && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <>
             <div>
-              <h3 style={{ margin: '0 0 8px', fontSize: 18, color: 'var(--text-primary)', lineHeight: 1.4 }}>{selectedItem.rup_name}</h3>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>Penyedia (Kontraktor)</p>
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 16px' }}>
-                <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: 'var(--text-primary)' }}>{selectedItem.kode_penyedia || 'Tidak Diketahui'}</p>
+              <h3 className={styles.modalTitle}>{selectedItem.rup_name}</h3>
+              <p className={styles.modalSubLabel}>Penyedia (Kontraktor)</p>
+              <div className={styles.modalBox}>
+                <p className={styles.modalBoxText}>{selectedItem.kode_penyedia || 'Tidak Diketahui'}</p>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, background: 'var(--bg-page)', padding: 16, borderRadius: 'var(--radius-lg)' }}>
-              <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Kode RUP</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14 }}>{selectedItem.kd_rup}</span></div>
-              <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Metode Pengadaan</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14 }}>Pengadaan Langsung</span></div>
-              <div style={{ gridColumn: '1 / -1', height: 1, background: 'var(--border)', margin: '8px 0' }} />
-              <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Total Nilai Pagu</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--text-primary)' }}>{fmtRupiah(Number(selectedItem.pagu))}</span></div>
-              <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Total Realisasi Keseluruhan</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--teal-600)', fontWeight: 700 }}>{fmtRupiah(Number(selectedItem.total))}</span></div>
-              <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>- Realisasi (Pencatatan)</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-secondary)' }}>{fmtRupiah(Number(selectedItem.total_pencatatan || 0))}</span></div>
-              <div><span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>- Realisasi (Transaksional)</span><span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-secondary)' }}>{fmtRupiah(Number(selectedItem.total_transaksional || 0))}</span></div>
+            <div className={styles.modalGrid}>
+              <div>
+                <span className={styles.modalFieldLabel}>Kode RUP</span>
+                <span className={styles.modalFieldValue}>{selectedItem.kd_rup}</span>
+              </div>
+              <div>
+                <span className={styles.modalFieldLabel}>Metode Pengadaan</span>
+                <span className={styles.modalFieldValue}>{selectedItem.metode_pengadaan || 'Penunjukan Langsung'}</span>
+              </div>
+              <div className={styles.modalDivider} />
+              <div>
+                <span className={styles.modalFieldLabel}>Total Nilai Pagu</span>
+                <span className={styles.modalFieldValue}>{fmtRupiah(Number(selectedItem.pagu))}</span>
+              </div>
+              <div>
+                <span className={styles.modalFieldLabel}>Total Realisasi Keseluruhan</span>
+                <span className={styles.modalFieldValueStrong}>{fmtRupiah(Number(selectedItem.total))}</span>
+              </div>
+              <div>
+                <span className={styles.modalFieldLabel}>- Realisasi (Pencatatan)</span>
+                <span className={styles.modalFieldValueMuted}>{fmtRupiah(Number(selectedItem.total_pencatatan || 0))}</span>
+              </div>
+              <div>
+                <span className={styles.modalFieldLabel}>- Realisasi (Transaksional)</span>
+                <span className={styles.modalFieldValueMuted}>{fmtRupiah(Number(selectedItem.total_transaksional || 0))}</span>
+              </div>
             </div>
 
             <div>
-              <h4 style={{ fontSize: 14, margin: '0 0 8px', color: 'var(--text-primary)' }}>Informasi Instansi & Satker</h4>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Eselon 1: {selectedItem.eselon1 || '-'}</p>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Satuan Kerja: {selectedItem.satker || '-'}</p>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>PPK: {selectedItem.nama_ppk || '-'}</p>
+              <h4 className={styles.modalSectionTitle}>Informasi Instansi &amp; Satker</h4>
+              <p className={styles.modalText}>Eselon 1: {selectedItem.eselon1 || '-'}</p>
+              <p className={styles.modalText}>Satuan Kerja: {selectedItem.satker || '-'}</p>
+              <p className={styles.modalText}>PPK: {selectedItem.nama_ppk || '-'}</p>
             </div>
 
             <div>
-              <h4 style={{ fontSize: 14, margin: '0 0 8px', color: 'var(--text-primary)' }}>Detail Status</h4>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Status Paket: <strong style={{ color: 'var(--info-600)' }}>{(Number(selectedItem.total) || 0) > 0 ? 'Terdapat Realisasi' : 'Belum Ada Realisasi'}</strong></p>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>Status Aktif RUP: {selectedItem.status_aktif_rup === true ? 'Aktif' : 'Tidak / N/A'}</p>
+              <h4 className={styles.modalSectionTitle}>Detail Status</h4>
+              <p className={styles.modalText}>
+                Status Paket:{' '}
+                <strong className={styles.modalStatusStrong}>
+                  {(Number(selectedItem.total) || 0) > 0 ? 'Terdapat Realisasi' : 'Belum Ada Realisasi'}
+                </strong>
+              </p>
+              <p className={styles.modalText}>Status Aktif RUP: {selectedItem.status_aktif_rup === true ? 'Aktif' : 'Tidak / N/A'}</p>
             </div>
-
-            {/* History Section */}
-            <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-              <h4 style={{ fontSize: 14, margin: '0 0 16px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                Riwayat Kaji Ulang RUP
-                {loadingHistory && <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 400 }}>Memuat...</span>}
-              </h4>
-
-              {!loadingHistory && historyData.length === 0 ? (
-                <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>
-                  Tidak ada riwayat kaji ulang (perubahan) untuk RUP ini.
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
-                  {historyData.map((hist, index) => {
-                    const isLast = index === historyData.length - 1;
-                    return (
-                      <div key={index} style={{ display: 'flex', gap: 16, position: 'relative' }}>
-                        {/* Timeline Graphic */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24, flexShrink: 0 }}>
-                          <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--teal-500)', zIndex: 1, border: '2px solid var(--surface)' }} />
-                          {!isLast && <div style={{ width: 2, flex: 1, background: 'var(--border)', margin: '4px 0' }} />}
-                        </div>
-
-                        {/* Content */}
-                        <div style={{ paddingBottom: isLast ? 0 : 20, flex: 1 }}>
-                          <div style={{ background: 'var(--bg-page)', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                              <Badge variant="default">{hist.jenis_revisi}</Badge>
-                              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                                {new Date(hist.tgl_kaji_ulang).toLocaleString('id-ID')}
-                              </span>
-                            </div>
-
-                            <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: '0 0 6px', fontWeight: 500 }}>
-                              RUP {hist.kd_rup_lama} ➔ <span style={{ color: 'var(--teal-600)' }}>RUP {hist.kd_rup_baru}</span>
-                            </p>
-
-                            {hist.alasan_kajiulang && (
-                              <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, fontStyle: 'italic', background: 'var(--surface)', padding: '6px 10px', borderRadius: '4px' }}>
-                                "{hist.alasan_kajiulang}"
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+          </>
         )}
-      </Modal>
+      </PaketDetailModal>
     </motion.div>
   );
 }

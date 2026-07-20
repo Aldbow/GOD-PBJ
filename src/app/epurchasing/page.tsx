@@ -2,6 +2,11 @@ import { EPurchasingView } from '@/features/epurchasing/components/EPurchasingVi
 import { PageTransition } from '@/components/layout/PageTransition';
 import { Suspense } from 'react';
 
+export const metadata = {
+  title: 'Realisasi E-Purchasing - Dewa-PBJ',
+  description: 'Ringkasan Realisasi E-Purchasing',
+};
+
 export default function EPurchasingPage() {
   return (
     <PageTransition>

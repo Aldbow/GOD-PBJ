@@ -1,0 +1,266 @@
+.loadingText {
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.progressWrap {
+  margin-bottom: 24px;
+}
+
+.filterHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.filterHeadTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.advancedToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.advancedToggle:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.advancedPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.filterLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 90px;
+}
+
+.resetAllBtn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--red-600);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.resetAllBtn:hover {
+  text-decoration: underline;
+}
+
+/* Table cells */
+.nameCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 280px;
+}
+
+.nameText {
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rupCode {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.mutedCell {
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.monoCell {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.overBudget {
+  color: var(--red-600);
+}
+
+.pctBadge {
+  font-family: var(--font-mono);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.pctNormal {
+  color: var(--teal-700);
+  background: var(--teal-100);
+}
+
+.pctOver {
+  color: var(--red-600);
+  background: var(--red-100);
+}
+
+.statusBadge {
+  font-size: 10px;
+  padding: 2px 8px;
+}
+
+.metodeDefault {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: var(--info-100);
+  color: var(--info-700);
+  border: none;
+}
+
+.metodeDikecualikan {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: var(--amber-100);
+  color: var(--amber-700);
+  border: none;
+}
+
+/* Modal fields */
+.modalTitle {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.modalSubLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.modalBox {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+}
+
+.modalBoxText {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.modalGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  background: var(--bg-page);
+  padding: 16px;
+  border-radius: var(--radius-lg);
+}
+
+.modalFieldLabel {
+  display: block;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+
+.modalFieldValue {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.modalFieldValueStrong {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--teal-600);
+  font-weight: 700;
+}
+
+.modalFieldValueMuted {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.modalDivider {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+.modalSectionTitle {
+  font-size: 14px;
+  margin: 0 0 8px;
+  color: var(--text-primary);
+}
+
+.modalText {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
+}
+
+.modalStatusStrong {
+  color: var(--info-600);
+}
+
+.modalInfoBox {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+
+.modalInfoBoxTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.modalDateGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.badgeCell {
+  display: inline-flex;
+}
