@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useSession } from '@/components/auth/SessionProvider';
 
 export interface OrgFilters {
   eselon1: string | null;
@@ -27,10 +28,14 @@ export function useOrgFilters(): OrgFilters {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const { role, ppk_name } = useSession();
 
-  const eselon1 = searchParams.get('e1');
-  const satker = searchParams.get('s');
-  const ppk = searchParams.get('p');
+  // Role PPK: scope dikunci ke PPK ybs (abaikan filter Eselon/Satker/PPK dari URL).
+  const isPpkScoped = role === 'ppk';
+
+  const eselon1 = isPpkScoped ? null : searchParams.get('e1');
+  const satker = isPpkScoped ? null : searchParams.get('s');
+  const ppk = isPpkScoped ? ppk_name : searchParams.get('p');
   const urlSearch = searchParams.get('q') || '';
 
   const [search, setSearchLocal] = useState(urlSearch);
@@ -53,26 +58,32 @@ export function useOrgFilters(): OrgFilters {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
-  const setEselon1 = (value: string | null) =>
+  const setEselon1 = (value: string | null) => {
+    if (isPpkScoped) return; // scope terkunci
     replaceParams((params) => {
       if (value) params.set('e1', value);
       else params.delete('e1');
       params.delete('s');
       params.delete('p');
     });
+  };
 
-  const setSatker = (value: string | null) =>
+  const setSatker = (value: string | null) => {
+    if (isPpkScoped) return;
     replaceParams((params) => {
       if (value) params.set('s', value);
       else params.delete('s');
       params.delete('p');
     });
+  };
 
-  const setPpk = (value: string | null) =>
+  const setPpk = (value: string | null) => {
+    if (isPpkScoped) return;
     replaceParams((params) => {
       if (value) params.set('p', value);
       else params.delete('p');
     });
+  };
 
   const setSearch = (value: string) => {
     setSearchLocal(value);

@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { SearchableSelect } from './SearchableSelect';
+import { useSession } from '@/components/auth/SessionProvider';
 import styles from './OrgFilterBar.module.css';
 
 const UNKNOWN = 'Tidak Diketahui';
@@ -69,32 +70,41 @@ export function OrgFilterBar({
     [data, ppkField, eselon1Field, satkerField, eselon1, satker]
   );
 
+  // Role PPK: scope terkunci ke PPK ybs → sembunyikan pemilih Eselon/Satker/PPK,
+  // sisakan hanya pencarian.
+  const { role } = useSession();
+  const orgSelectorsHidden = role === 'ppk';
+
   return (
     <div className={styles.bar}>
-      <SearchableSelect
-        ariaLabel="Filter Eselon I"
-        className={styles.select}
-        value={eselon1 ?? ''}
-        onChange={(v) => onEselon1Change(v || null)}
-        options={eselon1Options}
-        placeholder="Semua Eselon I"
-      />
-      <SearchableSelect
-        ariaLabel="Filter Satuan Kerja"
-        className={styles.select}
-        value={satker ?? ''}
-        onChange={(v) => onSatkerChange(v || null)}
-        options={satkerOptions}
-        placeholder="Semua Satker"
-      />
-      <SearchableSelect
-        ariaLabel="Filter PPK"
-        className={styles.select}
-        value={ppk ?? ''}
-        onChange={(v) => onPpkChange(v || null)}
-        options={ppkOptions}
-        placeholder="Semua PPK"
-      />
+      {!orgSelectorsHidden && (
+        <>
+          <SearchableSelect
+            ariaLabel="Filter Eselon I"
+            className={styles.select}
+            value={eselon1 ?? ''}
+            onChange={(v) => onEselon1Change(v || null)}
+            options={eselon1Options}
+            placeholder="Semua Eselon I"
+          />
+          <SearchableSelect
+            ariaLabel="Filter Satuan Kerja"
+            className={styles.select}
+            value={satker ?? ''}
+            onChange={(v) => onSatkerChange(v || null)}
+            options={satkerOptions}
+            placeholder="Semua Satker"
+          />
+          <SearchableSelect
+            ariaLabel="Filter PPK"
+            className={styles.select}
+            value={ppk ?? ''}
+            onChange={(v) => onPpkChange(v || null)}
+            options={ppkOptions}
+            placeholder="Semua PPK"
+          />
+        </>
+      )}
       <SearchInput
         className={styles.search}
         placeholder={searchPlaceholder}

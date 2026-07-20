@@ -10,15 +10,14 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
 
-  // Scope PPK: paksa id ke ppk_name miliknya (abaikan permintaan PPK lain).
-  const scopedId = profile.role === 'ppk' ? profile.ppk_name : id;
-
-  if (scopedId) {
-    const id = scopedId;
+  // Detail satu PPK. Untuk role ppk, target dipaksa ke ppk_name miliknya
+  // (abaikan id yang diminta agar tak bisa mengintip PPK lain).
+  if (id) {
+    const targetId = profile.role === 'ppk' ? (profile.ppk_name as string) : id;
     const { data, error } = await supabase
       .from('view_dashboard_gabungan_satker')
       .select('*')
-      .eq('nama_ppk', id);
+      .eq('nama_ppk', targetId);
 
     if (error || !data || data.length === 0) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -65,8 +64,8 @@ export async function GET(request: Request) {
     });
 
     const ppk: PPK = {
-      id,
-      name: id,
+      id: targetId,
+      name: targetId,
       satkerId: satkerName,
       satkerName: satkerName
     };
@@ -74,11 +73,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ ppk, packages });
   }
 
-  // Fetch unique PPK names
-  const { data, error } = await supabase
+  // Roster PPK. Untuk role ppk, batasi ke PPK-nya sendiri (array 1 entri).
+  let rosterQuery = supabase
     .from('view_dashboard_gabungan_satker')
     .select('nama_ppk, satker');
-    
+  if (profile.role === 'ppk') {
+    rosterQuery = rosterQuery.eq('nama_ppk', profile.ppk_name);
+  }
+  const { data, error } = await rosterQuery;
+
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
