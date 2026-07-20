@@ -1,18 +1,28 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getApiProfile } from '@/lib/auth/dal';
 import { Package } from '@/types';
 
 export async function GET(request: Request) {
+  const profile = await getApiProfile();
+  if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
 
   if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('view_dashboard_gabungan_satker')
     .select('*')
-    .eq('kd_rup', id)
-    .single();
+    .eq('kd_rup', id);
+
+  // Scope PPK: hanya boleh melihat paket miliknya sendiri.
+  if (profile.role === 'ppk') {
+    query = query.eq('nama_ppk', profile.ppk_name);
+  }
+
+  const { data, error } = await query.single();
 
   if (error || !data) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });

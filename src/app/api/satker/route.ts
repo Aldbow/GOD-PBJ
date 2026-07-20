@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getApiProfile } from '@/lib/auth/dal';
+import { canAccess } from '@/lib/auth/access';
 import { Satker, Package } from '@/types';
 
 export async function GET(request: Request) {
+  const profile = await getApiProfile();
+  if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Data satker melayani drill-down (admin-only sesuai peta akses).
+  if (!canAccess(profile.role, '/drilldown')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
 

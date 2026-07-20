@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getApiProfile } from '@/lib/auth/dal';
 import { PPK, Package } from '@/types';
 
 export async function GET(request: Request) {
+  const profile = await getApiProfile();
+  if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
 
-  if (id) {
+  // Scope PPK: paksa id ke ppk_name miliknya (abaikan permintaan PPK lain).
+  const scopedId = profile.role === 'ppk' ? profile.ppk_name : id;
+
+  if (scopedId) {
+    const id = scopedId;
     const { data, error } = await supabase
       .from('view_dashboard_gabungan_satker')
       .select('*')

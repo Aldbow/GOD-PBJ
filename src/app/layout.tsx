@@ -13,8 +13,6 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
 });
 
-import { Shell } from "@/components/layout/Shell";
-
 export const metadata: Metadata = {
   title: "DEWA-PBJ — Early warning pengadaan",
   description: "Dashboard untuk memonitor proyek PBJ Kemnaker",
@@ -28,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="id" data-theme="dark" suppressHydrationWarning>
       <body className={`${inter.variable} ${plexMono.variable}`} suppressHydrationWarning>
-        <Shell>{children}</Shell>
+        {children}
       </body>
     </html>
   );

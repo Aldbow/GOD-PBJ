@@ -1,5 +1,17 @@
 export type RiskLevel = 'tinggi' | 'sedang' | 'rendah';
 
+export type Role = 'admin' | 'sekjend' | 'ppk';
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  role: Role;
+  ppk_name: string | null;
+  eselon1: string | null;
+  satker: string | null;
+  is_active: boolean;
+}
+
 export interface Package {
   id: string;
   nama: string;

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './Sidebar.module.css';
 import { LayoutDashboard, Users, Component, ShoppingCart, Package, Target, Briefcase, FileText } from 'lucide-react';
+import { useSession } from '@/components/auth/SessionProvider';
+import { canAccess } from '@/lib/auth/access';
 
 type NavLink = { name: string; href: string; icon: React.ReactNode };
 type NavGroup = { label: string | null; links: NavLink[] };
@@ -38,6 +40,15 @@ const groups: NavGroup[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { role } = useSession();
+
+  // Filter menu sesuai hak akses role; buang grup yang jadi kosong.
+  const visibleGroups = groups
+    .map((group) => ({
+      ...group,
+      links: group.links.filter((link) => canAccess(role, link.href)),
+    }))
+    .filter((group) => group.links.length > 0);
 
   return (
     <aside className={styles.sidebar}>
@@ -50,7 +61,7 @@ export function Sidebar() {
       </div>
 
       <nav className={styles.nav}>
-        {groups.map((group, gi) => (
+        {visibleGroups.map((group, gi) => (
           <div key={gi} className={styles.group}>
             {group.label && <p className={styles.groupLabel}>{group.label}</p>}
             {group.links.map((link) => {

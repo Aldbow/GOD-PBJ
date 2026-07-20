@@ -1,0 +1,243 @@
+.page {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  min-height: 100vh;
+  background: var(--bg-page);
+}
+
+/* ---------- Brand panel (kiri) ---------- */
+.brandPanel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px 52px;
+  color: #fff;
+  background:
+    radial-gradient(1200px 600px at -10% -10%, rgba(45, 212, 168, 0.14), transparent 60%),
+    linear-gradient(160deg, var(--navy-900) 0%, var(--navy-700) 100%);
+  overflow: hidden;
+}
+
+.brandPanel::after {
+  /* garis aksen halus */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(700px 400px at 110% 120%, rgba(45, 212, 168, 0.10), transparent 55%);
+  pointer-events: none;
+}
+
+.brandTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1;
+}
+
+.brandLockup strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.brandLockup span {
+  display: block;
+  font-size: 12px;
+  color: #8B98B0;
+  margin-top: 2px;
+}
+
+.brandBody {
+  z-index: 1;
+  max-width: 420px;
+}
+
+.brandBody h2 {
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 28px;
+}
+
+.points {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.points li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #C0C9DB;
+}
+
+.points li svg {
+  color: var(--teal-600);
+  flex-shrink: 0;
+}
+
+.brandFoot {
+  z-index: 1;
+  font-size: 12px;
+  color: #64708A;
+}
+
+/* Brand mark berdenyut (reproduksi Sidebar) */
+.brandMark {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--teal-600);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.brandMark::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: var(--teal-600);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--teal-600) 70%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .brandMark::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 1px solid var(--teal-600);
+    opacity: 0;
+    animation: ping 2.4s ease-out infinite;
+  }
+}
+
+@keyframes ping {
+  0% { transform: scale(0.6); opacity: 0.7; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+/* ---------- Form panel (kanan) ---------- */
+.formPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 32px;
+}
+
+.mobileBrand {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.mobileBrand strong {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.heading {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.sub {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  margin: 0 0 24px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fieldError {
+  font-size: 12px;
+  color: var(--red-600, #B3261E);
+  margin: -8px 0 0;
+}
+
+.formError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--red-700, #8F1D17);
+  background: var(--red-100, #FBEAE8);
+  border: 1px solid color-mix(in srgb, var(--red-600, #B3261E) 30%, transparent);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.formError svg { flex-shrink: 0; }
+
+.submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: filter var(--dur-fast) ease, opacity var(--dur-fast) ease;
+}
+
+.submit:hover:not(:disabled) { filter: brightness(1.06); }
+.submit:disabled { opacity: 0.65; cursor: not-allowed; }
+
+.legal {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Responsif ---------- */
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+  .brandPanel {
+    display: none;
+  }
+  .mobileBrand {
+    display: flex;
+  }
+}

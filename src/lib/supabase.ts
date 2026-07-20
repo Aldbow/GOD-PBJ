@@ -1,7 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from './supabase/client';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-// Create a single supabase client for interacting with your database
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+/**
+ * Client Supabase bersama untuk kode browser (dipakai feature views existing).
+ * Kini memakai createBrowserClient (@supabase/ssr) sehingga session tersimpan
+ * di cookie & selaras dengan server/proxy. Import lama `{ supabase }` tetap jalan.
+ */
+export const supabase = createClient();

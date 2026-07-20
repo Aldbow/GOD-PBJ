@@ -5,6 +5,10 @@ import styles from './Topbar.module.css';
 
 import { ThemeToggle } from './ThemeToggle';
 import { usePathname } from 'next/navigation';
+import { LogOut } from 'lucide-react';
+import { useSession } from '@/components/auth/SessionProvider';
+import { ROLE_LABEL } from '@/lib/auth/access';
+import { logout } from '@/lib/auth/actions';
 
 const TITLES: Record<string, string> = {
   '/': 'Ringkasan Kementerian',
@@ -20,6 +24,7 @@ const TITLES: Record<string, string> = {
 
 export function Topbar() {
   const pathname = usePathname();
+  const { full_name, role } = useSession();
   const [spseSync, setSpseSync] = useState('');
   const [sirupSync, setSirupSync] = useState('');
 
@@ -69,6 +74,18 @@ export function Topbar() {
         </div>
 
         <ThemeToggle />
+
+        <div className={styles.userChip}>
+          <div className={styles.userMeta}>
+            <span className={styles.userName}>{full_name}</span>
+            <span className={styles.userRole}>{ROLE_LABEL[role]}</span>
+          </div>
+          <form action={logout}>
+            <button type="submit" className={styles.logoutBtn} aria-label="Keluar" title="Keluar">
+              <LogOut size={16} />
+            </button>
+          </form>
+        </div>
       </div>
     </header>
   );
