@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { Select } from '@/components/ui/Select';
 import { SearchInput } from '@/components/ui/SearchInput';
+import { SearchableSelect } from './SearchableSelect';
 import styles from './OrgFilterBar.module.css';
 
 const UNKNOWN = 'Tidak Diketahui';
@@ -71,26 +71,29 @@ export function OrgFilterBar({
 
   return (
     <div className={styles.bar}>
-      <Select
-        aria-label="Filter Eselon I"
+      <SearchableSelect
+        ariaLabel="Filter Eselon I"
         className={styles.select}
         value={eselon1 ?? ''}
-        onChange={(e) => onEselon1Change(e.target.value || null)}
-        options={[{ value: '', label: 'Semua Eselon I' }, ...eselon1Options.map((o) => ({ value: o, label: o }))]}
+        onChange={(v) => onEselon1Change(v || null)}
+        options={eselon1Options}
+        placeholder="Semua Eselon I"
       />
-      <Select
-        aria-label="Filter Satuan Kerja"
+      <SearchableSelect
+        ariaLabel="Filter Satuan Kerja"
         className={styles.select}
         value={satker ?? ''}
-        onChange={(e) => onSatkerChange(e.target.value || null)}
-        options={[{ value: '', label: 'Semua Satker' }, ...satkerOptions.map((o) => ({ value: o, label: o }))]}
+        onChange={(v) => onSatkerChange(v || null)}
+        options={satkerOptions}
+        placeholder="Semua Satker"
       />
-      <Select
-        aria-label="Filter PPK"
+      <SearchableSelect
+        ariaLabel="Filter PPK"
         className={styles.select}
         value={ppk ?? ''}
-        onChange={(e) => onPpkChange(e.target.value || null)}
-        options={[{ value: '', label: 'Semua PPK' }, ...ppkOptions.map((o) => ({ value: o, label: o }))]}
+        onChange={(v) => onPpkChange(v || null)}
+        options={ppkOptions}
+        placeholder="Semua PPK"
       />
       <SearchInput
         className={styles.search}
