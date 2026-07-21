@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" data-theme="dark" suppressHydrationWarning>
+    <html lang="id" data-theme="light" suppressHydrationWarning>
       <body className={`${inter.variable} ${plexMono.variable}`} suppressHydrationWarning>
         {children}
       </body>
