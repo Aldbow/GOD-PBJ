@@ -104,7 +104,24 @@ export function EPurchasingView() {
           kode_klpd: r.kode_klpd,
         }));
 
-        setData(formattedData);
+        // Satu paket e-purchasing bisa punya beberapa order_id (transaksi
+        // berulang di bawah 1 RUP yang sama) -> view_dashboard_epurchasing_v6
+        // menyimpannya sebagai baris terpisah per order_id. Gabungkan per
+        // kd_rup (rup_code) dan jumlahkan realisasi (total) supaya hitungan
+        // paket & realisasi tidak dobel -- konsisten dengan /api/ppk/route.ts
+        // yang sudah menangani kuirk data yang sama.
+        const byRup = new Map<string, any>();
+        for (const row of formattedData) {
+          const key = String(row.rup_code);
+          const existing = byRup.get(key);
+          if (existing) {
+            existing.total += row.total;
+          } else {
+            byRup.set(key, { ...row });
+          }
+        }
+
+        setData(Array.from(byRup.values()));
       } catch (e: any) {
         console.error(e);
         setError(e.message || 'Gagal memuat data dari Supabase.');
