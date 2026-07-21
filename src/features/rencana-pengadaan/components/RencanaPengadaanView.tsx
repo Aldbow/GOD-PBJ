@@ -193,6 +193,9 @@ export function RencanaPengadaanView() {
   const totalPenunjukan = filteredData.reduce((acc, curr) => acc + (Number(curr.penunjukan_langsung) || 0), 0);
   const totalMetodeLain = filteredData.reduce((acc, curr) => acc + (Number(curr.metode_lainnya) || 0), 0);
 
+  const totalPenyedia = filteredData.reduce((acc, curr) => acc + (Number(curr.total_perencanaan_penyedia) || 0), 0);
+  const totalSwakelola = filteredData.reduce((acc, curr) => acc + (Number(curr.total_perencanaan_swakelola) || 0), 0);
+
   const palette1 = [
     { start: '#60a5fa', end: '#1d4ed8' }, // Blue
     { start: '#fcd34d', end: '#d97706' }, // Amber
@@ -207,6 +210,11 @@ export function RencanaPengadaanView() {
     { start: '#fcd34d', end: '#d97706' }, // Amber
     { start: '#f87171', end: '#b91c1c' }, // Red
     { start: '#94a3b8', end: '#475569' }, // Slate
+  ];
+
+  const palette3 = [
+    { start: '#a78bfa', end: '#6d28d9' }, // Violet
+    { start: '#f472b6', end: '#be185d' }, // Pink
   ];
 
   const createGradient = (context: any, palette: { start: string; end: string }[]) => {
@@ -246,9 +254,20 @@ export function RencanaPengadaanView() {
     }],
   };
 
+  const pelaksanaData = {
+    labels: ['Penyedia', 'Swakelola'],
+    datasets: [{
+      data: [totalPenyedia, totalSwakelola],
+      backgroundColor: (ctx: any) => createGradient(ctx, palette3),
+      borderWidth: 0,
+      hoverOffset: 8,
+      spacing: 4,
+    }],
+  };
+
   const chartOptions = {
     plugins: {
-      legend: { position: 'bottom' as const, labels: { color: legendColor, padding: 20, font: { size: 11 } } },
+      legend: { position: 'left' as const, labels: { color: legendColor, padding: 16, font: { size: 11 } } },
       tooltip: {
         callbacks: {
           label: (ctx: any) => {
@@ -326,6 +345,12 @@ export function RencanaPengadaanView() {
           </div>
 
           <div className={styles.analyticsPanel}>
+            <div className={styles.analyticsCard}>
+              <h3 className={styles.analyticsTitle}>Cara Pengadaan</h3>
+              <div className={styles.donutWrapper}>
+                <Doughnut data={pelaksanaData} options={chartOptions} />
+              </div>
+            </div>
             <div className={styles.analyticsCard}>
               <h3 className={styles.analyticsTitle}>Metode Pemilihan Pengadaan</h3>
               <div className={styles.donutWrapper}>

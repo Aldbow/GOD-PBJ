@@ -5,6 +5,8 @@ WITH satker_mapping AS (
     SELECT 
         d.total_rup, 
         d.belanja_pengadaan,
+        d.total_perencanaan_penyedia,
+        d.total_perencanaan_swakelola,
         d.barang,
         d.pekerjaan_konstruksi,
         d.jasa_konsultasi,
@@ -29,6 +31,8 @@ mapped AS (
     SELECT 
         total_rup,
         belanja_pengadaan,
+        total_perencanaan_penyedia,
+        total_perencanaan_swakelola,
         barang,
         pekerjaan_konstruksi,
         jasa_konsultasi,
@@ -46,6 +50,8 @@ SELECT
     eselon1 as nama_eselon1,
     SUM(COALESCE(total_rup, 0)) as total_rup,
     SUM(COALESCE(belanja_pengadaan, 0)) as belanja_pengadaan,
+    SUM(COALESCE(total_perencanaan_penyedia, 0)) as total_perencanaan_penyedia,
+    SUM(COALESCE(total_perencanaan_swakelola, 0)) as total_perencanaan_swakelola,
     SUM(COALESCE(barang, 0)) as barang,
     SUM(COALESCE(pekerjaan_konstruksi, 0)) as pekerjaan_konstruksi,
     SUM(COALESCE(jasa_konsultasi, 0)) as jasa_konsultasi,
