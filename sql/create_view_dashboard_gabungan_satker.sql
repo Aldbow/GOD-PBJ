@@ -30,7 +30,7 @@ FROM view_dashboard_pengadaan_langsung
 
 UNION ALL
 
-SELECT 
+SELECT
     CAST(kd_rup AS TEXT) as kd_rup,
     rup_name,
     pagu,
@@ -40,4 +40,32 @@ SELECT
     status_aktif_rup,
     satker,
     'Penunjukan Langsung' AS metode_pengadaan
-FROM view_dashboard_penunjukan_langsung;
+FROM view_dashboard_penunjukan_langsung
+
+UNION ALL
+
+SELECT
+    CAST(kd_rup AS TEXT) as kd_rup,
+    rup_name,
+    pagu,
+    total,
+    status,
+    nama_ppk,
+    status_aktif_rup,
+    satker,
+    metode_pengadaan
+FROM view_dashboard_tender
+
+UNION ALL
+
+SELECT
+    CAST(kd_rup AS TEXT) as kd_rup,
+    rup_name,
+    pagu,
+    total,
+    status,
+    nama_ppk,
+    status_aktif_rup,
+    satker,
+    'Swakelola' AS metode_pengadaan
+FROM view_dashboard_swakelola_v1;

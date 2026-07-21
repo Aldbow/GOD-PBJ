@@ -19,4 +19,9 @@ SELECT
     e.order_id
 FROM view_paket_penyedia_master_data m
 FULL OUTER JOIN paket_e_purchasing e ON m.kd_rup::text = e.rup_code::text
-WHERE (e.status NOT ILIKE '%cancel%' OR e.status IS NULL);
+WHERE (e.status NOT ILIKE '%cancel%' OR e.status IS NULL)
+  -- Tanpa ini, FULL OUTER JOIN menyeret SEMUA RUP di master data (apapun metode
+  -- aslinya) ke sisi "belum ada transaksi e-purchasing" dan melabelnya E-Purchasing,
+  -- sehingga paket non-e-purchasing (mis. Pengadaan Langsung) ikut duplikat &
+  -- salah label di view_dashboard_gabungan_satker.
+  AND (e.rup_code IS NOT NULL OR m.metode_pengadaan = 'E-Purchasing');
