@@ -22,6 +22,7 @@ export interface Package {
   risiko: RiskLevel;
   pic: string;
   satkerId: string;
+  metode?: string;
   // Detail fields
   deskripsi?: string;
   timeline?: { date: string, event: string }[];

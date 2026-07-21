@@ -16,16 +16,25 @@ export async function GET(request: Request) {
   const id = searchParams.get('id');
 
   if (id) {
-    const { data, error } = await supabase
-      .from('view_dashboard_gabungan_satker')
-      .select('*')
-      .eq('satker', id);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    const data: any[] = [];
+    let offset = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: rows, error } = await supabase
+        .from('view_dashboard_gabungan_satker')
+        .select('*')
+        .eq('satker', id)
+        .range(offset, offset + pageSize - 1);
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      if (!rows || rows.length === 0) break;
+      data.push(...rows);
+      if (rows.length < pageSize) break;
+      offset += pageSize;
     }
 
-    if (!data || data.length === 0) {
+    if (data.length === 0) {
       return NextResponse.json({ id, name: id, packages: [] });
     }
 
@@ -63,16 +72,26 @@ export async function GET(request: Request) {
     return NextResponse.json(result);
   }
 
-  // Fetch unique satker names for dropdown
-  const { data, error } = await supabase
-    .from('view_dashboard_gabungan_satker')
-    .select('satker');
-    
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // Fetch unique satker names for dropdown (dipaginasi — view ini granular
+  // per-paket dan PostgREST membatasi satu response maksimal 1000 baris).
+  const rosterRows: any[] = [];
+  let rosterOffset = 0;
+  const rosterPageSize = 1000;
+  while (true) {
+    const { data: rows, error } = await supabase
+      .from('view_dashboard_gabungan_satker')
+      .select('satker')
+      .range(rosterOffset, rosterOffset + rosterPageSize - 1);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (!rows || rows.length === 0) break;
+    rosterRows.push(...rows);
+    if (rows.length < rosterPageSize) break;
+    rosterOffset += rosterPageSize;
   }
 
-  const satkerSet = new Set(data.map((d: any) => d.satker).filter(Boolean));
+  const satkerSet = new Set(rosterRows.map((d: any) => d.satker).filter(Boolean));
   const result = Array.from(satkerSet).map(s => ({
     id: s,
     name: s,

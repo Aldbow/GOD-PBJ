@@ -59,7 +59,8 @@ export async function GET(request: Request) {
         sirup: row.status_aktif_rup === true || row.status_aktif_rup === 'true',
         realisasi: Math.min(realisasi, 100),
         risiko,
-        pic: row.nama_ppk || 'Tidak Diketahui'
+        pic: row.nama_ppk || 'Tidak Diketahui',
+        metode: row.metode_pengadaan || 'Lainnya'
       };
     });
 
@@ -74,21 +75,32 @@ export async function GET(request: Request) {
   }
 
   // Roster PPK. Untuk role ppk, batasi ke PPK-nya sendiri (array 1 entri).
-  let rosterQuery = supabase
-    .from('view_dashboard_gabungan_satker')
-    .select('nama_ppk, satker');
-  if (profile.role === 'ppk') {
-    rosterQuery = rosterQuery.eq('nama_ppk', profile.ppk_name);
-  }
-  const { data, error } = await rosterQuery;
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // Query dipaginasi manual karena PostgREST membatasi satu response maksimal
+  // 1000 baris, sedangkan view ini granular per-paket (bisa jauh lebih dari itu).
+  const rosterRows: any[] = [];
+  let offset = 0;
+  const pageSize = 1000;
+  while (true) {
+    let page = supabase
+      .from('view_dashboard_gabungan_satker')
+      .select('nama_ppk, satker')
+      .range(offset, offset + pageSize - 1);
+    if (profile.role === 'ppk') {
+      page = page.eq('nama_ppk', profile.ppk_name);
+    }
+    const { data: rows, error } = await page;
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (!rows || rows.length === 0) break;
+    rosterRows.push(...rows);
+    if (rows.length < pageSize) break;
+    offset += pageSize;
   }
 
   // Deduplicate by name
   const ppkMap = new Map<string, PPK>();
-  data.forEach((d: any) => {
+  rosterRows.forEach((d: any) => {
     if (d.nama_ppk && !ppkMap.has(d.nama_ppk)) {
       ppkMap.set(d.nama_ppk, {
         id: d.nama_ppk,

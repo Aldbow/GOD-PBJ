@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import { StatCard } from '@/components/ui/StatCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { PaketDetail } from '@/features/paket/components/PaketDetail';
+import { MetodePengadaanChart } from './MetodePengadaanChart';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PPK, Package } from '@/types';
 import Link from 'next/link';
@@ -95,6 +96,8 @@ export function PPKView() {
               <StatCard label="Total nilai pagu" value={fmtRupiah(totalNilai)} />
               <StatCard label="Rata-rata realisasi" value={rataRealisasi} unit="%" />
             </div>
+
+            <MetodePengadaanChart packages={pkgs} />
 
             <SectionHeader title="Paket di bawah tanggung jawab saya" />
             <div className={styles.pkgList}>
