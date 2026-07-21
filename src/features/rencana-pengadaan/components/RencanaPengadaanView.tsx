@@ -35,7 +35,7 @@ export function RencanaPengadaanView() {
         while (true) {
           const { data, error } = await supabase
             .from('data_afirmasi_pdn_perencanaan')
-            .select('nama_satuan_kerja, belanja_pengadaan')
+            .select('nama_satuan_kerja, belanja_pengadaan, total_rup')
             .range(offset, offset + limit - 1);
 
           if (error) throw error;
@@ -63,6 +63,14 @@ export function RencanaPengadaanView() {
     if (m >= 1e9) return 'Rp ' + (m / 1e9).toFixed(2).replace('.', ',') + ' M';
     if (m >= 1e6) return 'Rp ' + (m / 1e6).toFixed(2).replace('.', ',') + ' Jt';
     return 'Rp ' + m.toLocaleString('id-ID');
+  };
+
+  const getPercentageColor = (pct: number) => {
+    if (pct <= 30) return '#ef4444'; // merah
+    if (pct <= 50) return '#eab308'; // kuning
+    if (pct <= 90) return '#3b82f6'; // biru
+    if (pct <= 100) return '#22c55e'; // hijau
+    return '#ef4444'; // merah (anomali)
   };
 
   // Filter
@@ -141,23 +149,46 @@ export function RencanaPengadaanView() {
                 <tr className={styles.thead}>
                   <th className={styles.th}>No</th>
                   <th className={styles.th}>Nama Satuan Kerja</th>
+                  <th className={`${styles.th} ${styles.thRight}`}>Total RUP</th>
                   <th className={`${styles.th} ${styles.thRight}`}>Belanja Pengadaan</th>
+                  <th className={`${styles.th} ${styles.thRight}`}>Persentase</th>
                 </tr>
               </thead>
               <tbody>
                 {currentData.length > 0 ? (
-                  currentData.map((item, index) => (
-                    <tr key={index} className={styles.row}>
-                      <td className={styles.cellNo}>{startIndex + index + 1}</td>
-                      <td className={styles.cellName}>{item.nama_satuan_kerja || '-'}</td>
-                      <td className={styles.cellVal}>
-                        {fmtRupiah(Number(item.belanja_pengadaan))}
-                      </td>
-                    </tr>
-                  ))
+                  currentData.map((item, index) => {
+                    const belanja = Number(item.belanja_pengadaan) || 0;
+                    const totalRup = Number(item.total_rup) || 0;
+                    const pct = belanja > 0 ? (totalRup / belanja) * 100 : 0;
+                    return (
+                      <tr key={index} className={styles.row}>
+                        <td className={styles.cellNo}>{startIndex + index + 1}</td>
+                        <td className={styles.cellName}>{item.nama_satuan_kerja || '-'}</td>
+                        <td className={styles.cellVal}>
+                          {fmtRupiah(totalRup)}
+                        </td>
+                        <td className={styles.cellVal}>
+                          {fmtRupiah(belanja)}
+                        </td>
+                        <td className={styles.cellVal}>
+                          <span style={{
+                            backgroundColor: getPercentageColor(pct) + '1A', // 10% opacity background
+                            color: getPercentageColor(pct),
+                            padding: '4px 8px',
+                            borderRadius: '999px',
+                            fontWeight: 600,
+                            fontSize: '12px',
+                            display: 'inline-block'
+                          }}>
+                            {pct.toFixed(1)}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td colSpan={3} className={styles.empty}>
+                    <td colSpan={5} className={styles.empty}>
                       Tidak ada data yang ditemukan
                     </td>
                   </tr>

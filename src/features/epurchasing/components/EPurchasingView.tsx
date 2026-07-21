@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Package, CheckCircle2, Clock, Wallet, ListTodo, TrendingUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { fmtRupiah } from '@/lib/format';
+import { fmtRupiah, fmtRupiahDetail } from '@/lib/format';
 import { fetchRupHistory, type RupHistoryEntry } from '@/lib/paket/rupHistory';
 import { useOrgFilters } from '@/hooks/useOrgFilters';
 import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
@@ -275,12 +275,12 @@ export function EPurchasingView() {
             title="Ringkasan Keuangan"
             icon={Wallet}
             cards={[
-              { key: 'pagu', icon: Wallet, label: 'Total Anggaran (Pagu)', value: fmtRupiah(totalPagu), accent: 'info' },
+              { key: 'pagu', icon: Wallet, label: 'Total Anggaran (Pagu)', value: fmtRupiahDetail(totalPagu), accent: 'info' },
               {
                 key: 'real',
                 icon: TrendingUp,
                 label: 'Total Realisasi',
-                value: fmtRupiah(totalRealisasi),
+                value: fmtRupiahDetail(totalRealisasi),
                 badge: `${persentase.toFixed(1)}%`,
                 badgeTone: 'good',
                 accent: 'teal',
@@ -289,7 +289,7 @@ export function EPurchasingView() {
                 key: 'sisa',
                 icon: ListTodo,
                 label: 'Sisa Anggaran',
-                value: fmtRupiah(totalBelumRealisasi),
+                value: fmtRupiahDetail(totalBelumRealisasi),
                 badge: `${persentaseBelumRealisasi.toFixed(1)}%`,
                 badgeTone: 'warn',
                 accent: 'amber',
@@ -300,7 +300,7 @@ export function EPurchasingView() {
           <div className={styles.progressWrap}>
             <DualProgressBar
               title="Progres Penyerapan Anggaran"
-              totalLabel={`Total Pagu: ${fmtRupiah(totalPagu)}`}
+              totalLabel={`Total Pagu: ${fmtRupiahDetail(totalPagu)}`}
               donePct={persentase}
               remainingPct={persentaseBelumRealisasi}
               doneLabel="Terealisasi"

@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Wallet, TrendingUp, ListTodo, Package, CheckCircle2, Clock, FileText, CreditCard } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { fmtRupiah, countRup } from '@/lib/format';
+import { fmtRupiah, fmtRupiahDetail, countRup } from '@/lib/format';
 import { fetchRupHistory, type RupHistoryEntry } from '@/lib/paket/rupHistory';
 import { useOrgFilters } from '@/hooks/useOrgFilters';
 import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
@@ -254,27 +254,33 @@ export function PengadaanLangsungView() {
             title="Ringkasan Keuangan"
             icon={Wallet}
             cards={[
-              { key: 'pagu', icon: Wallet, label: 'Total Anggaran (Pagu)', value: fmtRupiah(contextPagu), accent: 'info' },
+              { key: 'pagu', icon: Wallet, label: 'Total Anggaran (Pagu)', value: fmtRupiahDetail(contextPagu), accent: 'info' },
               {
                 key: 'real',
                 icon: TrendingUp,
                 label: 'Total Realisasi Keseluruhan',
-                value: fmtRupiah(contextRealisasi),
+                value: fmtRupiahDetail(contextRealisasi),
                 badge: `${persentase.toFixed(1)}%`,
                 badgeTone: 'good',
                 accent: 'teal',
               },
-              { key: 'pencatatan', icon: FileText, label: 'Realisasi Pencatatan', value: fmtRupiah(contextRealisasiPencatatan), accent: 'indigo' },
-              { key: 'transaksional', icon: CreditCard, label: 'Realisasi Transaksional', value: fmtRupiah(contextRealisasiTransaksional), accent: 'purple' },
               {
                 key: 'sisa',
                 icon: ListTodo,
                 label: 'Sisa Anggaran',
-                value: fmtRupiah(contextBelumRealisasi),
+                value: fmtRupiahDetail(contextBelumRealisasi),
                 badge: `${persentaseBelumRealisasi.toFixed(1)}%`,
                 badgeTone: 'warn',
                 accent: 'amber',
               },
+            ]}
+          />
+          <MetricGrid
+            title="Rincian Realisasi"
+            icon={FileText}
+            cards={[
+              { key: 'pencatatan', icon: FileText, label: 'Realisasi Pencatatan', value: fmtRupiahDetail(contextRealisasiPencatatan), accent: 'indigo' },
+              { key: 'transaksional', icon: CreditCard, label: 'Realisasi Transaksional', value: fmtRupiahDetail(contextRealisasiTransaksional), accent: 'purple' },
             ]}
           />
 
@@ -291,7 +297,7 @@ export function PengadaanLangsungView() {
           <div className={styles.progressWrap}>
             <DualProgressBar
               title="Progres Penyerapan Anggaran"
-              totalLabel={`Total Pagu: ${fmtRupiah(contextPagu)}`}
+              totalLabel={`Total Pagu: ${fmtRupiahDetail(contextPagu)}`}
               donePct={persentase}
               remainingPct={persentaseBelumRealisasi}
               doneLabel="Terealisasi"

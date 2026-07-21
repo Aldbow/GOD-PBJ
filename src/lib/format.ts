@@ -5,6 +5,11 @@ export function fmtRupiah(m: number): string {
   return 'Rp ' + m.toLocaleString('id-ID');
 }
 
+export function fmtRupiahDetail(m: number): string {
+  if (!m) return 'Rp 0';
+  return 'Rp ' + m.toLocaleString('id-ID');
+}
+
 export function countRup(kdRup: unknown): number {
   return String(kdRup || '').split(';').length;
 }
