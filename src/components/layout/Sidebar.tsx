@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './Sidebar.module.css';
-import { LayoutDashboard, Users, Component, ShoppingCart, Package, Target, Briefcase, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, Component, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionProvider';
 import { canAccess } from '@/lib/auth/access';
 
@@ -34,6 +34,12 @@ const groups: NavGroup[] = [
       { name: 'Realisasi Pengadaan Langsung', href: '/pengadaan-langsung', icon: <Package size={18} /> },
       { name: 'Realisasi Penunjukan Langsung', href: '/penunjukan-langsung', icon: <Target size={18} /> },
       { name: 'Realisasi Swakelola', href: '/swakelola', icon: <Package size={18} /> },
+    ],
+  },
+  {
+    label: 'ITKP',
+    links: [
+      { name: 'Dashboard Penilaian ITKP', href: '/itkp', icon: <GraduationCap size={18} /> },
     ],
   },
 ];

@@ -13,3 +13,15 @@ export function fmtRupiahDetail(m: number): string {
 export function countRup(kdRup: unknown): number {
   return String(kdRup || '').split(';').length;
 }
+
+export function fmtDec(n: number, decimals: number = 2): string {
+  return n.toLocaleString('id-ID', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+export function fmtPct(n: number, decimals: number = 2): string {
+  return fmtDec(n, decimals) + '%';
+}
+
+export function fmtInt(n: number): string {
+  return n.toLocaleString('id-ID');
+}
