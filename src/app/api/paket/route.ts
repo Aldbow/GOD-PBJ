@@ -22,14 +22,19 @@ export async function GET(request: Request) {
     query = query.eq('nama_ppk', profile.ppk_name);
   }
 
-  const { data, error } = await query.single();
+  const { data: rows, error } = await query;
 
-  if (error || !data) {
+  if (error || !rows || rows.length === 0) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
+  // Satu RUP bisa muncul beberapa kali (mis. 1 paket e-purchasing dengan banyak order_id).
+  // Gabungkan agar realisasi tidak dobel, sama seperti di /api/ppk.
+  const data = rows[0];
+  const totalSum = rows.reduce((s: number, row: any) => s + (Number(row.total) || 0), 0);
+
   const paguNum = Number(data.pagu) || 0;
-  const totalNum = Number(data.total) || 0;
+  const totalNum = totalSum;
   const realisasi = paguNum > 0 ? Math.round((totalNum / paguNum) * 100) : 0;
   
   let risiko: 'tinggi' | 'sedang' | 'rendah' = 'rendah';
