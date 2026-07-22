@@ -14,6 +14,7 @@ import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
 import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorBox } from '@/components/ui/ErrorBox';
+import { ExportDataModal } from '@/components/ui/ExportDataModal';
 import styles from '@/components/paket/paketView.module.css';
 
 const METODE_OPTIONS = [
@@ -46,6 +47,7 @@ export function TenderView() {
   const [tipeRupFilter, setTipeRupFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -229,6 +231,30 @@ export function TenderView() {
     []
   );
 
+  const exportColumns = useMemo(() => [
+    { key: 'kd_rup', label: 'Kode RUP' },
+    { key: 'rup_name', label: 'Nama Paket', width: 40 },
+    { key: 'satker', label: 'Satker' },
+    { key: 'eselon1', label: 'Eselon I' },
+    { key: 'nama_ppk', label: 'Nama PPK' },
+    { key: 'metode_pengadaan', label: 'Metode' },
+    { key: 'is_multiple_rup', label: 'Tipe RUP' },
+    { key: 'pagu', label: 'Pagu (Rp)', type: 'currency' },
+    { key: 'total', label: 'Realisasi (Rp)', type: 'currency' },
+    { key: 'pct', label: 'Realisasi (%)', type: 'number' },
+    { key: 'status', label: 'Status' },
+  ], []);
+
+  const mapForExport = (item: any) => ({
+    ...item,
+    is_multiple_rup: item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP',
+    pct: (Number(item.pagu) || 0) > 0 ? ((Number(item.total) || 0) / (Number(item.pagu) || 0)) * 100 : 0,
+    status: (Number(item.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI',
+  });
+
+  const exportAllData = useMemo(() => baseData.map(mapForExport), [baseData]);
+  const exportFilteredData = useMemo(() => sortedPackages.map(mapForExport), [sortedPackages]);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       {error && <ErrorBox>{error}. Pastikan View SQL sudah dieksekusi di Supabase.</ErrorBox>}
@@ -286,9 +312,19 @@ export function TenderView() {
 
           <div className={styles.filterHead}>
             <span className={styles.filterHeadTitle}>Filter</span>
-            <button type="button" className={styles.advancedToggle} onClick={() => setShowAdvanced((v) => !v)}>
-              Filter Lanjutan {hasActiveExtraFilters && <Badge variant="rendah">Aktif</Badge>}
-            </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button 
+                type="button" 
+                className={styles.advancedToggle} 
+                onClick={() => setIsExportModalOpen(true)}
+                style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              >
+                Export Data
+              </button>
+              <button type="button" className={styles.advancedToggle} onClick={() => setShowAdvanced((v) => !v)}>
+                Filter Lanjutan {hasActiveExtraFilters && <Badge variant="rendah">Aktif</Badge>}
+              </button>
+            </div>
           </div>
 
           <OrgFilterBar
@@ -402,6 +438,16 @@ export function TenderView() {
           </>
         )}
       </PaketDetailModal>
+
+      <ExportDataModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Laporan Realisasi Tender"
+        filename={`Laporan_Tender_${new Date().toISOString().slice(0,10)}`}
+        columns={exportColumns}
+        allData={exportAllData}
+        filteredData={exportFilteredData}
+      />
     </motion.div>
   );
 }

@@ -15,6 +15,7 @@ import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
 import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorBox } from '@/components/ui/ErrorBox';
+import { ExportDataModal } from '@/components/ui/ExportDataModal';
 import styles from '@/components/paket/paketView.module.css';
 
 const STATUS_CLUSTERS = [
@@ -49,6 +50,7 @@ export function SwakelolaView() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAbnormal, setShowAbnormal] = useState(false);
   const [showNoMasterData, setShowNoMasterData] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -250,6 +252,28 @@ export function SwakelolaView() {
     []
   );
 
+  const exportColumns = useMemo(() => [
+    { key: 'rup_code', label: 'Kode RUP' },
+    { key: 'rup_name', label: 'Nama Paket', width: 40 },
+    { key: 'satker', label: 'Satker' },
+    { key: 'eselon1', label: 'Eselon I' },
+    { key: 'nama_ppk', label: 'Nama PPK' },
+    { key: 'tipe_swakelola_formatted', label: 'Tipe Swakelola' },
+    { key: 'pagu', label: 'Pagu (Rp)', type: 'currency' },
+    { key: 'total', label: 'Realisasi (Rp)', type: 'currency' },
+    { key: 'pct', label: 'Realisasi (%)', type: 'number' },
+    { key: 'status', label: 'Status' },
+  ], []);
+
+  const mapForExport = (item: any) => ({
+    ...item,
+    tipe_swakelola_formatted: item.tipe_swakelola ? `Tipe ${item.tipe_swakelola}` : '-',
+    pct: (Number(item.pagu) || 0) > 0 ? ((Number(item.total) || 0) / (Number(item.pagu) || 0)) * 100 : 0
+  });
+
+  const exportAllData = useMemo(() => baseData.map(mapForExport), [baseData]);
+  const exportFilteredData = useMemo(() => sortedPackages.map(mapForExport), [sortedPackages]);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       {error && <ErrorBox>{error}. Pastikan URL dan KEY Supabase di .env.local valid.</ErrorBox>}
@@ -307,9 +331,19 @@ export function SwakelolaView() {
 
           <div className={styles.filterHead}>
             <span className={styles.filterHeadTitle}>Filter</span>
-            <button type="button" className={styles.advancedToggle} onClick={() => setShowAdvanced((v) => !v)}>
-              Filter Lanjutan {hasActiveExtraFilters && <Badge variant="rendah">Aktif</Badge>}
-            </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button 
+                type="button" 
+                className={styles.advancedToggle} 
+                onClick={() => setIsExportModalOpen(true)}
+                style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              >
+                Export Data
+              </button>
+              <button type="button" className={styles.advancedToggle} onClick={() => setShowAdvanced((v) => !v)}>
+                Filter Lanjutan {hasActiveExtraFilters && <Badge variant="rendah">Aktif</Badge>}
+              </button>
+            </div>
           </div>
 
           <OrgFilterBar
@@ -491,6 +525,16 @@ export function SwakelolaView() {
           </>
         )}
       </PaketDetailModal>
+
+      <ExportDataModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Laporan Realisasi Swakelola"
+        filename={`Laporan_Swakelola_${new Date().toISOString().slice(0,10)}`}
+        columns={exportColumns}
+        allData={exportAllData}
+        filteredData={exportFilteredData}
+      />
     </motion.div>
   );
 }

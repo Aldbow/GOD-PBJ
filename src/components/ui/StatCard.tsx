@@ -1,5 +1,4 @@
 import React from 'react';
-import Link from 'next/link';
 import styles from './StatCard.module.css';
 import { Card } from './Card';
 
@@ -12,8 +11,6 @@ interface StatCardProps {
   hint?: React.ReactNode;
   tone?: StatTone;
   className?: string;
-  href?: string;
-  glow?: boolean;
 }
 
 const hintClass: Record<StatTone, string> = {
@@ -23,11 +20,11 @@ const hintClass: Record<StatTone, string> = {
   danger: styles.hintDanger,
 };
 
-export function StatCard({ label, value, unit, hint, tone = 'default', className, href, glow = false }: StatCardProps) {
-  const card = (
+export function StatCard({ label, value, unit, hint, tone = 'default', className }: StatCardProps) {
+  return (
     <Card
       variant={tone === 'danger' ? 'danger' : 'default'}
-      className={`${styles.card} ${styles[tone]} ${glow ? styles.glow : ''} ${href ? styles.clickable : ''} ${className || ''}`}
+      className={`${styles.card} ${styles[tone]} ${className || ''}`}
     >
       <p className={styles.label}>{label}</p>
       <div className={styles.valueRow}>
@@ -37,14 +34,4 @@ export function StatCard({ label, value, unit, hint, tone = 'default', className
       {hint && <p className={`${styles.hint} ${hintClass[tone]}`}>{hint}</p>}
     </Card>
   );
-
-  if (href) {
-    return (
-      <Link href={href} className={styles.linkWrap}>
-        {card}
-      </Link>
-    );
-  }
-
-  return card;
 }

@@ -114,3 +114,20 @@
   align-items: center;
   gap: 14px;
 }
+
+.exportBtnHeader {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--dur-fast) ease;
+}
+
+.exportBtnHeader:hover {
+  background-color: var(--bg-primary, #f8fafc);
+  border-color: var(--border-strong);
+}

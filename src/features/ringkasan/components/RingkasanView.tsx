@@ -9,6 +9,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { motion, Variants } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
+import { ExportDataModal } from '@/components/ui/ExportDataModal';
 import { Package } from '@/types';
 import { supabase } from '@/lib/supabase';
 import styles from './RingkasanView.module.css';
@@ -27,15 +28,16 @@ const itemVariants: Variants = {
 };
 
 export function RingkasanView() {
+  const [allRisks, setAllRisks] = useState<any[]>([]);
   const [risks, setRisks] = useState<{ satkerName: string, pkg: Package }[]>([]);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
-    // Fetch top risks from all satkers directly from Supabase
+    // Fetch all risks for export, display top 5
     const fetchRisks = async () => {
       const { data, error } = await supabase
         .from('view_dashboard_gabungan_satker')
-        .select('*')
-        .limit(5);
+        .select('*');
 
       if (data && !error) {
         const topRisks = data.map((row: any) => {
@@ -64,11 +66,36 @@ export function RingkasanView() {
             }
           };
         });
-        setRisks(topRisks);
+        
+        // Sort by risk priority if needed, here we just take the raw data
+        const flatRisks = topRisks.map(r => ({
+          satkerName: r.satkerName,
+          kd_rup: r.pkg.id,
+          nama: r.pkg.nama,
+          pic: r.pkg.pic,
+          nilai_rp: r.pkg.nilai * 1000000000,
+          realisasi: r.pkg.realisasi,
+          spse: r.pkg.spse,
+          risiko: r.pkg.risiko,
+        }));
+
+        setAllRisks(flatRisks);
+        setRisks(topRisks.slice(0, 5));
       }
     };
     fetchRisks();
   }, []);
+
+  const exportColumns: any[] = [
+    { key: 'satkerName', label: 'Nama Satker' },
+    { key: 'kd_rup', label: 'Kode RUP' },
+    { key: 'nama', label: 'Nama Paket', width: 40 },
+    { key: 'pic', label: 'Nama PPK' },
+    { key: 'nilai_rp', label: 'Pagu (Rp)', type: 'currency' },
+    { key: 'realisasi', label: 'Realisasi (%)', type: 'number' },
+    { key: 'spse', label: 'Status SPSE' },
+    { key: 'risiko', label: 'Tingkat Risiko' },
+  ];
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show">
@@ -127,6 +154,14 @@ export function RingkasanView() {
       <SectionHeader
         title="Register risiko lintas satker"
         caption="data ilustratif dari 5 satker contoh"
+        action={
+          <button 
+            className={styles.exportBtnHeader}
+            onClick={() => setIsExportModalOpen(true)}
+          >
+            Export Data
+          </button>
+        }
       />
       <motion.div variants={itemVariants} className={styles.riskList}>
         {risks.length === 0
@@ -155,6 +190,16 @@ export function RingkasanView() {
               </motion.div>
             ))}
       </motion.div>
+      
+      <ExportDataModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Laporan Realisasi & Risiko PBJ"
+        filename={`Laporan_Realisasi_${new Date().toISOString().slice(0,10)}`}
+        columns={exportColumns}
+        allData={allRisks}
+        filteredData={allRisks}
+      />
     </motion.div>
   );
 }

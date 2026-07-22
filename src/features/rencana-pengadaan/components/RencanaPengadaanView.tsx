@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/Select';
 import { AlertCircle, ChevronLeft, ChevronRight, SearchX, Wallet, TrendingUp, Percent } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
+import { ExportDataModal } from '@/components/ui/ExportDataModal';
 import styles from './RencanaPengadaanView.module.css';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -28,6 +29,7 @@ export function RencanaPengadaanView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('PCT_DESC');
   const [viewMode, setViewMode] = useState<'eselon1' | 'satker'>('eselon1');
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Chart Legend Color State (Responsive to Dark Mode)
   const [legendColor, setLegendColor] = useState('#94a3b8');
@@ -160,6 +162,52 @@ export function RencanaPengadaanView() {
     }
   });
 
+  const exportColumns = React.useMemo(() => [
+    { key: 'nama_entitas', label: viewMode === 'eselon1' ? 'Nama Eselon I' : 'Nama Satker', width: 40 },
+    { key: 'belanja_pengadaan', label: 'Belanja Pengadaan (Rp)', type: 'currency' },
+    { key: 'total_rup', label: 'Total RUP (Rp)', type: 'currency' },
+    { key: 'pct', label: 'Persentase (%)', type: 'number' },
+    { key: 'barang', label: 'Barang (Rp)', type: 'currency' },
+    { key: 'pekerjaan_konstruksi', label: 'Konstruksi (Rp)', type: 'currency' },
+    { key: 'jasa_konsultasi', label: 'Jasa Konsultasi (Rp)', type: 'currency' },
+    { key: 'jasa_lainnya', label: 'Jasa Lainnya (Rp)', type: 'currency' },
+    { key: 'terintegrasi_gabungan', label: 'Gabungan (Rp)', type: 'currency' },
+    { key: 'epurchasing', label: 'E-Purchasing (Rp)', type: 'currency' },
+    { key: 'tender_seleksi', label: 'Tender/Seleksi (Rp)', type: 'currency' },
+    { key: 'pengadaan_langsung', label: 'Pengadaan Langsung (Rp)', type: 'currency' },
+    { key: 'penunjukan_langsung', label: 'Penunjukan Langsung (Rp)', type: 'currency' },
+    { key: 'metode_lainnya', label: 'Lainnya (Rp)', type: 'currency' },
+    { key: 'total_perencanaan_penyedia', label: 'Penyedia (Rp)', type: 'currency' },
+    { key: 'total_perencanaan_swakelola', label: 'Swakelola (Rp)', type: 'currency' },
+  ], [viewMode]);
+
+  const mapForExport = React.useCallback((item: any) => {
+    const belanja = Number(item.belanja_pengadaan) || 0;
+    const rup = Number(item.total_rup) || 0;
+    return {
+      ...item,
+      nama_entitas: viewMode === 'eselon1' ? item.nama_eselon1 : item.nama_satuan_kerja,
+      belanja_pengadaan: belanja,
+      total_rup: rup,
+      pct: belanja > 0 ? (rup / belanja) * 100 : 0,
+      barang: Number(item.barang) || 0,
+      pekerjaan_konstruksi: Number(item.pekerjaan_konstruksi) || 0,
+      jasa_konsultasi: Number(item.jasa_konsultasi) || 0,
+      jasa_lainnya: Number(item.jasa_lainnya) || 0,
+      terintegrasi_gabungan: Number(item.terintegrasi_gabungan) || 0,
+      epurchasing: Number(item.epurchasing) || 0,
+      tender_seleksi: Number(item.tender_seleksi) || 0,
+      pengadaan_langsung: Number(item.pengadaan_langsung) || 0,
+      penunjukan_langsung: Number(item.penunjukan_langsung) || 0,
+      metode_lainnya: Number(item.metode_lainnya) || 0,
+      total_perencanaan_penyedia: Number(item.total_perencanaan_penyedia) || 0,
+      total_perencanaan_swakelola: Number(item.total_perencanaan_swakelola) || 0,
+    };
+  }, [viewMode]);
+
+  const exportAllData = React.useMemo(() => data.map(mapForExport), [data, mapForExport]);
+  const exportFilteredData = React.useMemo(() => sortedData.map(mapForExport), [sortedData, mapForExport]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, sortBy, viewMode]);
@@ -232,38 +280,61 @@ export function RencanaPengadaanView() {
     return gradient;
   };
 
-  const jenisBelanjaData = {
-    labels: ['Barang', 'Konstruksi', 'Jasa Konsultasi', 'Jasa Lainnya', 'Gabungan'],
-    datasets: [{
-      data: [totalBarang, totalKonstruksi, totalKonsultasi, totalJasaLainnya, totalGabungan],
-      backgroundColor: (ctx: any) => createGradient(ctx, palette1),
-      borderWidth: 0,
-      hoverOffset: 8,
-      spacing: 4,
-    }],
+  const buildFilteredChartData = (labels: string[], values: number[], palette: { start: string; end: string }[]) => {
+    const activeLabels: string[] = [];
+    const activeValues: number[] = [];
+    const activePalette: { start: string; end: string }[] = [];
+
+    values.forEach((val, idx) => {
+      if (val > 0) {
+        activeLabels.push(labels[idx]);
+        activeValues.push(val);
+        activePalette.push(palette[idx % palette.length]);
+      }
+    });
+
+    if (activeValues.length === 0) {
+      return {
+        labels: ['Tidak Ada Data'],
+        datasets: [{
+          data: [1],
+          backgroundColor: ['#cbd5e1'],
+          borderWidth: 0,
+          hoverOffset: 0,
+          spacing: 0,
+        }],
+      };
+    }
+
+    return {
+      labels: activeLabels,
+      datasets: [{
+        data: activeValues,
+        backgroundColor: (ctx: any) => createGradient(ctx, activePalette),
+        borderWidth: 0,
+        hoverOffset: 8,
+        spacing: activeValues.length > 1 ? 4 : 0,
+      }],
+    };
   };
 
-  const metodePengadaanData = {
-    labels: ['E-Purchasing', 'Tender/Seleksi', 'Pengadaan Langsung', 'Penunjukan Langsung', 'Lainnya'],
-    datasets: [{
-      data: [totalEPurchasing, totalTender, totalLangsung, totalPenunjukan, totalMetodeLain],
-      backgroundColor: (ctx: any) => createGradient(ctx, palette2),
-      borderWidth: 0,
-      hoverOffset: 8,
-      spacing: 4,
-    }],
-  };
+  const jenisBelanjaData = buildFilteredChartData(
+    ['Barang', 'Konstruksi', 'Jasa Konsultasi', 'Jasa Lainnya', 'Gabungan'],
+    [totalBarang, totalKonstruksi, totalKonsultasi, totalJasaLainnya, totalGabungan],
+    palette1
+  );
 
-  const pelaksanaData = {
-    labels: ['Penyedia', 'Swakelola'],
-    datasets: [{
-      data: [totalPenyedia, totalSwakelola],
-      backgroundColor: (ctx: any) => createGradient(ctx, palette3),
-      borderWidth: 0,
-      hoverOffset: 8,
-      spacing: 4,
-    }],
-  };
+  const metodePengadaanData = buildFilteredChartData(
+    ['E-Purchasing', 'Tender/Seleksi', 'Pengadaan Langsung', 'Penunjukan Langsung', 'Lainnya'],
+    [totalEPurchasing, totalTender, totalLangsung, totalPenunjukan, totalMetodeLain],
+    palette2
+  );
+
+  const pelaksanaData = buildFilteredChartData(
+    ['Penyedia', 'Swakelola'],
+    [totalPenyedia, totalSwakelola],
+    palette3
+  );
 
   const chartOptions = {
     plugins: {
@@ -271,6 +342,7 @@ export function RencanaPengadaanView() {
       tooltip: {
         callbacks: {
           label: (ctx: any) => {
+            if (ctx.chart.data.labels[0] === 'Tidak Ada Data') return ' Rp 0 (0%)';
             const value = Number(ctx.raw);
             const total = ctx.dataset.data.reduce((a: number, b: number) => a + (Number(b) || 0), 0);
             const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
@@ -402,6 +474,25 @@ export function RencanaPengadaanView() {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               />
+              <button 
+                type="button"
+                onClick={() => setIsExportModalOpen(true)}
+                style={{ 
+                  marginLeft: '8px',
+                  padding: '8px 16px',
+                  borderRadius: '999px',
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                Export Data
+              </button>
             </div>
           </div>
 
@@ -562,6 +653,16 @@ export function RencanaPengadaanView() {
           </div>
         </div>
       )}
+
+      <ExportDataModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title={`Laporan Rencana Umum Pengadaan (${viewMode === 'eselon1' ? 'Tingkat Eselon I' : 'Tingkat Satker'})`}
+        filename={`Laporan_RUP_${viewMode}_${new Date().toISOString().slice(0,10)}`}
+        columns={exportColumns}
+        allData={exportAllData}
+        filteredData={exportFilteredData}
+      />
     </motion.div>
   );
 }
