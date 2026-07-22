@@ -16,6 +16,32 @@ export function buildFineSatkerToKpa(masterData: { 'SATUAN KERJA': string | null
   return map;
 }
 
+interface MasterEselonRow {
+  'SATUAN KERJA': string | null;
+  SATKER: string | null;
+  KPA: string | null;
+  'UNIT KERJA': string | null;
+}
+
+/**
+ * Meniru logika satker_mapping di sql/create_view_afirmasi_eselon1.sql:
+ * cocokkan nama unit afirmasi (nama_satuan_kerja) ke master_data lewat
+ * SATUAN KERJA, SATKER, atau KPA (OR, urutan prioritas), ambil UNIT KERJA
+ * (eselon1) dari kecocokan pertama.
+ */
+export function resolveEselon1(unitNameNorm: string, masterData: MasterEselonRow[]): string {
+  for (const m of masterData) {
+    if (normSatker(m['SATUAN KERJA']) === unitNameNorm) return m['UNIT KERJA'] || 'Anomali / Eselon I Tidak Diketahui';
+  }
+  for (const m of masterData) {
+    if (normSatker(m.SATKER) === unitNameNorm) return m['UNIT KERJA'] || 'Anomali / Eselon I Tidak Diketahui';
+  }
+  for (const m of masterData) {
+    if (normSatker(m.KPA) === unitNameNorm) return m['UNIT KERJA'] || 'Anomali / Eselon I Tidak Diketahui';
+  }
+  return 'Anomali / Eselon I Tidak Diketahui';
+}
+
 /**
  * Realisasi views record `satker` at fine biro/direktorat granularity (~83
  * unit), while data_afirmasi_pdn_perencanaan (sumber RUP Indikator A) hanya

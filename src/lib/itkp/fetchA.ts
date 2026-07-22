@@ -1,9 +1,10 @@
 import { supabase } from '@/lib/supabase';
 import type { ItkpAInput } from './calcA';
-import { buildFineSatkerToKpa, normSatker, resolveAfirmasiUnit } from './crosswalk';
+import { buildFineSatkerToKpa, normSatker, resolveAfirmasiUnit, resolveEselon1 } from './crosswalk';
 
 export interface ItkpAUnit {
   name: string;
+  eselon1: string;
   input: ItkpAInput;
 }
 
@@ -12,6 +13,7 @@ export interface ItkpAFetchResult {
   kementerian: ItkpAInput;
   unidentifiedValue: number;
   unidentifiedRows: number;
+  dataUpdatedAt: string | null;
 }
 
 interface AfirmasiRow {
@@ -23,11 +25,14 @@ interface AfirmasiRow {
   epurchasing: number | string | null;
   pengadaan_langsung: number | string | null;
   penunjukan_langsung: number | string | null;
+  created_at: string | null;
 }
 
 interface MasterDataRow {
   'SATUAN KERJA': string | null;
+  SATKER: string | null;
   KPA: string | null;
+  'UNIT KERJA': string | null;
 }
 
 interface RealisasiRow {
@@ -78,9 +83,9 @@ export async function fetchItkpAData(): Promise<ItkpAFetchResult> {
   const [afirmasiRows, masterRows] = await Promise.all([
     fetchAll<AfirmasiRow>(
       'data_afirmasi_pdn_perencanaan',
-      'nama_satuan_kerja,belanja_pengadaan,total_rup,total_perencanaan_penyedia,tender_seleksi,epurchasing,pengadaan_langsung,penunjukan_langsung'
+      'nama_satuan_kerja,belanja_pengadaan,total_rup,total_perencanaan_penyedia,tender_seleksi,epurchasing,pengadaan_langsung,penunjukan_langsung,created_at'
     ),
-    fetchAll<MasterDataRow>('master_data', '"SATUAN KERJA",KPA'),
+    fetchAll<MasterDataRow>('master_data', '"SATUAN KERJA",SATKER,KPA,"UNIT KERJA"'),
   ]);
 
   const [tenderRows, epurchRows, plRows, pnlRows, swakelolaRows] = await Promise.all([
@@ -93,6 +98,7 @@ export async function fetchItkpAData(): Promise<ItkpAFetchResult> {
 
   const unitsMap = new Map<string, ItkpAUnit>();
   const afirmasiUnitsNorm: string[] = [];
+  let dataUpdatedAt: string | null = null;
 
   for (const row of afirmasiRows) {
     const displayName = row.nama_satuan_kerja || 'Tidak Diketahui';
@@ -106,7 +112,12 @@ export async function fetchItkpAData(): Promise<ItkpAFetchResult> {
     input.rupEPurchasing = Number(row.epurchasing) || 0;
     input.rupPengadaanLangsung = Number(row.pengadaan_langsung) || 0;
     input.rupPenunjukanLangsung = Number(row.penunjukan_langsung) || 0;
-    unitsMap.set(key, { name: displayName, input });
+    const eselon1 = resolveEselon1(key, masterRows);
+    unitsMap.set(key, { name: displayName, eselon1, input });
+
+    if (row.created_at && (!dataUpdatedAt || row.created_at > dataUpdatedAt)) {
+      dataUpdatedAt = row.created_at;
+    }
   }
 
   const fineSatkerToKpa = buildFineSatkerToKpa(masterRows);
@@ -152,5 +163,5 @@ export async function fetchItkpAData(): Promise<ItkpAFetchResult> {
 
   const units = Array.from(unitsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 
-  return { units, kementerian, unidentifiedValue, unidentifiedRows };
+  return { units, kementerian, unidentifiedValue, unidentifiedRows, dataUpdatedAt };
 }

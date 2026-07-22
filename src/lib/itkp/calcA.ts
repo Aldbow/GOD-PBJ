@@ -23,15 +23,25 @@ export interface ItkpARowResult {
   formula: string;
   persentase: string;
   alasan: string;
+  catatan: string;
+  applicable: boolean;
   skor: number;
   skorMax: number;
+  numLabel: string;
+  denLabel: string;
+  numValue: number;
+  denValue: number;
 }
 
 export interface ItkpAResult {
   rows: ItkpARowResult[];
   nilaiRencana: number;
+  nilaiRencanaMaxSaatIni: number;
   nilaiRealisasi: number;
+  nilaiRealisasiMaxSaatIni: number;
   total: number;
+  totalMaxSaatIni: number;
+  totalMaxKepka: number;
 }
 
 const TIDAK_DAPAT_DIHITUNG = 'Tidak dapat dihitung (penyebut = 0)';
@@ -50,11 +60,15 @@ function buildRow(args: {
   label: string;
   num: number;
   den: number;
+  numLabel: string;
+  denLabel: string;
   formula: string;
   skorMax: number;
   band: (p: number) => { skor: number; band: string };
+  catatanOk: string;
+  catatanNa: string;
 }): ItkpARowResult {
-  const { key, label, num, den, formula, skorMax, band } = args;
+  const { key, label, num, den, numLabel, denLabel, formula, skorMax, band, catatanOk, catatanNa } = args;
   const p = pct(num, den);
   if (p === null) {
     return {
@@ -63,9 +77,15 @@ function buildRow(args: {
       dataDasar: rasio(num, den),
       formula,
       persentase: TIDAK_DAPAT_DIHITUNG,
-      alasan: `Pembagi bernilai 0 sehingga persentase tidak dapat dihitung; skor diberikan 0 sesuai aturan.`,
+      alasan: 'Pembagi bernilai 0 sehingga persentase tidak dapat dihitung; skor diberikan 0 dan komponen ini dikeluarkan dari skor maksimum saat ini karena tidak berlaku untuk cakupan ini.',
+      catatan: catatanNa,
+      applicable: false,
       skor: 0,
       skorMax,
+      numLabel,
+      denLabel,
+      numValue: num,
+      denValue: den,
     };
   }
   const { skor, band: bandLabel } = band(p);
@@ -76,8 +96,14 @@ function buildRow(args: {
     formula,
     persentase: fmtPct(p),
     alasan: `${fmtPct(p)} berada pada rentang ${bandLabel} → skor ${skor}${skor === skorMax ? ' (maksimal)' : ''}.`,
+    catatan: catatanOk,
+    applicable: true,
     skor,
     skorMax,
+    numLabel,
+    denLabel,
+    numValue: num,
+    denValue: den,
   };
 }
 
@@ -143,9 +169,13 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     label: 'Pengumuman RUP',
     num: input.totalPengumumanRUP,
     den: input.totalNilaiBelanjaPBJ,
+    numLabel: 'Total Pengumuman RUP',
+    denLabel: 'Total Nilai Belanja PBJ',
     formula: 'Persentase = (Total Pengumuman RUP / Total Nilai Belanja PBJ) × 100%',
     skorMax: 5,
     band: bandPengumumanRUP,
+    catatanOk: 'Pengumuman RUP pada SIRUP telah dilakukan secara lengkap dan tepat waktu.',
+    catatanNa: 'Tidak ada data Total Nilai Belanja PBJ untuk cakupan ini.',
   });
 
   const rupPenyedia = buildRow({
@@ -153,9 +183,13 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     label: 'RUP melalui Penyedia',
     num: input.rupPenyedia,
     den: input.totalPengumumanRUP,
+    numLabel: 'RUP Penyedia',
+    denLabel: 'Total Pengumuman RUP',
     formula: 'Persentase = (RUP Penyedia / Total Pengumuman RUP) × 100%',
     skorMax: 2.5,
     band: bandRupPenyedia,
+    catatanOk: 'Seluruh/sebagian paket RUP telah direncanakan melalui Penyedia pada sistem.',
+    catatanNa: 'Tidak ada RUP yang diumumkan pada cakupan ini.',
   });
 
   const rupTenderPurchasing = buildRow({
@@ -163,9 +197,13 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     label: 'RUP e-Tendering + e-Purchasing',
     num: input.rupETendering + input.rupEPurchasing,
     den: input.rupPenyedia,
+    numLabel: 'RUP e-Tendering + e-Purchasing',
+    denLabel: 'RUP Penyedia',
     formula: 'Persentase = (RUP e-Tendering + RUP e-Purchasing) / RUP Penyedia × 100%',
     skorMax: 2.5,
     band: bandRupTenderPurchasing,
+    catatanOk: 'Sebagian RUP Penyedia direncanakan lewat metode Tender/e-Purchasing.',
+    catatanNa: 'Tidak ada RUP Penyedia pada cakupan ini, sehingga komponen ini tidak menjadi parameter.',
   });
 
   const realisasiTenderPurchasing = buildRow({
@@ -173,9 +211,13 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     label: 'Realisasi e-Tendering + e-Purchasing',
     num: input.realisasiETendering + input.realisasiEPurchasing,
     den: input.rupPenyedia,
+    numLabel: 'Realisasi e-Tendering + e-Purchasing',
+    denLabel: 'RUP Penyedia',
     formula: 'Persentase = (Realisasi e-Tendering + Realisasi e-Purchasing) / RUP Penyedia × 100%',
     skorMax: 10,
     band: bandRealisasiTenderPurchasing,
+    catatanOk: 'Realisasi e-Tendering + e-Purchasing berdasarkan nilai transaksi.',
+    catatanNa: 'Tidak ada RUP Penyedia pada cakupan ini, sehingga komponen ini tidak menjadi parameter.',
   });
 
   const realisasiPL = buildRow({
@@ -183,9 +225,13 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     label: 'Realisasi Pengadaan Langsung Transaksional',
     num: input.realisasiPLTransaksional,
     den: input.rupPengadaanLangsung,
+    numLabel: 'Realisasi Pengadaan Langsung Transaksional',
+    denLabel: 'RUP Pengadaan Langsung',
     formula: 'Persentase = Realisasi Pengadaan Langsung Transaksional / RUP Pengadaan Langsung × 100%',
     skorMax: 2.5,
     band: bandRealisasiTransaksional,
+    catatanOk: 'Realisasi Pengadaan Langsung Transaksional berdasarkan nilai transaksi.',
+    catatanNa: 'Tidak ada pagu Pengadaan Langsung pada cakupan ini.',
   });
 
   const realisasiPnL = buildRow({
@@ -193,9 +239,13 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     label: 'Realisasi Penunjukan Langsung Transaksional',
     num: input.realisasiPnLTransaksional,
     den: input.rupPenunjukanLangsung,
+    numLabel: 'Realisasi Penunjukan Langsung Transaksional',
+    denLabel: 'RUP Penunjukan Langsung',
     formula: 'Persentase = Realisasi Penunjukan Langsung Transaksional / RUP Penunjukan Langsung × 100%',
     skorMax: 2.5,
     band: bandRealisasiTransaksional,
+    catatanOk: 'Realisasi Penunjukan Langsung Transaksional berdasarkan nilai transaksi.',
+    catatanNa: 'Tidak ada pagu Penunjukan Langsung pada cakupan ini.',
   });
 
   const digitalisasiNum =
@@ -211,36 +261,45 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     label: 'Realisasi Digitalisasi PBJ',
     num: digitalisasiNum,
     den: input.totalPengumumanRUP,
+    numLabel: 'Realisasi Digitalisasi PBJ (gabungan)',
+    denLabel: 'Total Pengumuman RUP',
     formula:
       'Persentase = (Realisasi e-Tendering + Realisasi e-Purchasing + Realisasi e-Pengadaan Langsung + Realisasi e-Penunjukan Langsung + Pencatatan Non Tender + Pencatatan Swakelola) / Total Pengumuman RUP × 100%',
     skorMax: 5,
     band: bandDigitalisasi,
+    catatanOk: 'Pemanfaatan fitur digitalisasi PBJ sesuai ketentuan yang berlaku.',
+    catatanNa: 'Tidak ada RUP yang diumumkan pada cakupan ini, sehingga komponen ini tidak menjadi parameter.',
   });
 
-  const rows = [
-    pengumumanRUP,
-    rupPenyedia,
-    rupTenderPurchasing,
-    realisasiTenderPurchasing,
-    realisasiPL,
-    realisasiPnL,
-    realisasiDigitalisasi,
-  ];
+  const rencanaRows = [pengumumanRUP, rupPenyedia, rupTenderPurchasing];
+  const realisasiRows = [realisasiTenderPurchasing, realisasiPL, realisasiPnL, realisasiDigitalisasi];
+  const rows = [...rencanaRows, ...realisasiRows];
 
-  const nilaiRencana = pengumumanRUP.skor + rupPenyedia.skor + rupTenderPurchasing.skor;
-  const nilaiRealisasi = realisasiTenderPurchasing.skor + realisasiPL.skor + realisasiPnL.skor + realisasiDigitalisasi.skor;
+  const sumSkor = (rs: ItkpARowResult[]) => rs.reduce((s, r) => s + r.skor, 0);
+  const sumMaxApplicable = (rs: ItkpARowResult[]) => rs.reduce((s, r) => s + (r.applicable ? r.skorMax : 0), 0);
+  const sumMaxKepka = (rs: ItkpARowResult[]) => rs.reduce((s, r) => s + r.skorMax, 0);
+
+  const nilaiRencana = sumSkor(rencanaRows);
+  const nilaiRencanaMaxSaatIni = sumMaxApplicable(rencanaRows);
+  const nilaiRealisasi = sumSkor(realisasiRows);
+  const nilaiRealisasiMaxSaatIni = sumMaxApplicable(realisasiRows);
 
   return {
     rows,
     nilaiRencana,
+    nilaiRencanaMaxSaatIni,
     nilaiRealisasi,
+    nilaiRealisasiMaxSaatIni,
     total: nilaiRencana + nilaiRealisasi,
+    totalMaxSaatIni: nilaiRencanaMaxSaatIni + nilaiRealisasiMaxSaatIni,
+    totalMaxKepka: sumMaxKepka(rows),
   };
 }
 
 export interface ItkpAnalysisText {
   maksimal: string[];
   kehilanganNilai: { label: string; detail: string }[];
+  tidakBerlaku: string[];
   risiko: string[];
   rekomendasi: string[];
 }
@@ -268,10 +327,15 @@ const REKOMENDASI_MAP_A: Record<string, string> = {
 export function buildAnalysisA(result: ItkpAResult): ItkpAnalysisText {
   const maksimal: string[] = [];
   const kehilanganNilai: { label: string; detail: string }[] = [];
+  const tidakBerlaku: string[] = [];
   const risiko: string[] = [];
   const rekomendasi: string[] = [];
 
   for (const row of result.rows) {
+    if (!row.applicable) {
+      tidakBerlaku.push(`${row.label} — ${row.catatan}`);
+      continue;
+    }
     if (row.skor >= row.skorMax) {
       maksimal.push(`${row.label} (skor ${fmtDec(row.skor, 1)}/${fmtDec(row.skorMax, 1)}).`);
     } else {
@@ -285,5 +349,5 @@ export function buildAnalysisA(result: ItkpAResult): ItkpAnalysisText {
     }
   }
 
-  return { maksimal, kehilanganNilai, risiko, rekomendasi };
+  return { maksimal, kehilanganNilai, tidakBerlaku, risiko, rekomendasi };
 }

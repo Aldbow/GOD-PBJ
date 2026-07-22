@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { RefreshCw, CalendarDays, Clock3, Landmark } from 'lucide-react';
+import Link from 'next/link';
+import { RefreshCw, CalendarDays, Clock3, Landmark, ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { StatCard, type StatTone } from '@/components/ui/StatCard';
 import { Badge } from '@/components/ui/Badge';
@@ -288,22 +289,20 @@ export function ItkpDashboard() {
       </p>
 
       {resultA && (
-        <Card style={{ padding: '18px 20px', marginTop: 20 }}>
-          <h3 className={styles.sectionTitle}>
-            Rincian Formula — {selectedUnit || KEMENTERIAN_LABEL}
-          </h3>
-          <div className={styles.detailGrid}>
-            {resultA.rows.map((row) => (
-              <div key={row.key} className={styles.detailItem}>
-                <p className={styles.detailLabel}>{row.label}</p>
-                <p className={styles.detailFormula}>{row.formula}</p>
-                <p className={styles.detailValue}>
-                  {row.dataDasar} → <strong>{row.persentase}</strong>
-                </p>
-                <p className={styles.detailAlasan}>{row.alasan}</p>
-              </div>
-            ))}
+        <Card style={{ padding: '16px 20px', marginTop: 20 }} className={styles.detailLinkCard}>
+          <div>
+            <p className={styles.detailLinkTitle}>Rincian per komponen — {selectedUnit || KEMENTERIAN_LABEL}</p>
+            <p className={styles.detailLinkCaption}>
+              Lihat rumus, persentase, dan status tiap komponen A1–A7 (termasuk komponen yang tidak berlaku untuk
+              cakupan ini) di halaman detail.
+            </p>
           </div>
+          <Link
+            href={`/itkp/pemanfaatan-sistem${selectedUnit ? `?satker=${encodeURIComponent(selectedUnit)}` : ''}`}
+            className={styles.detailLinkBtn}
+          >
+            Lihat Detail Pemanfaatan Sistem <ArrowRight size={15} />
+          </Link>
         </Card>
       )}
     </motion.div>
