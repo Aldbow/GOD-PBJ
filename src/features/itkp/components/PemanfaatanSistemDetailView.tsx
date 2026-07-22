@@ -219,39 +219,65 @@ export function PemanfaatanSistemDetailView() {
       </div>
 
       <div className={styles.layout}>
-        <div className={styles.cardsCol}>
-          {loading ? (
-            <div className={styles.loadingBox}>Memuat data dari Supabase...</div>
-          ) : (
-            <div className={styles.cardGrid}>
-              {result.rows.map((row, i) => (
-                <ComponentCard key={row.key} index={i + 1} row={row} />
-              ))}
+        {loading ? (
+          <div className={styles.loadingBox}>Memuat data dari Supabase...</div>
+        ) : (
+          <div className={styles.cardGrid}>
+            {result.rows.map((row, i) => (
+              <ComponentCard key={row.key} index={i + 1} row={row} />
+            ))}
+            
+            {/* Summary Card as the 8th item */}
+            <div className={`${styles.compCard} ${styles.summaryCardSpecial}`}>
+              <div className={`${styles.compHeader} ${styles.summaryHeaderSpecial}`}>
+                <span className={styles.compHeaderBadge}>TOTAL</span>
+                Skor Pemanfaatan Sistem
+              </div>
+              
+              <div className={styles.compBody}>
+                <div className={styles.compMainStat}>
+                  <span className={styles.compMainStatLabel}>Total Skor</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span className={styles.compMainStatValue}>
+                      {fmtDec(result.total, 2)}
+                    </span>
+                    <Badge variant={capaianBadgeVariant(capaianOf(result))}>
+                      {fmtPct(capaianOf(result), 1)}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className={styles.compSideStats}>
+                  <div className={styles.compSubStat}>
+                    <span className={styles.compSubStatLabel}>Skor Max Saat Ini</span>
+                    <span className={styles.compSubStatValue}>
+                      {fmtDec(result.totalMaxSaatIni, 2)}
+                    </span>
+                  </div>
+                  <div className={styles.compSubStat}>
+                    <span className={styles.compSubStatLabel}>Skor Max Kepka</span>
+                    <span className={styles.compSubStatValue}>
+                      {fmtDec(result.totalMaxKepka, 0)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className={styles.compDetail}>
+                <div className={styles.compDetailFormulaBox} style={{ marginTop: 0 }}>
+                  Penilaian ini bersifat kumulatif dari seluruh komponen A1-A7.
+                </div>
+              </div>
+              
+              <div className={`${styles.compNote} ${styles.compNoteInfo}`}>
+                <FileText size={16} />
+                <span>
+                  Jika ada indikator yang tidak tersedia/tidak berlaku, skor maksimum saat ini menyesuaikan parameter yang berlaku.
+                </span>
+              </div>
             </div>
-          )}
-        </div>
-
-        <aside className={styles.summaryCol}>
-          <div className={styles.totalBox}>
-            <span className={styles.totalLabel}>Total Skor</span>
-            <span className={styles.totalValue}>{fmtDec(result.total, 2)}</span>
           </div>
-          <div className={styles.subBox}>
-            <span className={styles.subLabel}>Skor Max Saat Ini</span>
-            <span className={styles.subValue}>{fmtDec(result.totalMaxSaatIni, 2)}</span>
-          </div>
-          <div className={styles.subBoxMuted}>
-            <span className={styles.subLabel}>Skor Max Kepka</span>
-            <span className={styles.subValue}>{fmtDec(result.totalMaxKepka, 0)}</span>
-          </div>
-          <div className={styles.noteBox}>
-            <FileText size={14} />
-            <span>
-              Jika ada indikator yang tidak tersedia/tidak berlaku, skor maksimum saat ini menyesuaikan parameter yang
-              berlaku untuk cakupan ini.
-            </span>
-          </div>
-        </aside>
+        )}
       </div>
 
       <div className={styles.tableSection}>
@@ -336,24 +362,34 @@ function ComponentCard({ index, row }: { index: number; row: ItkpARowResult }) {
   return (
     <div className={styles.compCard}>
       <div className={styles.compHeader}>
-        A{index} {row.label}
+        <span className={styles.compHeaderBadge}>A{index}</span>
+        {row.label}
       </div>
-      <div className={styles.compStats}>
-        <div className={styles.compStat}>
-          <span className={styles.compStatLabel}>Skor Max</span>
-          <span className={styles.compStatValue}>{fmtDec(row.skorMax, row.skorMax % 1 === 0 ? 0 : 1)}</span>
-        </div>
-        <div className={styles.compStat}>
-          <span className={styles.compStatLabel}>Persentase</span>
-          <span className={styles.compStatValue}>{row.applicable ? row.persentase : '-'}</span>
-        </div>
-        <div className={styles.compStat}>
-          <span className={styles.compStatLabel}>Skor Saat Ini</span>
-          <span className={`${styles.compStatValue} ${styles.compStatValueStrong}`}>
+
+      <div className={styles.compBody}>
+        <div className={styles.compMainStat}>
+          <span className={styles.compMainStatLabel}>Skor Saat Ini</span>
+          <span className={styles.compMainStatValue}>
             {row.applicable ? fmtDec(row.skor, row.skor % 1 === 0 ? 0 : 1) : '-'}
           </span>
         </div>
+
+        <div className={styles.compSideStats}>
+          <div className={styles.compSubStat}>
+            <span className={styles.compSubStatLabel}>Skor Max</span>
+            <span className={styles.compSubStatValue}>
+              {fmtDec(row.skorMax, row.skorMax % 1 === 0 ? 0 : 1)}
+            </span>
+          </div>
+          <div className={styles.compSubStat}>
+            <span className={styles.compSubStatLabel}>Persentase</span>
+            <span className={styles.compSubStatValue}>
+              {row.applicable ? row.persentase : '-'}
+            </span>
+          </div>
+        </div>
       </div>
+
       <div className={styles.compDetail}>
         <div className={styles.compDetailRow}>
           <span className={styles.compDetailLabel}>{row.numLabel}</span>
@@ -363,10 +399,10 @@ function ComponentCard({ index, row }: { index: number; row: ItkpARowResult }) {
           <span className={styles.compDetailLabel}>{row.denLabel}</span>
           <span className={styles.compDetailValue}>{fmtRupiahDetail(row.denValue)}</span>
         </div>
-        <div className={styles.compDetailFormula}>{row.formula}</div>
+        <div className={styles.compDetailFormulaBox}>{row.formula}</div>
       </div>
       <div className={`${styles.compNote} ${row.applicable ? styles.compNoteInfo : styles.compNoteWarn}`}>
-        {row.applicable ? <Info size={14} /> : <TriangleAlert size={14} />}
+        {row.applicable ? <Info size={16} /> : <TriangleAlert size={16} />}
         <span>{row.catatan}</span>
       </div>
     </div>
