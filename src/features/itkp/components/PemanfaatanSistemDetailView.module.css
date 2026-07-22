@@ -52,6 +52,11 @@
   min-width: 220px;
 }
 
+.filterColWide {
+  flex: 1 1 420px;
+  min-width: 320px;
+}
+
 .filterLabel {
   font-size: 11.5px;
   font-weight: 500;
@@ -289,97 +294,139 @@
   margin-top: 1px;
 }
 
-.footerRow {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 14px;
-  margin-bottom: 24px;
-}
-
-@media (max-width: 700px) {
-  .footerRow {
-    grid-template-columns: 1fr;
-  }
-}
-
-.keteranganBox,
-.tanggalBox {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.keteranganBox svg,
-.tanggalBox svg {
-  color: var(--accent);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.keteranganBox strong,
-.tanggalBox strong {
-  display: block;
-  font-size: 12.5px;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
-
-.keteranganBox p,
-.tanggalBox p {
-  margin: 0;
-  line-height: 1.5;
-}
-
-.analysisSection {
+.tableSection {
   margin-top: 8px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 .sectionTitle {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 10px;
+  margin: 0;
 }
 
-.analysisGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
+.sectionCaption {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
 }
 
-.analysisCard {
+.tableWrap {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
+  overflow-x: auto;
+  margin-bottom: 8px;
 }
 
-.analysisCardTitle {
+.table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 12.5px;
+  min-width: 1020px;
+}
+
+.th {
+  text-align: right;
+  padding: 10px 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 8px;
-}
-
-.analysisCard ul {
-  margin: 0;
-  padding-left: 16px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.emptyNote {
-  font-size: 12px;
   color: var(--text-tertiary);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.thSatker {
+  text-align: left;
+}
+
+.thNum {
+  text-align: right;
+}
+
+.thSub {
+  display: block;
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: normal;
+  max-width: 120px;
+  margin-top: 2px;
+}
+
+.thSortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--dur-fast) ease;
+}
+
+.thSortable:hover {
+  color: var(--text-primary);
+}
+
+.thSortIconIdle {
+  opacity: 0.4;
+  vertical-align: middle;
+}
+
+.thSortIconActive {
+  color: var(--accent);
+  vertical-align: middle;
+}
+
+.td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.tdSatker {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tdNum {
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.tdTotal {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.tdCapaian {
+  text-align: center;
+}
+
+.rowClickable {
+  cursor: pointer;
+  transition: background-color var(--dur-fast) ease;
+}
+
+.rowClickable:hover {
+  background: var(--surface-hover);
+}
+
+.rowActive {
+  background: var(--accent-soft);
+}
+
+.tableNote {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
   margin: 0;
 }

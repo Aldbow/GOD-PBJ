@@ -3,14 +3,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CalendarDays, Info, TriangleAlert, FileText, ArrowLeft } from 'lucide-react';
+import { CalendarDays, Info, TriangleAlert, FileText, ArrowLeft, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import Link from 'next/link';
 import { Select } from '@/components/ui/Select';
 import { ErrorBox } from '@/components/ui/ErrorBox';
+import { Badge, type BadgeVariant } from '@/components/ui/Badge';
 import { SearchableSelect } from '@/components/paket/SearchableSelect';
-import { computeItkpA, buildAnalysisA, type ItkpAInput, type ItkpARowResult } from '@/lib/itkp/calcA';
+import { computeItkpA, type ItkpAInput, type ItkpAResult, type ItkpARowResult } from '@/lib/itkp/calcA';
 import { fetchItkpAData, type ItkpAUnit } from '@/lib/itkp/fetchA';
-import { fmtDec, fmtRupiahDetail } from '@/lib/format';
+import { fmtDec, fmtPct, fmtRupiahDetail } from '@/lib/format';
 import styles from './PemanfaatanSistemDetailView.module.css';
 
 const KEMENTERIAN_LABEL = 'Kementerian (Total)';
@@ -43,6 +44,24 @@ function sumInputs(units: ItkpAUnit[]): ItkpAInput {
   return acc;
 }
 
+function capaianOf(result: ItkpAResult): number {
+  return result.totalMaxSaatIni > 0 ? (result.total / result.totalMaxSaatIni) * 100 : 0;
+}
+
+function capaianBadgeVariant(p: number): BadgeVariant {
+  if (p >= 65) return 'rendah';
+  if (p >= 50) return 'sedang';
+  return 'tinggi';
+}
+
+type SortKey = 'name' | 'total' | 'capaian' | string;
+
+interface SatkerSortRow {
+  name: string;
+  result: ItkpAResult;
+  capaian: number;
+}
+
 export function PemanfaatanSistemDetailView() {
   const router = useRouter();
   const pathname = usePathname();
@@ -55,6 +74,8 @@ export function PemanfaatanSistemDetailView() {
 
   const [selectedEselon1, setSelectedEselon1] = useState<string>('');
   const [selectedUnit, setSelectedUnit] = useState<string>(searchParams.get('satker') || '');
+  const [sortKey, setSortKey] = useState<SortKey>('total');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     async function load() {
@@ -94,8 +115,6 @@ export function PemanfaatanSistemDetailView() {
 
   const satkerOptions = useMemo(() => unitsInEselon1.map((u) => u.name), [unitsInEselon1]);
 
-  const scopeLabel = selectedUnit || (selectedEselon1 && selectedEselon1 !== SEMUA_ESELON1 ? selectedEselon1 : KEMENTERIAN_LABEL);
-
   const currentInput = useMemo<ItkpAInput>(() => {
     if (selectedUnit) {
       return units.find((u) => u.name === selectedUnit)?.input ?? emptyInput();
@@ -104,11 +123,57 @@ export function PemanfaatanSistemDetailView() {
   }, [selectedUnit, unitsInEselon1, units]);
 
   const result = useMemo(() => computeItkpA(currentInput), [currentInput]);
-  const analysis = useMemo(() => buildAnalysisA(result), [result]);
 
   const updatedLabel = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
     : '-';
+
+  const satkerRows = useMemo<SatkerSortRow[]>(
+    () =>
+      unitsInEselon1.map((u) => {
+        const r = computeItkpA(u.input);
+        return { name: u.name, result: r, capaian: capaianOf(r) };
+      }),
+    [unitsInEselon1]
+  );
+
+  const sortedSatkerRows = useMemo(() => {
+    const rows = [...satkerRows];
+    rows.sort((a, b) => {
+      let cmp: number;
+      if (sortKey === 'name') {
+        cmp = a.name.localeCompare(b.name);
+      } else if (sortKey === 'total') {
+        cmp = a.result.total - b.result.total;
+      } else if (sortKey === 'capaian') {
+        cmp = a.capaian - b.capaian;
+      } else {
+        const av = a.result.rows.find((r) => r.key === sortKey)?.skor ?? 0;
+        const bv = b.result.rows.find((r) => r.key === sortKey)?.skor ?? 0;
+        cmp = av - bv;
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return rows;
+  }, [satkerRows, sortKey, sortDir]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir(key === 'name' ? 'asc' : 'desc');
+    }
+  }
+
+  function renderSortIcon(key: SortKey) {
+    if (sortKey !== key) return <ChevronsUpDown size={11} className={styles.thSortIconIdle} />;
+    return sortDir === 'asc' ? (
+      <ChevronUp size={11} className={styles.thSortIconActive} />
+    ) : (
+      <ChevronDown size={11} className={styles.thSortIconActive} />
+    );
+  }
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
@@ -137,7 +202,7 @@ export function PemanfaatanSistemDetailView() {
             }}
           />
         </div>
-        <div className={styles.filterCol}>
+        <div className={`${styles.filterCol} ${styles.filterColWide}`}>
           <span className={styles.filterLabel}>Satuan Kerja</span>
           <SearchableSelect
             value={selectedUnit}
@@ -189,82 +254,79 @@ export function PemanfaatanSistemDetailView() {
         </aside>
       </div>
 
-      <div className={styles.footerRow}>
-        <div className={styles.keteranganBox}>
-          <FileText size={14} />
-          <div>
-            <strong>Keterangan</strong>
-            <p>
-              {analysis.tidakBerlaku.length > 0
-                ? analysis.tidakBerlaku.join(' ')
-                : 'Seluruh 7 komponen berlaku untuk cakupan ini.'}{' '}
-              Indikator yang tidak tersedia/tidak berlaku tidak dihitung sebagai parameter 100%.
-            </p>
-          </div>
+      <div className={styles.tableSection}>
+        <div className={styles.sectionHead}>
+          <h3 className={styles.sectionTitle}>
+            Nilai ITKP Pemanfaatan Sistem — Seluruh Satuan Kerja
+            {selectedEselon1 && selectedEselon1 !== SEMUA_ESELON1 ? ` (${selectedEselon1})` : ''}
+          </h3>
+          <span className={styles.sectionCaption}>
+            {satkerRows.length} satuan kerja, diurutkan berdasarkan skor total tertinggi secara default — klik header
+            kolom untuk mengurutkan, klik baris untuk melihat rincian satker tersebut di atas.
+          </span>
         </div>
-        <div className={styles.tanggalBox}>
-          <CalendarDays size={14} />
-          <div>
-            <strong>Tanggal pembaruan data</strong>
-            <p>{updatedLabel}</p>
-          </div>
-        </div>
-      </div>
 
-      <div className={styles.analysisSection}>
-        <h3 className={styles.sectionTitle}>Analisis — {scopeLabel}</h3>
-        <div className={styles.analysisGrid}>
-          <div className={styles.analysisCard}>
-            <p className={styles.analysisCardTitle}>Komponen maksimal</p>
-            {analysis.maksimal.length > 0 ? (
-              <ul>
-                {analysis.maksimal.map((t, i) => (
-                  <li key={i}>{t}</li>
+        {loading ? (
+          <div className={styles.loadingBox}>Memuat data dari Supabase...</div>
+        ) : (
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.th}>No.</th>
+                  <th className={`${styles.th} ${styles.thSatker} ${styles.thSortable}`} onClick={() => toggleSort('name')}>
+                    Satker {renderSortIcon('name')}
+                  </th>
+                  {satkerRows[0]?.result.rows.map((row, i) => (
+                    <th
+                      key={row.key}
+                      className={`${styles.th} ${styles.thNum} ${styles.thSortable}`}
+                      onClick={() => toggleSort(row.key)}
+                    >
+                      A{i + 1} {renderSortIcon(row.key)}
+                      <span className={styles.thSub}>{row.label}</span>
+                      <span className={styles.thSub}>(Maks. {fmtDec(row.skorMax, 1)})</span>
+                    </th>
+                  ))}
+                  <th className={`${styles.th} ${styles.thNum} ${styles.thSortable}`} onClick={() => toggleSort('total')}>
+                    Skor Total {renderSortIcon('total')}
+                    <span className={styles.thSub}>(Maks. 30)</span>
+                  </th>
+                  <th className={`${styles.th} ${styles.thNum} ${styles.thSortable}`} onClick={() => toggleSort('capaian')}>
+                    Capaian (%) {renderSortIcon('capaian')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedSatkerRows.map((u, idx) => (
+                  <tr
+                    key={u.name}
+                    className={`${styles.rowClickable} ${selectedUnit === u.name ? styles.rowActive : ''}`}
+                    onClick={() => setSelectedUnit(u.name === selectedUnit ? '' : u.name)}
+                  >
+                    <td className={styles.td}>{idx + 1}</td>
+                    <td className={`${styles.td} ${styles.tdSatker}`}>{u.name}</td>
+                    {u.result.rows.map((row) => (
+                      <td key={row.key} className={`${styles.td} ${styles.tdNum}`}>
+                        {row.applicable ? fmtDec(row.skor, row.skor % 1 === 0 ? 0 : 1) : '-'}
+                      </td>
+                    ))}
+                    <td className={`${styles.td} ${styles.tdNum} ${styles.tdTotal}`}>{fmtDec(u.result.total, 1)}</td>
+                    <td className={`${styles.td} ${styles.tdCapaian}`}>
+                      <Badge variant={capaianBadgeVariant(u.capaian)}>{fmtPct(u.capaian, 1)}</Badge>
+                    </td>
+                  </tr>
                 ))}
-              </ul>
-            ) : (
-              <p className={styles.emptyNote}>Belum ada komponen yang mencapai skor maksimal.</p>
-            )}
+              </tbody>
+            </table>
           </div>
-          <div className={styles.analysisCard}>
-            <p className={styles.analysisCardTitle}>Komponen masih rendah</p>
-            {analysis.kehilanganNilai.length > 0 ? (
-              <ul>
-                {analysis.kehilanganNilai.map((t, i) => (
-                  <li key={i}>
-                    <strong>{t.label}</strong> — {t.detail}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className={styles.emptyNote}>Seluruh komponen yang berlaku sudah maksimal.</p>
-            )}
-          </div>
-          <div className={styles.analysisCard}>
-            <p className={styles.analysisCardTitle}>Risiko bila tidak diperbaiki</p>
-            {analysis.risiko.length > 0 ? (
-              <ul>
-                {analysis.risiko.map((t, i) => (
-                  <li key={i}>{t}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className={styles.emptyNote}>Tidak ada risiko signifikan saat ini.</p>
-            )}
-          </div>
-          <div className={styles.analysisCard}>
-            <p className={styles.analysisCardTitle}>Rekomendasi peningkatan</p>
-            {analysis.rekomendasi.length > 0 ? (
-              <ul>
-                {analysis.rekomendasi.map((t, i) => (
-                  <li key={i}>{t}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className={styles.emptyNote}>Pertahankan capaian pada periode penilaian berikutnya.</p>
-            )}
-          </div>
-        </div>
+        )}
+
+        <p className={styles.tableNote}>
+          Skor Total memakai perhitungan adaptif: komponen yang tidak berlaku (penyebut = 0) dikeluarkan dari skor
+          maupun skor maksimum saat ini, sama seperti kartu rincian di atas. Capaian (%) = Skor Total ÷ Skor Max Saat
+          Ini × 100%.
+        </p>
       </div>
     </motion.div>
   );
