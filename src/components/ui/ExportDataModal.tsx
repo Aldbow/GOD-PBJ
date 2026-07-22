@@ -9,7 +9,7 @@ interface ExportDataModalProps {
   onClose: () => void;
   title: string;
   filename: string;
-  columns: ExportColumn[];
+  columns: any[];
   allData: any[]; // Total raw data available
   filteredData: any[]; // Data currently matching filters
 }

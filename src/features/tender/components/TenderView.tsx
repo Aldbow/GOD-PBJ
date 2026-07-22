@@ -241,7 +241,7 @@ export function TenderView() {
         align: 'center',
         render: (p) => {
           const sk = p.status_kurasi;
-          let variant: 'rendah' | 'sedang' | 'tinggi' | 'neutral' = 'neutral';
+          let variant: 'rendah' | 'sedang' | 'tinggi' | 'default' = 'default';
           if (sk === 'Akurat') variant = 'rendah';
           if (sk === 'Tidak Akurat') variant = 'tinggi';
           return (

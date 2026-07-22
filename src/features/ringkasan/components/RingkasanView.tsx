@@ -118,7 +118,7 @@ export function RingkasanView() {
         });
         
         // Sort by risk priority if needed, here we just take the raw data
-        const flatRisks = topRisks.map(r => ({
+        const flatRisks = topRisks.map((r: any) => ({
           satkerName: r.satkerName,
           kd_rup: r.pkg.id,
           nama: r.pkg.nama,
