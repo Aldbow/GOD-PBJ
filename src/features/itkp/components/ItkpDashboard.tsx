@@ -139,6 +139,7 @@ export function ItkpDashboard() {
 
       <div className={styles.summaryGrid}>
         <StatCard
+          glow
           label={`Nilai Total ITKP${selectedUnit ? ` — ${selectedUnit}` : ''}`}
           value={fmtDec(totalItkp, 1)}
           unit="/ 100"
@@ -146,6 +147,8 @@ export function ItkpDashboard() {
           hint={scoreHint(totalItkp, 100)}
         />
         <StatCard
+          glow
+          href={`/itkp/pemanfaatan-sistem${selectedUnit ? `?satker=${encodeURIComponent(selectedUnit)}` : ''}`}
           label="A. Pemanfaatan Sistem"
           value={fmtDec(totalA, 1)}
           unit="/ 30"
@@ -153,6 +156,7 @@ export function ItkpDashboard() {
           hint={scoreHint(totalA, 30)}
         />
         <StatCard
+          glow
           label="B. Kualifikasi & Kompetensi SDM PBJ"
           value={fmtDec(resultBCD.nilaiB, 1)}
           unit="/ 30"
@@ -160,6 +164,7 @@ export function ItkpDashboard() {
           hint={scoreHint(resultBCD.nilaiB, 30)}
         />
         <StatCard
+          glow
           label="C. Tingkat Kematangan UKPBJ"
           value={fmtDec(resultBCD.nilaiC, 1)}
           unit="/ 30"
@@ -167,6 +172,7 @@ export function ItkpDashboard() {
           hint={scoreHint(resultBCD.nilaiC, 30)}
         />
         <StatCard
+          glow
           label="D. Integritas Pengadaan"
           value={fmtDec(resultBCD.nilaiD, 1)}
           unit="/ 10"

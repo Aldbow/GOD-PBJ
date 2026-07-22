@@ -1,3 +1,9 @@
+.linkWrap {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
 .card {
   display: flex;
   flex-direction: column;
@@ -6,6 +12,23 @@
   min-height: 104px;
   position: relative;
   overflow: hidden;
+}
+
+.glow {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
+}
+
+.glow:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 0 28px 4px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 10px 22px -8px rgba(0, 0, 0, 0.22);
+  z-index: 1;
+}
+
+.clickable {
+  cursor: pointer;
 }
 
 .card::after {
