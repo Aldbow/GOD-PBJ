@@ -127,7 +127,7 @@ export function Sidebar() {
         aria-label={collapsed ? 'Perluas sidebar' : 'Ciutkan sidebar'}
       >
         {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
-        {!collapsed && <span>Ciutkan</span>}
+        {!collapsed && <span></span>}
       </button>
 
       {!collapsed && (
