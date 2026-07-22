@@ -69,7 +69,11 @@ SELECT
     CASE 
         WHEN (COALESCE(p.total, 0) + COALESCE(t.total, 0)) > 0 THEN 'COMPLETED'
         ELSE 'BELUM REALISASI'
-    END AS status
+    END AS status,
+    
+    pl.status_kurasi,
+    pl.catatan_kurasi,
+    pl.rekomendasi_kurasi
 FROM gabungan_rup g
 /* >>> MENGGUNAKAN SPLIT_PART UNTUK MENGAMBIL RUP PERTAMA SEBAGAI PENGHUBUNG PPK <<< */
 LEFT JOIN (

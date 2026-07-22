@@ -23,6 +23,9 @@ export interface Package {
   pic: string;
   satkerId: string;
   metode?: string;
+  status_kurasi?: 'Akurat' | 'Tidak Akurat' | 'Belum Dikurasi';
+  catatan_kurasi?: string;
+  rekomendasi_kurasi?: string;
   // Detail fields
   deskripsi?: string;
   timeline?: { date: string, event: string }[];

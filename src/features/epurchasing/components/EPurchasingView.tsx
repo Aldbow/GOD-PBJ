@@ -26,6 +26,12 @@ const STATUS_CLUSTERS = [
 
 const STATUS_OPTIONS = STATUS_CLUSTERS.map((c) => ({ value: c.label, label: c.label }));
 
+const KURASI_OPTIONS = [
+  { value: 'Akurat', label: 'Akurat' },
+  { value: 'Tidak Akurat', label: 'Tidak Akurat' },
+  { value: 'Belum Dikurasi', label: 'Belum Dikurasi' }
+];
+
 const SORT_OPTIONS = [
   { value: 'PAGU_DESC', label: 'Pagu Tertinggi' },
   { value: 'PAGU_ASC', label: 'Pagu Terendah' },
@@ -43,6 +49,7 @@ export function EPurchasingView() {
   const { eselon1, satker, ppk, search, setEselon1, setSatker, setPpk, setSearch } = useOrgFilters();
 
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [kurasiFilter, setKurasiFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string[]>(['PCT_DESC']);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAbnormal, setShowAbnormal] = useState(false);
@@ -104,6 +111,9 @@ export function EPurchasingView() {
           eselon1: r.eselon1 || 'Tidak Diketahui',
           satker: r.satker || 'Tidak Diketahui',
           kode_klpd: r.kode_klpd,
+          status_kurasi: r.status_kurasi || 'Belum Dikurasi',
+          catatan_kurasi: r.catatan_kurasi || null,
+          rekomendasi_kurasi: r.rekomendasi_kurasi || null,
         }));
 
         // Satu paket e-purchasing bisa punya beberapa order_id (transaksi
@@ -158,12 +168,15 @@ export function EPurchasingView() {
           const cluster = STATUS_CLUSTERS.find((c) => c.label === clusterLabel);
           return cluster ? cluster.values.includes(p.status) : false;
         });
+      const matchesKurasi =
+        kurasiFilter.length === 0 ||
+        kurasiFilter.includes(p.status_kurasi);
       const matchesAbnormal = !showAbnormal || (p.total || 0) > (p.pagu || 0);
       const matchesNoMasterData = !showNoMasterData || (p.nama_ppk === 'Tidak Diketahui' && (p.total || 0) > 0);
 
-      return matchesSearch && matchesStatus && matchesAbnormal && matchesNoMasterData;
+      return matchesSearch && matchesStatus && matchesKurasi && matchesAbnormal && matchesNoMasterData;
     });
-  }, [baseData, search, statusFilter, showAbnormal, showNoMasterData]);
+  }, [baseData, search, statusFilter, kurasiFilter, showAbnormal, showNoMasterData]);
 
   const totalPaket = filteredData.length;
   const paketSelesai = filteredData.filter((p) => ['COMPLETED', 'PAYMENT_OUTSIDE_SYSTEM'].includes(p.status)).length;
@@ -204,7 +217,7 @@ export function EPurchasingView() {
     return copy;
   }, [filteredData, activeSort]);
 
-  const hasActiveExtraFilters = statusFilter.length > 0 || activeSort !== 'PCT_DESC' || showAbnormal || showNoMasterData;
+  const hasActiveExtraFilters = statusFilter.length > 0 || kurasiFilter.length > 0 || activeSort !== 'PCT_DESC' || showAbnormal || showNoMasterData;
 
   const columns: PaketColumn<any>[] = useMemo(
     () => [
@@ -261,6 +274,22 @@ export function EPurchasingView() {
           </Badge>
         ),
       },
+      {
+        key: 'status_kurasi',
+        label: 'Status Kurasi',
+        align: 'center',
+        render: (p) => {
+          const sk = p.status_kurasi;
+          let variant: 'rendah' | 'sedang' | 'tinggi' | 'neutral' = 'neutral';
+          if (sk === 'Akurat') variant = 'rendah';
+          if (sk === 'Tidak Akurat') variant = 'tinggi';
+          return (
+            <Badge variant={variant} className={styles.statusBadge}>
+              {sk || 'Belum Dikurasi'}
+            </Badge>
+          );
+        },
+      },
     ],
     []
   );
@@ -273,6 +302,7 @@ export function EPurchasingView() {
     { key: 'nama_ppk', label: 'Nama PPK' },
     { key: 'kode_penyedia', label: 'Penyedia' },
     { key: 'status', label: 'Status' },
+    { key: 'status_kurasi', label: 'Status Kurasi AI' },
     { key: 'pagu', label: 'Pagu (Rp)', type: 'currency' },
     { key: 'total', label: 'Realisasi (Rp)', type: 'currency' },
     { key: 'pct', label: 'Realisasi (%)', type: 'number' },
@@ -373,8 +403,12 @@ export function EPurchasingView() {
           {showAdvanced && (
             <div className={styles.advancedPanel}>
               <div className={styles.filterRow}>
-                <span className={styles.filterLabel}>Status</span>
+                <span className={styles.filterLabel}>Status Realisasi</span>
                 <FilterPillGroup options={STATUS_OPTIONS} selected={statusFilter} onChange={setStatusFilter} />
+              </div>
+              <div className={styles.filterRow}>
+                <span className={styles.filterLabel}>Status Kurasi AI</span>
+                <FilterPillGroup options={KURASI_OPTIONS} selected={kurasiFilter} onChange={setKurasiFilter} />
               </div>
               <div className={styles.filterRow}>
                 <span className={styles.filterLabel}>Urutkan</span>
@@ -412,6 +446,7 @@ export function EPurchasingView() {
                   onClick={() => {
                     setSortBy(['PCT_DESC']);
                     setStatusFilter([]);
+                    setKurasiFilter([]);
                     setShowAbnormal(false);
                     setShowNoMasterData(false);
                   }}
@@ -440,6 +475,9 @@ export function EPurchasingView() {
         title="Detail E-Purchasing"
         historyData={historyData}
         loadingHistory={loadingHistory}
+        statusKurasi={selectedItem?.status_kurasi}
+        catatanKurasi={selectedItem?.catatan_kurasi}
+        rekomendasiKurasi={selectedItem?.rekomendasi_kurasi}
       >
         {selectedItem && (
           <>

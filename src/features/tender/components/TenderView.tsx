@@ -24,6 +24,12 @@ const METODE_OPTIONS = [
   { value: 'Pembayaran untuk Kontrak Tahun Jamak', label: 'Pembayaran Kontrak Tahun Jamak' },
 ];
 
+const KURASI_OPTIONS = [
+  { value: 'Akurat', label: 'Akurat' },
+  { value: 'Tidak Akurat', label: 'Tidak Akurat' },
+  { value: 'Belum Dikurasi', label: 'Belum Dikurasi' }
+];
+
 const TIPE_RUP_OPTIONS = [
   { value: 'Single RUP', label: 'Single RUP' },
   { value: 'Multiple RUP', label: 'Multiple RUP' },
@@ -45,6 +51,7 @@ export function TenderView() {
 
   const [metodeFilter, setMetodeFilter] = useState<string[]>([]);
   const [tipeRupFilter, setTipeRupFilter] = useState<string[]>([]);
+  const [kurasiFilter, setKurasiFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -109,8 +116,9 @@ export function TenderView() {
       d = d.filter((item) => tipeRupFilter.includes(item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP'));
     }
     if (metodeFilter.length > 0) d = d.filter((item) => metodeFilter.includes(item.metode_pengadaan));
+    if (kurasiFilter.length > 0) d = d.filter((item) => kurasiFilter.includes(item.status_kurasi || 'Belum Dikurasi'));
     return d;
-  }, [data, eselon1, satker, ppk, tipeRupFilter, metodeFilter]);
+  }, [data, eselon1, satker, ppk, tipeRupFilter, metodeFilter, kurasiFilter]);
 
   const filteredData = useMemo(() => {
     let d = baseData;
@@ -157,7 +165,7 @@ export function TenderView() {
     return copy;
   }, [filteredData, activeSort]);
 
-  const hasActiveExtraFilters = metodeFilter.length > 0 || tipeRupFilter.length > 0 || sortBy.length > 0;
+  const hasActiveExtraFilters = metodeFilter.length > 0 || tipeRupFilter.length > 0 || kurasiFilter.length > 0 || sortBy.length > 0;
 
   const columns: PaketColumn<any>[] = useMemo(
     () => [
@@ -227,6 +235,22 @@ export function TenderView() {
           </Badge>
         ),
       },
+      {
+        key: 'status_kurasi',
+        label: 'Status Kurasi',
+        align: 'center',
+        render: (p) => {
+          const sk = p.status_kurasi;
+          let variant: 'rendah' | 'sedang' | 'tinggi' | 'neutral' = 'neutral';
+          if (sk === 'Akurat') variant = 'rendah';
+          if (sk === 'Tidak Akurat') variant = 'tinggi';
+          return (
+            <Badge variant={variant} className={styles.statusBadge}>
+              {sk || 'Belum Dikurasi'}
+            </Badge>
+          );
+        },
+      },
     ],
     []
   );
@@ -243,6 +267,7 @@ export function TenderView() {
     { key: 'total', label: 'Realisasi (Rp)', type: 'currency' },
     { key: 'pct', label: 'Realisasi (%)', type: 'number' },
     { key: 'status', label: 'Status' },
+    { key: 'status_kurasi', label: 'Status Kurasi AI' },
   ], []);
 
   const mapForExport = (item: any) => ({
@@ -250,6 +275,7 @@ export function TenderView() {
     is_multiple_rup: item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP',
     pct: (Number(item.pagu) || 0) > 0 ? ((Number(item.total) || 0) / (Number(item.pagu) || 0)) * 100 : 0,
     status: (Number(item.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI',
+    status_kurasi: item.status_kurasi || 'Belum Dikurasi'
   });
 
   const exportAllData = useMemo(() => baseData.map(mapForExport), [baseData]);
@@ -350,6 +376,10 @@ export function TenderView() {
                 <FilterPillGroup options={TIPE_RUP_OPTIONS} selected={tipeRupFilter} onChange={setTipeRupFilter} multi={false} />
               </div>
               <div className={styles.filterRow}>
+                <span className={styles.filterLabel}>Status Kurasi AI</span>
+                <FilterPillGroup options={KURASI_OPTIONS} selected={kurasiFilter} onChange={setKurasiFilter} />
+              </div>
+              <div className={styles.filterRow}>
                 <span className={styles.filterLabel}>Urutkan</span>
                 <FilterPillGroup options={SORT_OPTIONS} selected={sortBy} onChange={setSortBy} multi={false} />
               </div>
@@ -360,6 +390,7 @@ export function TenderView() {
                   onClick={() => {
                     setMetodeFilter([]);
                     setTipeRupFilter([]);
+                    setKurasiFilter([]);
                     setSortBy([]);
                   }}
                 >
@@ -387,6 +418,9 @@ export function TenderView() {
         title="Detail Tender"
         historyData={historyData}
         loadingHistory={loadingHistory}
+        statusKurasi={selectedItem?.status_kurasi}
+        catatanKurasi={selectedItem?.catatan_kurasi}
+        rekomendasiKurasi={selectedItem?.rekomendasi_kurasi}
       >
         {selectedItem && (
           <>

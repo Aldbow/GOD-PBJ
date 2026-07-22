@@ -76,7 +76,11 @@ SELECT
     CASE 
         WHEN COALESCE(t.total, 0) > 0 THEN 'COMPLETED'
         ELSE 'BELUM REALISASI'
-    END AS status
+    END AS status,
+    
+    pl.status_kurasi,
+    pl.catatan_kurasi,
+    pl.rekomendasi_kurasi
 FROM gabungan_rup g
 LEFT JOIN (
     SELECT * FROM view_paket_penyedia_master_data WHERE metode_pengadaan IN ('Tender', 'Seleksi', 'Tender Cepat', 'Pembayaran untuk Kontrak Tahun Jamak')

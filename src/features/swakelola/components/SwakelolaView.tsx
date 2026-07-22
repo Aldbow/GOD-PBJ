@@ -26,6 +26,12 @@ const STATUS_CLUSTERS = [
 
 const STATUS_OPTIONS = STATUS_CLUSTERS.map((c) => ({ value: c.label, label: c.label }));
 
+const KURASI_OPTIONS = [
+  { value: 'Akurat', label: 'Akurat' },
+  { value: 'Tidak Akurat', label: 'Tidak Akurat' },
+  { value: 'Belum Dikurasi', label: 'Belum Dikurasi' }
+];
+
 const TIPE_SWAKELOLA_OPTIONS = ['1', '2', '3', '4'].map((t) => ({ value: t, label: `Tipe ${t}` }));
 
 const SORT_OPTIONS = [
@@ -46,6 +52,7 @@ export function SwakelolaView() {
 
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [tipeSwakelolaFilter, setTipeSwakelolaFilter] = useState<string[]>([]);
+  const [kurasiFilter, setKurasiFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string[]>(['PCT_DESC']);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAbnormal, setShowAbnormal] = useState(false);
@@ -102,6 +109,9 @@ export function SwakelolaView() {
           nama_ppk: r.nama_ppk || 'Tidak Diketahui',
           eselon1: r.eselon1 || 'Tidak Diketahui',
           satker: r.satker || 'Tidak Diketahui',
+          status_kurasi: r.status_kurasi || 'Belum Dikurasi',
+          catatan_kurasi: r.catatan_kurasi || null,
+          rekomendasi_kurasi: r.rekomendasi_kurasi || null,
         }));
 
         setData(formattedData);
@@ -142,10 +152,11 @@ export function SwakelolaView() {
       const matchesAbnormal = !showAbnormal || (p.total || 0) > (p.pagu || 0);
       const matchesNoMasterData = !showNoMasterData || (p.nama_ppk === 'Tidak Diketahui' && (p.total || 0) > 0);
       const matchesTipe = tipeSwakelolaFilter.length === 0 || tipeSwakelolaFilter.includes(String(p.tipe_swakelola));
+      const matchesKurasi = kurasiFilter.length === 0 || kurasiFilter.includes(p.status_kurasi || 'Belum Dikurasi');
 
-      return matchesSearch && matchesStatus && matchesAbnormal && matchesNoMasterData && matchesTipe;
+      return matchesSearch && matchesStatus && matchesAbnormal && matchesNoMasterData && matchesTipe && matchesKurasi;
     });
-  }, [baseData, search, statusFilter, showAbnormal, showNoMasterData, tipeSwakelolaFilter]);
+  }, [baseData, search, statusFilter, showAbnormal, showNoMasterData, tipeSwakelolaFilter, kurasiFilter]);
 
   const totalPaket = filteredData.length;
   const paketSelesai = filteredData.filter((p) => p.status === 'Paket Selesai').length;
@@ -187,7 +198,7 @@ export function SwakelolaView() {
   }, [filteredData, activeSort]);
 
   const hasActiveExtraFilters =
-    statusFilter.length > 0 || tipeSwakelolaFilter.length > 0 || activeSort !== 'PCT_DESC' || showAbnormal || showNoMasterData;
+    statusFilter.length > 0 || tipeSwakelolaFilter.length > 0 || kurasiFilter.length > 0 || activeSort !== 'PCT_DESC' || showAbnormal || showNoMasterData;
 
   const columns: PaketColumn<any>[] = useMemo(
     () => [
@@ -248,6 +259,22 @@ export function SwakelolaView() {
           </Badge>
         ),
       },
+      {
+        key: 'status_kurasi',
+        label: 'Status Kurasi',
+        align: 'center',
+        render: (p) => {
+          const sk = p.status_kurasi;
+          let variant: 'rendah' | 'sedang' | 'tinggi' | 'neutral' = 'neutral';
+          if (sk === 'Akurat') variant = 'rendah';
+          if (sk === 'Tidak Akurat') variant = 'tinggi';
+          return (
+            <Badge variant={variant} className={styles.statusBadge}>
+              {sk || 'Belum Dikurasi'}
+            </Badge>
+          );
+        },
+      },
     ],
     []
   );
@@ -263,12 +290,14 @@ export function SwakelolaView() {
     { key: 'total', label: 'Realisasi (Rp)', type: 'currency' },
     { key: 'pct', label: 'Realisasi (%)', type: 'number' },
     { key: 'status', label: 'Status' },
+    { key: 'status_kurasi', label: 'Status Kurasi AI' },
   ], []);
 
   const mapForExport = (item: any) => ({
     ...item,
     tipe_swakelola_formatted: item.tipe_swakelola ? `Tipe ${item.tipe_swakelola}` : '-',
-    pct: (Number(item.pagu) || 0) > 0 ? ((Number(item.total) || 0) / (Number(item.pagu) || 0)) * 100 : 0
+    pct: (Number(item.pagu) || 0) > 0 ? ((Number(item.total) || 0) / (Number(item.pagu) || 0)) * 100 : 0,
+    status_kurasi: item.status_kurasi || 'Belum Dikurasi'
   });
 
   const exportAllData = useMemo(() => baseData.map(mapForExport), [baseData]);
@@ -369,6 +398,10 @@ export function SwakelolaView() {
                 <FilterPillGroup options={TIPE_SWAKELOLA_OPTIONS} selected={tipeSwakelolaFilter} onChange={setTipeSwakelolaFilter} />
               </div>
               <div className={styles.filterRow}>
+                <span className={styles.filterLabel}>Status Kurasi AI</span>
+                <FilterPillGroup options={KURASI_OPTIONS} selected={kurasiFilter} onChange={setKurasiFilter} />
+              </div>
+              <div className={styles.filterRow}>
                 <span className={styles.filterLabel}>Urutkan</span>
                 <div className={styles.filterRow}>
                   {SORT_OPTIONS.map((opt) => (
@@ -405,6 +438,7 @@ export function SwakelolaView() {
                     setSortBy(['PCT_DESC']);
                     setStatusFilter([]);
                     setTipeSwakelolaFilter([]);
+                    setKurasiFilter([]);
                     setShowAbnormal(false);
                     setShowNoMasterData(false);
                   }}
@@ -433,6 +467,9 @@ export function SwakelolaView() {
         title="Detail Swakelola"
         historyData={historyData}
         loadingHistory={loadingHistory}
+        statusKurasi={selectedItem?.status_kurasi}
+        catatanKurasi={selectedItem?.catatan_kurasi}
+        rekomendasiKurasi={selectedItem?.rekomendasi_kurasi}
       >
         {selectedItem && (
           <>

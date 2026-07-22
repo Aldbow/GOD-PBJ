@@ -22,6 +22,12 @@ const STATUS_OPTIONS = [
   { value: 'BELUM', label: 'Belum Terealisasi' },
 ];
 
+const KURASI_OPTIONS = [
+  { value: 'Akurat', label: 'Akurat' },
+  { value: 'Tidak Akurat', label: 'Tidak Akurat' },
+  { value: 'Belum Dikurasi', label: 'Belum Dikurasi' }
+];
+
 const METODE_OPTIONS = [
   { value: 'Pengadaan Langsung', label: 'Pengadaan Langsung' },
   { value: 'Dikecualikan', label: 'Dikecualikan' },
@@ -47,6 +53,7 @@ export function PengadaanLangsungView() {
   const { eselon1, satker, ppk, search, setEselon1, setSatker, setPpk, setSearch } = useOrgFilters();
 
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [kurasiFilter, setKurasiFilter] = useState<string[]>([]);
   const [metodeFilter, setMetodeFilter] = useState<string[]>([]);
   const [tipeRupFilter, setTipeRupFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string[]>([]);
@@ -138,8 +145,11 @@ export function PengadaanLangsungView() {
         return statusFilter.includes(hasRealisasi ? 'SUDAH' : 'BELUM');
       });
     }
+    if (kurasiFilter.length > 0) {
+      d = d.filter((p) => kurasiFilter.includes(p.status_kurasi || 'Belum Dikurasi'));
+    }
     return d;
-  }, [baseData, search, statusFilter]);
+  }, [baseData, search, statusFilter, kurasiFilter]);
 
   const contextPagu = baseData.filter((p) => p.is_from_sirup !== false).reduce((s, d) => s + (Number(d.pagu) || 0), 0);
   const contextRealisasi = filteredData.reduce((s, d) => s + (Number(d.total) || 0), 0);
@@ -170,7 +180,7 @@ export function PengadaanLangsungView() {
     return copy;
   }, [filteredData, activeSort]);
 
-  const hasActiveExtraFilters = statusFilter.length > 0 || metodeFilter.length > 0 || tipeRupFilter.length > 0 || sortBy.length > 0;
+  const hasActiveExtraFilters = statusFilter.length > 0 || kurasiFilter.length > 0 || metodeFilter.length > 0 || tipeRupFilter.length > 0 || sortBy.length > 0;
 
   const columns: PaketColumn<any>[] = useMemo(
     () => [
@@ -239,6 +249,22 @@ export function PengadaanLangsungView() {
             {(Number(p.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI'}
           </Badge>
         ),
+      },
+      {
+        key: 'kurasi',
+        label: 'Status Kurasi',
+        align: 'center',
+        render: (p) => {
+          const s = p.status_kurasi || 'Belum Dikurasi';
+          let variant: any = 'sedang';
+          if (s === 'Akurat') variant = 'rendah'; // hijau
+          if (s === 'Tidak Akurat') variant = 'tinggi'; // merah
+          return (
+            <Badge variant={variant} className={styles.statusBadge}>
+              {s}
+            </Badge>
+          );
+        },
       },
     ],
     []
@@ -370,6 +396,10 @@ export function PengadaanLangsungView() {
                 <FilterPillGroup options={STATUS_OPTIONS} selected={statusFilter} onChange={setStatusFilter} />
               </div>
               <div className={styles.filterRow}>
+                <span className={styles.filterLabel}>Kurasi AI</span>
+                <FilterPillGroup options={KURASI_OPTIONS} selected={kurasiFilter} onChange={setKurasiFilter} />
+              </div>
+              <div className={styles.filterRow}>
                 <span className={styles.filterLabel}>Metode</span>
                 <FilterPillGroup options={METODE_OPTIONS} selected={metodeFilter} onChange={setMetodeFilter} multi={false} />
               </div>
@@ -387,6 +417,7 @@ export function PengadaanLangsungView() {
                   className={styles.resetAllBtn}
                   onClick={() => {
                     setStatusFilter([]);
+                    setKurasiFilter([]);
                     setMetodeFilter([]);
                     setTipeRupFilter([]);
                     setSortBy([]);
@@ -416,6 +447,9 @@ export function PengadaanLangsungView() {
         title="Detail Pengadaan Langsung"
         historyData={historyData}
         loadingHistory={loadingHistory}
+        statusKurasi={selectedItem?.status_kurasi}
+        catatanKurasi={selectedItem?.catatan_kurasi}
+        rekomendasiKurasi={selectedItem?.rekomendasi_kurasi}
       >
         {selectedItem && (
           <>

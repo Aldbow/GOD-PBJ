@@ -16,7 +16,10 @@ SELECT
     COALESCE(e.status, 'BELUM REALISASI') as status,
     COALESCE(e.total, 0) as total,
     e.kode_penyedia,
-    e.order_id
+    e.order_id,
+    m.status_kurasi,
+    m.catatan_kurasi,
+    m.rekomendasi_kurasi
 FROM view_paket_penyedia_master_data m
 FULL OUTER JOIN paket_e_purchasing e ON m.kd_rup::text = e.rup_code::text
 WHERE (e.status NOT ILIKE '%cancel%' OR e.status IS NULL)

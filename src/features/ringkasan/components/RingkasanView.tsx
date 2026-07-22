@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { RealisasiChart } from './RealisasiChart';
 import { Badge } from '@/components/ui/Badge';
@@ -8,7 +8,7 @@ import { StatCard } from '@/components/ui/StatCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { motion, Variants } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
 import { Package } from '@/types';
 import { supabase } from '@/lib/supabase';
@@ -31,6 +31,56 @@ export function RingkasanView() {
   const [allRisks, setAllRisks] = useState<any[]>([]);
   const [risks, setRisks] = useState<{ satkerName: string, pkg: Package }[]>([]);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isCurationLoading, setIsCurationLoading] = useState(false);
+  const [isCurationAutoRunning, setIsCurationAutoRunning] = useState(false);
+  const [curationMessage, setCurationMessage] = useState<string | null>(null);
+
+  const stopAutoCurationRef = useRef(false);
+
+  const handleRunCuration = async () => {
+    setIsCurationLoading(true);
+    setIsCurationAutoRunning(true);
+    stopAutoCurationRef.current = false;
+    setCurationMessage('Memulai kurasi otomatis...');
+    let totalProcessedSoFar = 0;
+
+    while (!stopAutoCurationRef.current) {
+      try {
+        const res = await fetch('/api/kurasi', { method: 'POST' });
+        const data = await res.json();
+        
+        if (res.ok) {
+           const processed = data.total_processed || 0;
+           totalProcessedSoFar += processed;
+           
+           if (processed === 0) {
+              setCurationMessage(`Selesai! Tidak ada lagi data yang perlu dikurasi. (Total yang berhasil dikurasi: ${totalProcessedSoFar} paket)`);
+              break;
+           }
+
+           setCurationMessage(`Telah mengurasi ${totalProcessedSoFar} data. Menunggu 5 detik untuk permintaan berikutnya...`);
+           await new Promise(resolve => setTimeout(resolve, 5000));
+        } else if (res.status === 429) {
+           setCurationMessage(`Batas akses (Rate limit) API tercapai. Menunggu 30 detik sebelum melanjutkan...`);
+           await new Promise(resolve => setTimeout(resolve, 30000));
+        } else {
+           setCurationMessage(`Terjadi kesalahan: ${data.error}. Menghentikan kurasi otomatis.`);
+           break;
+        }
+      } catch (err) {
+        setCurationMessage('Gagal menghubungi server API. Menghentikan kurasi otomatis.');
+        break;
+      }
+    }
+    
+    setIsCurationLoading(false);
+    setIsCurationAutoRunning(false);
+  };
+
+  const handleStopCuration = () => {
+    stopAutoCurationRef.current = true;
+    setCurationMessage('Perintah berhenti diterima. Menunggu AI menyelesaikan paket yang sedang dikerjakan...');
+  };
 
   useEffect(() => {
     // Fetch all risks for export, display top 5
@@ -142,6 +192,70 @@ export function RingkasanView() {
           unit="/100"
           tone="danger"
           hint="⚠ perlu intervensi pelatihan"
+        />
+      </motion.div>
+
+      {/* AI Curation Indicators */}
+      <SectionHeader 
+        title="Status Validasi / Kurasi AI" 
+        caption="Tingkat kepatuhan metode vs pagu (Data Dummy/Proyeksi)"
+        action={
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {isCurationAutoRunning && (
+              <button 
+                className={styles.exportBtnHeader} 
+                onClick={handleStopCuration}
+                style={{ backgroundColor: 'var(--red-50, #fef2f2)', color: 'var(--red-700, #b91c1c)', borderColor: 'var(--red-200, #fecaca)' }}
+              >
+                Hentikan Kurasi
+              </button>
+            )}
+            <button 
+              className={styles.exportBtnHeader} 
+              onClick={handleRunCuration}
+              disabled={isCurationLoading}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: isCurationLoading ? 0.7 : 1, cursor: isCurationLoading ? 'not-allowed' : 'pointer' }}
+            >
+              {isCurationLoading && <Loader2 size={16} className={styles.spinner} style={{ animation: 'spin 1s linear infinite' }} />}
+              {isCurationLoading ? 'AI Sedang Bekerja...' : 'Jalankan Kurasi Otomatis'}
+            </button>
+          </div>
+        }
+      />
+      {isCurationLoading && (
+        <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', backgroundColor: 'var(--blue-950, #eff6ff)', border: '1px solid var(--blue-200, #bfdbfe)' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: 'var(--blue-900, #1e3a8a)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+            AI sedang menganalisa data. Mohon tunggu, proses ini mungkin memakan waktu hingga 15-30 detik...
+          </p>
+        </div>
+      )}
+      {!isCurationLoading && curationMessage && (
+        <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', backgroundColor: 'var(--surface-sunken)', border: '1px solid var(--border)' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)' }}>{curationMessage}</p>
+        </div>
+      )}
+      <motion.div variants={itemVariants} className={styles.statGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: '24px' }}>
+        <StatCard
+          label="Total Data Akurat"
+          value="1,050"
+          unit=" pkt"
+          tone="good"
+          hint="✅ Sesuai aturan pengadaan"
+        />
+        <StatCard
+          label="Data Tidak Akurat"
+          value="150"
+          unit=" pkt"
+          tone="danger"
+          hint="❌ Menyalahi batas nilai/akun"
+        />
+        <StatCard
+          label="Belum Dikurasi"
+          value="24"
+          unit=" pkt"
+          tone="warn"
+          hint="Menunggu pemrosesan"
         />
       </motion.div>
 

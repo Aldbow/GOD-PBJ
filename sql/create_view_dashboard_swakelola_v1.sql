@@ -17,7 +17,10 @@ SELECT
     COALESCE(e.total_realisasi, 0) as total,
     COALESCE(e.tipe_swakelola::text, m.tipe_swakelola::text) as tipe_swakelola,
     e.kd_swakelola_pct as order_id,
-    '' as kode_penyedia
+    '' as kode_penyedia,
+    m.status_kurasi,
+    m.catatan_kurasi,
+    m.rekomendasi_kurasi
 FROM view_paket_swakelola_master_data m
 FULL OUTER JOIN api_pencatatan_swakelola e ON m.kd_rup::text = e.kd_rup::text
 WHERE (e.status_swakelola_pct_ket NOT ILIKE '%cancel%' OR e.status_swakelola_pct_ket IS NULL);
