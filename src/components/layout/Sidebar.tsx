@@ -1,99 +1,143 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from './Sidebar.module.css';
-import { LayoutDashboard, Users, Component, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap } from 'lucide-react';
+import { ChevronDown, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionProvider';
 import { canAccess } from '@/lib/auth/access';
+import { NAV_GROUPS } from '@/lib/nav';
 
-type NavLink = { name: string; href: string; icon: React.ReactNode };
-type NavGroup = { label: string | null; links: NavLink[] };
-
-const groups: NavGroup[] = [
-  {
-    label: null,
-    links: [
-      { name: 'Ringkasan', href: '/', icon: <LayoutDashboard size={18} /> },
-    ],
-  },
-  {
-    label: 'Perencanaan',
-    links: [
-      { name: 'Tampilan PPK', href: '/ppk', icon: <Users size={18} /> },
-      { name: 'Drill-down satker', href: '/drilldown', icon: <Component size={18} /> },
-      { name: 'Rencana Umum Pengadaan', href: '/rencana-pengadaan', icon: <FileText size={18} /> },
-    ],
-  },
-  {
-    label: 'Realisasi',
-    links: [
-      { name: 'Realisasi E-Purchasing V6', href: '/epurchasing', icon: <ShoppingCart size={18} /> },
-      { name: 'Realisasi Tender', href: '/tender', icon: <Briefcase size={18} /> },
-      { name: 'Realisasi Pengadaan Langsung', href: '/pengadaan-langsung', icon: <Package size={18} /> },
-      { name: 'Realisasi Penunjukan Langsung', href: '/penunjukan-langsung', icon: <Target size={18} /> },
-      { name: 'Realisasi Swakelola', href: '/swakelola', icon: <Package size={18} /> },
-    ],
-  },
-  {
-    label: 'ITKP',
-    links: [
-      { name: 'Dashboard Penilaian ITKP', href: '/itkp', icon: <GraduationCap size={18} /> },
-    ],
-  },
-];
+const COLLAPSE_KEY = 'dewa-pbj:sidebar-collapsed';
+const CLOSED_GROUPS_KEY = 'dewa-pbj:sidebar-closed-groups';
 
 export function Sidebar() {
   const pathname = usePathname();
   const { role } = useSession();
+  const [collapsed, setCollapsed] = useState(false);
+  const [closedGroups, setClosedGroups] = useState<string[]>([]);
+  const [hydrated, setHydrated] = useState(false);
 
-  // Filter menu sesuai hak akses role; buang grup yang jadi kosong.
-  const visibleGroups = groups
-    .map((group) => ({
-      ...group,
-      links: group.links.filter((link) => canAccess(role, link.href)),
-    }))
-    .filter((group) => group.links.length > 0);
+  useEffect(() => {
+    setCollapsed(localStorage.getItem(COLLAPSE_KEY) === '1');
+    try {
+      const stored = JSON.parse(localStorage.getItem(CLOSED_GROUPS_KEY) ?? '[]');
+      setClosedGroups(Array.isArray(stored) ? stored : []);
+    } catch {
+      setClosedGroups([]);
+    }
+    setHydrated(true);
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
+      return next;
+    });
+  };
+
+  const toggleGroup = (id: string) => {
+    setClosedGroups((prev) => {
+      const next = prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id];
+      localStorage.setItem(CLOSED_GROUPS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    links: group.links.filter((link) => canAccess(role, link.href)),
+  })).filter((group) => group.links.length > 0);
 
   return (
-    <aside className={styles.sidebar}>
+    <aside
+      className={styles.sidebar}
+      data-collapsed={collapsed || undefined}
+      data-hydrated={hydrated || undefined}
+    >
       <div className={styles.brand}>
         <div className={styles.brandMark} />
-        <div className={styles.brandText}>
-          <strong>DEWA-PBJ</strong>
-          <span>Early warning pengadaan</span>
-        </div>
+        {!collapsed && (
+          <div className={styles.brandText}>
+            <strong>DEWA-PBJ</strong>
+            <span>Early warning pengadaan</span>
+          </div>
+        )}
       </div>
 
       <nav className={styles.nav}>
-        {visibleGroups.map((group, gi) => (
-          <div key={gi} className={styles.group}>
-            {group.label && <p className={styles.groupLabel}>{group.label}</p>}
-            {group.links.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`${styles.navBtn} ${isActive ? styles.active : ''}`}
+        {visibleGroups.map((group) => {
+          const isClosed = !collapsed && closedGroups.includes(group.id);
+          return (
+            <div key={group.id} className={styles.group}>
+              {group.label && !collapsed && (
+                <button
+                  type="button"
+                  className={styles.groupLabel}
+                  onClick={() => toggleGroup(group.id)}
+                  aria-expanded={!isClosed}
                 >
-                  <span className={styles.navIcon}>{link.icon}</span>
-                  <span className={styles.navLabel}>{link.name}</span>
-                  {isActive && <span className={styles.activeIndicator} />}
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+                  <span>{group.label}</span>
+                  <ChevronDown
+                    size={12}
+                    className={styles.groupChevron}
+                    style={{ transform: isClosed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+                  />
+                </button>
+              )}
+              <AnimatePresence initial={false}>
+                {!isClosed && (
+                  <motion.div
+                    className={styles.groupLinks}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {group.links.map((link) => {
+                      const isActive = pathname === link.href;
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          className={`${styles.navBtn} ${isActive ? styles.active : ''}`}
+                          title={collapsed ? link.name : undefined}
+                        >
+                          <span className={styles.navIcon}>{link.icon}</span>
+                          {!collapsed && <span className={styles.navLabel}>{link.name}</span>}
+                          {isActive && <span className={styles.activeIndicator} />}
+                        </Link>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
       </nav>
 
-      <div className={styles.sidebarFoot}>
-        <span className={styles.footVersion}>Prototipe v0.1</span>
-        Aksi perubahan — Kemnaker
-        <br />
-        Data ilustratif, 22 Jun 2026
-      </div>
+      <button
+        type="button"
+        className={styles.collapseBtn}
+        onClick={toggleCollapsed}
+        aria-label={collapsed ? 'Perluas sidebar' : 'Ciutkan sidebar'}
+      >
+        {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
+        {!collapsed && <span>Ciutkan</span>}
+      </button>
+
+      {!collapsed && (
+        <div className={styles.sidebarFoot}>
+          <span className={styles.footVersion}>Prototipe v0.1</span>
+          Aksi perubahan — Kemnaker
+          <br />
+          Data ilustratif, 22 Jun 2026
+        </div>
+      )}
     </aside>
   );
 }

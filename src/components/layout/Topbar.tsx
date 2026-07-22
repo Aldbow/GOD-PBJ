@@ -1,35 +1,30 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styles from './Topbar.module.css';
 
 import { ThemeToggle } from './ThemeToggle';
 import { usePathname } from 'next/navigation';
-import { LogOut } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LogOut, Search, ChevronRight, RadioTower } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionProvider';
 import { ROLE_LABEL } from '@/lib/auth/access';
 import { logout } from '@/lib/auth/actions';
-
-const TITLES: Record<string, string> = {
-  '/': 'Ringkasan Kementerian',
-  '/ppk': 'Tampilan PPK',
-  '/drilldown': 'Drill-down Satuan Kerja',
-  '/rencana-pengadaan': 'Rencana Umum Pengadaan',
-  '/epurchasing': 'Realisasi E-Purchasing V6',
-  '/tender': 'Realisasi Tender',
-  '/pengadaan-langsung': 'Realisasi Pengadaan Langsung',
-  '/penunjukan-langsung': 'Realisasi Penunjukan Langsung',
-  '/swakelola': 'Realisasi Swakelola',
-};
+import { findActiveEntry } from '@/lib/nav';
+import { CommandPalette } from './CommandPalette';
 
 export function Topbar() {
   const pathname = usePathname();
   const { full_name, role } = useSession();
   const [spseSync, setSpseSync] = useState('');
   const [sirupSync, setSirupSync] = useState('');
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const syncRef = useRef<HTMLDivElement>(null);
 
-  // Determine Title
-  const title = TITLES[pathname] ?? 'Ringkasan Kementerian';
+  const activeEntry = findActiveEntry(pathname);
+  const title = activeEntry?.link.name ?? 'Ringkasan Kementerian';
+  const breadcrumbGroup = activeEntry?.group.label;
 
   // Mock sync timers
   useEffect(() => {
@@ -42,7 +37,7 @@ export function Topbar() {
         const diff = Math.floor((now - start) / 1000);
         const m = Math.floor(diff / 60);
         const s = diff % 60;
-        return `tersinkron ${m}m ${String(s).padStart(2, '0')}d lalu`;
+        return `${m}m ${String(s).padStart(2, '0')}d lalu`;
       };
       setSpseSync(fmt(spseStart));
       setSirupSync(fmt(sirupStart));
@@ -53,24 +48,82 @@ export function Topbar() {
     return () => clearInterval(intv);
   }, []);
 
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (syncRef.current && !syncRef.current.contains(e.target as Node)) setSyncOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <header className={styles.topbar}>
       <div className={styles.titleWrap}>
-        <span className={styles.eyebrow}>DEWA-PBJ</span>
+        <div className={styles.breadcrumb}>
+          <span className={styles.eyebrow}>DEWA-PBJ</span>
+          {breadcrumbGroup && (
+            <>
+              <ChevronRight size={11} className={styles.crumbSep} />
+              <span className={styles.crumbGroup}>{breadcrumbGroup}</span>
+            </>
+          )}
+        </div>
         <h1>{title}</h1>
       </div>
       <div className={styles.controlsRow}>
-        <div className={styles.syncRow}>
-          <span className={styles.syncItem}>
-            <span className={`${styles.dot} ${styles.ok}`} />
-            <span className={styles.syncLabel}>SPSE</span>
-            <span className={styles.mono}>{spseSync}</span>
-          </span>
-          <span className={styles.syncItem}>
-            <span className={`${styles.dot} ${styles.warn}`} />
-            <span className={styles.syncLabel}>SIRUP</span>
-            <span className={styles.mono}>{sirupSync}</span>
-          </span>
+        <button
+          type="button"
+          className={styles.searchBtn}
+          onClick={() => setPaletteOpen(true)}
+        >
+          <Search size={14} />
+          <span>Cari halaman…</span>
+          <kbd className={styles.kbd}>Ctrl K</kbd>
+        </button>
+
+        <div className={styles.syncWrap} ref={syncRef}>
+          <button
+            type="button"
+            className={styles.syncBadge}
+            onClick={() => setSyncOpen((v) => !v)}
+            aria-expanded={syncOpen}
+          >
+            <RadioTower size={13} />
+            <span>2 sumber tersinkron</span>
+          </button>
+          <AnimatePresence>
+            {syncOpen && (
+              <motion.div
+                className={styles.syncPopover}
+                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <div className={styles.syncItem}>
+                  <span className={`${styles.dot} ${styles.ok}`} />
+                  <span className={styles.syncLabel}>SPSE</span>
+                  <span className={styles.mono}>tersinkron {spseSync}</span>
+                </div>
+                <div className={styles.syncItem}>
+                  <span className={`${styles.dot} ${styles.warn}`} />
+                  <span className={styles.syncLabel}>SIRUP</span>
+                  <span className={styles.mono}>tersinkron {sirupSync}</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <ThemeToggle />
@@ -87,6 +140,8 @@ export function Topbar() {
           </form>
         </div>
       </div>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </header>
   );
 }
