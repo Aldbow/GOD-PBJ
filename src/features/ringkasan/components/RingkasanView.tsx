@@ -34,8 +34,26 @@ export function RingkasanView() {
   const [isCurationLoading, setIsCurationLoading] = useState(false);
   const [isCurationAutoRunning, setIsCurationAutoRunning] = useState(false);
   const [curationMessage, setCurationMessage] = useState<string | null>(null);
+  const [curationStats, setCurationStats] = useState<{ akurat: number; tidakAkurat: number; belum: number } | null>(null);
 
   const stopAutoCurationRef = useRef(false);
+
+  // Hitung ringkasan kurasi dari data nyata (tabel ai_kurasi_paket) — bukan angka dummy.
+  const fetchCurationStats = async () => {
+    const [akuratRes, tidakAkuratRes, totalRes] = await Promise.all([
+      supabase.from('ai_kurasi_paket').select('*', { count: 'exact', head: true }).eq('status_kurasi', 'Akurat'),
+      supabase.from('ai_kurasi_paket').select('*', { count: 'exact', head: true }).eq('status_kurasi', 'Tidak Akurat'),
+      supabase.from('view_dashboard_gabungan_satker').select('*', { count: 'exact', head: true }),
+    ]);
+
+    const akurat = akuratRes.count ?? 0;
+    const tidakAkurat = tidakAkuratRes.count ?? 0;
+    const total = totalRes.count ?? 0;
+    // "Belum Dikurasi" = seluruh paket yang belum punya keputusan Akurat/Tidak Akurat.
+    const belum = Math.max(total - akurat - tidakAkurat, 0);
+
+    setCurationStats({ akurat, tidakAkurat, belum });
+  };
 
   const handleRunCuration = async () => {
     setIsCurationLoading(true);
@@ -43,17 +61,22 @@ export function RingkasanView() {
     stopAutoCurationRef.current = false;
     setCurationMessage('Memulai kurasi otomatis...');
     let totalProcessedSoFar = 0;
+    let consecutiveRateLimits = 0;
+    const MAX_CONSECUTIVE_RATE_LIMITS = 3; // hentikan bila kuota (mis. harian) terus mentok
 
     while (!stopAutoCurationRef.current) {
       try {
         const res = await fetch('/api/kurasi', { method: 'POST' });
         const data = await res.json();
-        
+
         if (res.ok) {
-           const processed = data.total_processed || 0;
-           totalProcessedSoFar += processed;
-           
-           if (processed === 0) {
+           consecutiveRateLimits = 0;
+           // Gunakan updated_count (baris yang BENAR-BENAR tersimpan), bukan total_processed,
+           // agar loop berhenti bila tidak ada progres nyata (mencegah pengulangan tanpa henti).
+           const updated = data.updated_count ?? 0;
+           totalProcessedSoFar += updated;
+
+           if (updated === 0) {
               setCurationMessage(`Selesai! Tidak ada lagi data yang perlu dikurasi. (Total yang berhasil dikurasi: ${totalProcessedSoFar} paket)`);
               break;
            }
@@ -61,8 +84,14 @@ export function RingkasanView() {
            setCurationMessage(`Telah mengurasi ${totalProcessedSoFar} data. Menunggu 5 detik untuk permintaan berikutnya...`);
            await new Promise(resolve => setTimeout(resolve, 5000));
         } else if (res.status === 429) {
-           setCurationMessage(`Batas akses (Rate limit) API tercapai. Menunggu 30 detik sebelum melanjutkan...`);
-           await new Promise(resolve => setTimeout(resolve, 30000));
+           consecutiveRateLimits += 1;
+           if (consecutiveRateLimits >= MAX_CONSECUTIVE_RATE_LIMITS) {
+              setCurationMessage(`Kuota Gemini API terus tercapai (kemungkinan batas harian free tier habis). Kurasi dihentikan. Total berhasil: ${totalProcessedSoFar} paket. Coba lagi nanti atau aktifkan billing.`);
+              break;
+           }
+           const waitSec = Math.min(Math.max(Number(data.retryAfterSeconds) || 35, 5), 60);
+           setCurationMessage(`Batas akses (kuota) Gemini API tercapai. Menunggu ${waitSec} detik sebelum mencoba lagi (${consecutiveRateLimits}/${MAX_CONSECUTIVE_RATE_LIMITS})...`);
+           await new Promise(resolve => setTimeout(resolve, waitSec * 1000));
         } else {
            setCurationMessage(`Terjadi kesalahan: ${data.error}. Menghentikan kurasi otomatis.`);
            break;
@@ -75,6 +104,8 @@ export function RingkasanView() {
     
     setIsCurationLoading(false);
     setIsCurationAutoRunning(false);
+    // Segarkan ringkasan kurasi dengan angka terbaru setelah proses selesai/berhenti.
+    fetchCurationStats();
   };
 
   const handleStopCuration = () => {
@@ -133,7 +164,11 @@ export function RingkasanView() {
         setRisks(topRisks.slice(0, 5));
       }
     };
-    fetchRisks();
+    const loadInitial = async () => {
+      await fetchRisks();
+      await fetchCurationStats();
+    };
+    loadInitial();
   }, []);
 
   const exportColumns: any[] = [
@@ -196,9 +231,9 @@ export function RingkasanView() {
       </motion.div>
 
       {/* AI Curation Indicators */}
-      <SectionHeader 
-        title="Status Validasi / Kurasi AI" 
-        caption="Tingkat kepatuhan metode vs pagu (Data Dummy/Proyeksi)"
+      <SectionHeader
+        title="Status Validasi / Kurasi AI"
+        caption="Kepatuhan metode pemilihan terhadap pagu & jenis pengadaan"
         action={
           <div style={{ display: 'flex', gap: '8px' }}>
             {isCurationAutoRunning && (
@@ -238,21 +273,21 @@ export function RingkasanView() {
       <motion.div variants={itemVariants} className={styles.statGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: '24px' }}>
         <StatCard
           label="Total Data Akurat"
-          value="1,050"
+          value={curationStats ? curationStats.akurat.toLocaleString('id-ID') : '—'}
           unit=" pkt"
           tone="good"
           hint="✅ Sesuai aturan pengadaan"
         />
         <StatCard
           label="Data Tidak Akurat"
-          value="150"
+          value={curationStats ? curationStats.tidakAkurat.toLocaleString('id-ID') : '—'}
           unit=" pkt"
           tone="danger"
-          hint="❌ Menyalahi batas nilai/akun"
+          hint="❌ Menyalahi batas nilai/metode"
         />
         <StatCard
           label="Belum Dikurasi"
-          value="24"
+          value={curationStats ? curationStats.belum.toLocaleString('id-ID') : '—'}
           unit=" pkt"
           tone="warn"
           hint="Menunggu pemrosesan"

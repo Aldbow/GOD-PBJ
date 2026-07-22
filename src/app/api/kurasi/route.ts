@@ -12,17 +12,116 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || '',
 });
 
+// Model dibuat konfigurabel lewat env agar mudah diganti tanpa ubah kode bila ID model berubah.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+
+// Batch kecil (bukan 100) untuk menghindari respons JSON terpotong (truncation) yang membuat JSON.parse gagal.
+const BATCH_SIZE = 40;
+
 // Zod Schema for Structured Output
 const KurasiItemSchema = z.object({
   kd_rup: z.string(),
   status_kurasi: z.enum(['Akurat', 'Tidak Akurat', 'Belum Dikurasi']),
-  catatan_kurasi: z.string().describe('Alasan mengapa data tersebut akurat atau tidak akurat berdasarkan aturan batasan nilai, metode, dan kode akun.'),
+  catatan_kurasi: z.string().describe('Alasan mengapa data tersebut akurat atau tidak akurat berdasarkan kesesuaian pagu terhadap metode dan jenis pengadaan.'),
   rekomendasi_kurasi: z.string().describe('Saran perbaikan metode pemilihan atau tindakan lainnya jika data tidak akurat.'),
 });
 
 const KurasiResponseSchema = z.object({
   hasil: z.array(KurasiItemSchema),
 });
+
+type KurasiInput = {
+  kd_rup: string;
+  rup_name: string | null;
+  pagu: number | null;
+  metode_pengadaan: string | null;
+  jenis_pengadaan: string | null;
+  status_dikecualikan: boolean | null;
+  tipe: string | null;
+  nama_ppk: string | null;
+  satker: string | null;
+};
+
+// Ambil satu batch paket yang belum dikurasi dari sumber penyedia.
+async function fetchPenyediaBatch(limit: number): Promise<KurasiInput[]> {
+  const { data, error } = await supabase
+    .from('view_paket_penyedia_master_data')
+    .select('kd_rup, rup_name:nama_paket, pagu, metode_pengadaan, jenis_pengadaan, status_dikecualikan, tipe_paket, nama_ppk, satker:"SATUAN KERJA"')
+    .is('status_kurasi', null)
+    .limit(limit);
+
+  if (error) throw new Error(`Gagal mengambil data penyedia dari Supabase: ${error.message}`);
+
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  return rows.map((row) => ({
+    kd_rup: String(row.kd_rup),
+    rup_name: (row.rup_name as string | null) ?? null,
+    pagu: (row.pagu as number | null) ?? null,
+    metode_pengadaan: (row.metode_pengadaan as string | null) ?? null,
+    jenis_pengadaan: (row.jenis_pengadaan as string | null) ?? null,
+    status_dikecualikan: (row.status_dikecualikan as boolean | null) ?? null,
+    tipe: (row.tipe_paket as string | null) ?? null,
+    nama_ppk: (row.nama_ppk as string | null) ?? null,
+    satker: (row.satker as string | null) ?? null,
+  }));
+}
+
+// Ambil satu batch paket swakelola yang belum dikurasi.
+// Swakelola tidak punya kolom jenis_pengadaan/metode_pengadaan; metode diisi 'Swakelola'.
+async function fetchSwakelolaBatch(limit: number): Promise<KurasiInput[]> {
+  const { data, error } = await supabase
+    .from('view_paket_swakelola_master_data')
+    .select('kd_rup, rup_name:nama_paket, pagu, tipe_swakelola, nama_ppk, satker:"SATUAN KERJA"')
+    .is('status_kurasi', null)
+    .limit(limit);
+
+  if (error) throw new Error(`Gagal mengambil data swakelola dari Supabase: ${error.message}`);
+
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  return rows.map((row) => ({
+    kd_rup: String(row.kd_rup),
+    rup_name: (row.rup_name as string | null) ?? null,
+    pagu: (row.pagu as number | null) ?? null,
+    metode_pengadaan: 'Swakelola',
+    jenis_pengadaan: 'Swakelola',
+    status_dikecualikan: null,
+    tipe: row.tipe_swakelola ? String(row.tipe_swakelola) : null,
+    nama_ppk: (row.nama_ppk as string | null) ?? null,
+    satker: (row.satker as string | null) ?? null,
+  }));
+}
+
+const SYSTEM_INSTRUCTION = `Anda adalah AI Auditor Pengadaan yang memvalidasi akurasi METODE PEMILIHAN pada Rencana Umum Pengadaan (RUP).
+
+DATA YANG TERSEDIA untuk tiap paket: kd_rup, rup_name (nama paket), pagu (nilai anggaran dalam Rupiah), metode_pengadaan, jenis_pengadaan (Barang / Pekerjaan Konstruksi / Jasa Konsultansi / Jasa Lainnya / Swakelola), status_dikecualikan, dan tipe.
+
+PENTING — BATASAN DATA:
+- Data KODE AKUN / mata anggaran TIDAK tersedia. JANGAN menilai kesesuaian kode akun.
+- Fokus penilaian HANYA pada kesesuaian nilai pagu terhadap metode_pengadaan dan jenis_pengadaan.
+- Jika data tidak cukup untuk menilai (mis. jenis_pengadaan kosong/tidak jelas, atau butuh informasi yang tidak ada), tandai "Belum Dikurasi". JANGAN menebak.
+
+STATUS:
+- "Akurat": metode pemilihan sesuai dengan pagu dan jenis pengadaannya.
+- "Tidak Akurat": metode melanggar batas nilai untuk jenis pengadaannya.
+- "Belum Dikurasi": data tidak cukup untuk dinilai secara meyakinkan.
+
+ATURAN BATAS NILAI (Perpres 12/2021 dan perubahannya):
+- E-Purchasing: tidak dibatasi nilai (dipakai bila barang/jasa tersedia di e-katalog).
+- Pengadaan Langsung — Barang & Jasa Lainnya: pagu maksimal Rp200.000.000.
+- Pengadaan Langsung — Pekerjaan Konstruksi: pagu maksimal Rp400.000.000.
+- Pengadaan Langsung — Jasa Konsultansi: pagu maksimal Rp100.000.000.
+- Tender — Barang & Jasa Lainnya: pagu di atas Rp200.000.000.
+- Tender — Pekerjaan Konstruksi: pagu di atas Rp400.000.000.
+- Seleksi — Jasa Konsultansi: pagu di atas Rp100.000.000.
+- Tender Cepat: tidak dibatasi nilai.
+- Penunjukan Langsung: hanya untuk kondisi khusus (darurat/keadaan kahar, penyedia tunggal/monopoli, Inpres). Alasan tersebut TIDAK ada di data, jadi tandai "Belum Dikurasi" — jangan otomatis "Tidak Akurat".
+- Swakelola: tidak dinilai dari batas nilai penyedia. Tandai "Belum Dikurasi" kecuali ada indikasi pelanggaran yang jelas dari data.
+- Jika status_dikecualikan bernilai true: perlakukan sebagai pengadaan yang dikecualikan; umumnya "Akurat" selama pagu wajar.
+
+Untuk setiap paket berikan:
+- status_kurasi: salah satu dari nilai di atas.
+- catatan_kurasi: alasan singkat berbasis aturan (sebutkan pagu, metode, dan jenis bila relevan).
+- rekomendasi_kurasi: saran metode yang seharusnya bila "Tidak Akurat"; isi "-" bila "Akurat" atau "Belum Dikurasi".`;
 
 export async function POST() {
   try {
@@ -33,62 +132,34 @@ export async function POST() {
       );
     }
 
-    // 1. Ambil 100 data yang belum dikurasi dari view (agar otomatis membaca dari tabel terpisah)
-    const { data: paketList, error: fetchError } = await supabase
-      .from('view_paket_penyedia_master_data')
-      .select('kd_rup, rup_name:nama_paket, pagu, metode_pengadaan, nama_ppk, satker:"SATUAN KERJA"')
-      .is('status_kurasi', null)
-      .limit(100);
+    // 1. Ambil batch dari penyedia dulu; bila penyedia sudah habis, lanjut ke swakelola.
+    //    Dengan begini frontend cukup memanggil ulang endpoint ini sampai kedua sumber habis.
+    let source: 'penyedia' | 'swakelola' = 'penyedia';
+    let paketList = await fetchPenyediaBatch(BATCH_SIZE);
 
-    if (fetchError) {
-      throw new Error(`Gagal mengambil data dari Supabase: ${fetchError.message}`);
+    if (paketList.length === 0) {
+      source = 'swakelola';
+      paketList = await fetchSwakelolaBatch(BATCH_SIZE);
     }
 
-    if (!paketList || paketList.length === 0) {
-      return NextResponse.json({ message: 'Tidak ada data baru yang perlu dikurasi.' });
+    if (paketList.length === 0) {
+      return NextResponse.json({
+        message: 'Tidak ada data baru yang perlu dikurasi.',
+        total_processed: 0,
+        updated_count: 0,
+      });
     }
 
-    // 2. Siapkan Prompt Sistem beserta Aturan Validasi
-    const systemInstruction = `Anda adalah AI Auditor Pengadaan yang bertugas memvalidasi dan memverifikasi akurasi Rencana Umum Pengadaan (RUP).
-Tujuan: Memastikan setiap baris entri pengadaan mematuhi standar Kode Akun, Cara Pengadaan, Metode Pemilihan, dan Batasan Nilai sesuai pedoman.
-Lakukan pengecekan silang (cross-check) pada setiap data RUP menggunakan tiga parameter utama berikut. Jika data tidak sesuai dengan aturan di bawah ini, tandai sebagai "Tidak Akurat" dan berikan rekomendasi perbaikan. Jika sesuai tandai "Akurat".
-
-ATURAN:
-1. Validasi Batasan Nilai dan Metode Pemilihan:
-- E-Purchasing: Tidak dibatasi nilai (Barang, Konstruksi, Jasa Konsultansi, Jasa Lainnya). Wajib jika ada di e-katalog.
-- Pengadaan Langsung (Barang & Jasa Lainnya): Maks Rp200 juta. (Jika >= Rp50 juta wajib lewat SPSE transaksional).
-- Pengadaan Langsung (Pekerjaan Konstruksi): Maks Rp400 juta. (Jika >= Rp50 juta wajib lewat SPSE transaksional).
-- Pengadaan Langsung (Jasa Konsultansi): Maks Rp100 juta. (Wajib lewat SPSE transaksional).
-- Tender (Barang & Jasa Lainnya): > Rp200 juta.
-- Tender (Pekerjaan Konstruksi): > Rp400 juta.
-- Seleksi (Jasa Konsultansi): > Rp100 juta.
-- Tender Cepat: Tidak dibatasi nilai.
-- Penunjukan Langsung: Darurat/Keadaan Kahar, Monopoli (1 penyedia), Inpres.
-
-2. Validasi Kesesuaian Kode Akun dan Cara Pengadaan (Jika field kode akun tersedia):
-- Pengadaan Langsung/E-Purchasing: Wajib pada akun 521111, 521113, 521119, 521211, 521219, 521234, 521252, 521811, 521832, 523112, 523123, 526112, 526312.
-- Dikecualikan: Hanya untuk 521114, 522111, 522112, 522113, 522119, 522121.
-- Pengadaan Langsung/E-Purchasing/Tender: 522141, 522191, berbagai jenis Pemeliharaan (523111, dst), Belanja Modal (532111, dst).
-- Pengadaan Langsung/Seleksi: Jasa Konsultan (522131) dan Perencanaan/Pengawasan Gedung (533115).
-- Non Pengadaan: Honor (521115, 521213), Penghargaan (521231), Jasa Profesi (522151), Perjalanan Dinas (524111, dst).
-- Paket Meeting (524114 & 524119): Komponen hotel=Penyedia, transport/uang harian=Non Pengadaan.
-
-3. Aturan Khusus:
-- Swakelola (526123, 533113): Wajib punya SK.
-- Belanja Asuransi Gedung (523113): Wajib Penunjukan Langsung.
-- Belanja Modal Sertifikat Tanah (531114): Wajib Pengadaan Langsung.`;
-
-    // 3. Panggil Gemini API
+    // 2. Panggil Gemini API
     const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: GEMINI_MODEL,
       contents: [
-        { role: 'user', parts: [{ text: `Berikut adalah ${paketList.length} baris data JSON pengadaan yang harus Anda audit:\n${JSON.stringify(paketList)}` }] }
+        { role: 'user', parts: [{ text: `Berikut adalah ${paketList.length} baris data JSON pengadaan (sumber: ${source}) yang harus Anda audit:\n${JSON.stringify(paketList)}` }] }
       ],
       config: {
-        systemInstruction: systemInstruction,
+        systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.1, // Rendah agar konsisten dengan aturan
         responseMimeType: "application/json",
-        // Using Type.OBJECT mapped from zod
         responseSchema: {
           type: "OBJECT",
           properties: {
@@ -115,16 +186,21 @@ ATURAN:
       throw new Error('Gemini API mengembalikan respons kosong.');
     }
 
-    // Parse hasil JSON dari Gemini
-    const aiResult = JSON.parse(response.text) as z.infer<typeof KurasiResponseSchema>;
+    // 3. Parse hasil JSON dari Gemini dengan penanganan error khusus (mis. respons terpotong).
+    let aiResult: z.infer<typeof KurasiResponseSchema>;
+    try {
+      aiResult = KurasiResponseSchema.parse(JSON.parse(response.text));
+    } catch (parseErr) {
+      const detail = parseErr instanceof Error ? parseErr.message : String(parseErr);
+      throw new Error(`Gagal memproses respons AI (kemungkinan JSON terpotong). Coba kurangi BATCH_SIZE. Detail: ${detail}`);
+    }
 
-    // 4. Update data ke Supabase secara bulk/iterasi
+    // 4. Update data ke Supabase (upsert paralel per item).
     let successCount = 0;
-    const errors: any[] = [];
+    const errors: { kd_rup: string; error: string }[] = [];
 
-    // Kita lakukan upsert satu per satu secara paralel dengan Promise.all
     await Promise.all(aiResult.hasil.map(async (item) => {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('ai_kurasi_paket')
         .upsert({
           kd_rup: item.kd_rup,
@@ -141,17 +217,65 @@ ATURAN:
       }
     }));
 
-    return NextResponse.json({ 
-      message: `Berhasil mengurasi ${successCount} data.`,
+    // Bila AI mengembalikan hasil tapi TIDAK ada satu pun baris yang berhasil disimpan,
+    // hentikan loop dengan error agar tidak memproses ulang batch yang sama tanpa henti.
+    if (aiResult.hasil.length > 0 && successCount === 0) {
+      return NextResponse.json(
+        {
+          error: 'Gagal menyimpan hasil kurasi ke database. Loop dihentikan untuk mencegah pengulangan tanpa henti.',
+          details: errors,
+          total_processed: aiResult.hasil.length,
+          updated_count: 0,
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      message: `Berhasil mengurasi ${successCount} data (sumber: ${source}).`,
+      source,
       errors: errors.length > 0 ? errors : undefined,
-      total_processed: aiResult.hasil.length
+      total_processed: aiResult.hasil.length,
+      updated_count: successCount,
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error saat melakukan kurasi AI:', error);
+    const detail = error instanceof Error ? error.message : String(error);
+
+    // Deteksi rate limit / kuota Gemini (RESOURCE_EXHAUSTED) dan teruskan sebagai HTTP 429,
+    // agar frontend menjalankan logika tunggu-lalu-lanjut, bukan berhenti total.
+    if (isRateLimitError(error)) {
+      return NextResponse.json(
+        {
+          error: 'Batas akses/kuota Gemini API tercapai (429).',
+          retryAfterSeconds: extractRetryAfterSeconds(detail),
+          details: detail,
+        },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(
-      { error: 'Terjadi kesalahan sistem', details: error.message },
+      { error: 'Terjadi kesalahan sistem', details: detail },
       { status: 500 }
     );
   }
+}
+
+// Cek apakah error dari Gemini adalah 429 / RESOURCE_EXHAUSTED.
+function isRateLimitError(error: unknown): boolean {
+  if (typeof error === 'object' && error !== null) {
+    const status = (error as { status?: number }).status;
+    if (status === 429) return true;
+  }
+  const msg = error instanceof Error ? error.message : String(error);
+  return msg.includes('RESOURCE_EXHAUSTED') || msg.includes('"code":429') || msg.includes('exceeded your current quota');
+}
+
+// Ambil saran jeda retry (detik) dari pesan error Gemini, mis. "retryDelay":"34s".
+function extractRetryAfterSeconds(message: string): number {
+  const match = message.match(/"retryDelay":"(\d+)(?:\.\d+)?s"/);
+  const parsed = match ? parseInt(match[1], 10) : NaN;
+  return Number.isFinite(parsed) ? parsed : 35;
 }
