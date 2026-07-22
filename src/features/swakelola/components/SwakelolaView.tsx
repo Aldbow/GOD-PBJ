@@ -214,7 +214,7 @@ export function SwakelolaView() {
           </div>
         ),
       },
-      { key: 'satker', label: 'Satker', render: (p) => <span className={styles.mutedCell}>{p.satker || '-'}</span> },
+      { key: 'satker', label: 'Satker', render: (p) => <span className={styles.satkerCell}>{p.satker || '-'}</span> },
       { key: 'ppk', label: 'PPK', render: (p) => <span className={styles.mutedCell}>{p.nama_ppk || '-'}</span> },
       {
         key: 'tipe',

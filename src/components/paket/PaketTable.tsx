@@ -10,7 +10,18 @@ export interface PaketColumn<T> {
   label: string;
   align?: 'left' | 'right' | 'center';
   sortAccessor?: (row: T) => number | string;
+  /** Set to false to make this column non-sortable. Defaults to sortable. */
+  sortable?: boolean;
   render: (row: T) => React.ReactNode;
+}
+
+/** Recursively extract plain text from a rendered ReactNode for sorting. */
+function extractText(node: React.ReactNode): string {
+  if (node === null || node === undefined || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join(' ');
+  if (React.isValidElement(node)) return extractText((node.props as { children?: React.ReactNode }).children);
+  return '';
 }
 
 interface PaketTableProps<T> {
@@ -43,22 +54,26 @@ export function PaketTable<T>({
   }, [rows]);
 
   const sortColumn = columns.find((c) => c.key === sortKey);
+  const isSortable = (col: PaketColumn<T>) => col.sortable !== false;
 
   const sortedRows = useMemo(() => {
-    if (!sortColumn?.sortAccessor) return rows;
-    const accessor = sortColumn.sortAccessor;
-    const copy = [...rows];
-    copy.sort((a, b) => {
-      const va = accessor(a);
-      const vb = accessor(b);
+    if (!sortColumn || !isSortable(sortColumn)) return rows;
+    const accessor = sortColumn.sortAccessor ?? ((row: T) => extractText(sortColumn.render(row)));
+    // Precompute sort values once per row to avoid re-rendering on every comparison.
+    const decorated = rows.map((row) => ({ row, value: accessor(row) }));
+    decorated.sort((a, b) => {
+      const va = a.value;
+      const vb = b.value;
       if (typeof va === 'number' && typeof vb === 'number') {
         return sortDir === 'asc' ? va - vb : vb - va;
       }
       const sa = String(va);
       const sb = String(vb);
-      return sortDir === 'asc' ? sa.localeCompare(sb, 'id') : sb.localeCompare(sa, 'id');
+      return sortDir === 'asc'
+        ? sa.localeCompare(sb, 'id', { sensitivity: 'base', numeric: true })
+        : sb.localeCompare(sa, 'id', { sensitivity: 'base', numeric: true });
     });
-    return copy;
+    return decorated.map((d) => d.row);
   }, [rows, sortColumn, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
@@ -67,7 +82,7 @@ export function PaketTable<T>({
   const pageRows = sortedRows.slice(startIndex, startIndex + pageSize);
 
   const handleSort = (col: PaketColumn<T>) => {
-    if (!col.sortAccessor) return;
+    if (!isSortable(col)) return;
     if (sortKey === col.key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -85,12 +100,12 @@ export function PaketTable<T>({
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`${styles.th} ${col.align === 'right' ? styles.alignRight : col.align === 'center' ? styles.alignCenter : ''} ${col.sortAccessor ? styles.sortable : ''}`}
+                  className={`${styles.th} ${col.align === 'right' ? styles.alignRight : col.align === 'center' ? styles.alignCenter : ''} ${isSortable(col) ? styles.sortable : ''}`}
                   onClick={() => handleSort(col)}
                 >
                   <span className={styles.thInner}>
                     {col.label}
-                    {col.sortAccessor && sortKey === col.key && (
+                    {isSortable(col) && sortKey === col.key && (
                       sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
                     )}
                   </span>

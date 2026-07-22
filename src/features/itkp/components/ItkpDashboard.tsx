@@ -225,24 +225,48 @@ export function ItkpDashboard() {
       </div>
 
       {/* Indikator A-D */}
-      <div className={styles.indicatorRow}>
-        <IndicatorCard label="A. Pemanfaatan Sistem" score={totalA} max={30} bobot={30} href={detailHref} />
-        <IndicatorCard label="B. Kompetensi SDM PBJ" score={resultBCD.nilaiB} max={30} bobot={30} />
-        <IndicatorCard label="C. Kematangan UKPBJ" score={resultBCD.nilaiC} max={30} bobot={30} />
-        <IndicatorCard label="D. Integritas Pengadaan" score={resultBCD.nilaiD} max={10} bobot={10} />
-      </div>
+      <section className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <div className={styles.panelHeading}>
+            <span className={styles.panelIcon}>
+              <LayoutGrid size={15} />
+            </span>
+            <div>
+              <h3 className={styles.panelTitle}>Komponen Penilaian ITKP</h3>
+              <p className={styles.panelSub}>Empat komponen pembentuk skor akhir</p>
+            </div>
+          </div>
+          <span className={styles.panelBadge}>4 komponen</span>
+        </div>
+        <div className={styles.indicatorRow}>
+          <IndicatorCard label="A. Pemanfaatan Sistem" score={totalA} max={30} bobot={30} href={detailHref} />
+          <IndicatorCard label="B. Kompetensi SDM PBJ" score={resultBCD.nilaiB} max={30} bobot={30} />
+          <IndicatorCard label="C. Kematangan UKPBJ" score={resultBCD.nilaiC} max={30} bobot={30} />
+          <IndicatorCard label="D. Integritas Pengadaan" score={resultBCD.nilaiD} max={10} bobot={10} />
+        </div>
+      </section>
 
       {/* Indikator Pemanfaatan Sistem — A1-A7 */}
-      <div className={styles.sectionHeader}>
-        <LayoutGrid size={16} />
-        <h3 className={styles.sectionTitle}>Indikator Pemanfaatan Sistem Pengadaan</h3>
-      </div>
-      <div className={styles.aGrid}>
-        {resultA?.rows.map((row, i) => (
-          <SubIndicatorCard key={row.key} index={i + 1} row={row} />
-        ))}
-        <RingkasanACard totalA={totalA} rows={resultA?.rows ?? []} href={detailHref} />
-      </div>
+      <section className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <div className={styles.panelHeading}>
+            <span className={styles.panelIcon}>
+              <LayoutGrid size={15} />
+            </span>
+            <div>
+              <h3 className={styles.panelTitle}>Indikator Pemanfaatan Sistem Pengadaan</h3>
+              <p className={styles.panelSub}>Rincian sub-indikator A1–A7 komponen A</p>
+            </div>
+          </div>
+          <span className={styles.panelBadge}>Bobot 30%</span>
+        </div>
+        <div className={styles.aGrid}>
+          {resultA?.rows.map((row, i) => (
+            <SubIndicatorCard key={row.key} index={i + 1} row={row} />
+          ))}
+          <RingkasanACard totalA={totalA} rows={resultA?.rows ?? []} href={detailHref} />
+        </div>
+      </section>
 
       {/* Prioritas Perbaikan */}
       {priorityItems.length > 0 && (
