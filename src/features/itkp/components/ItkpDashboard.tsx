@@ -2,9 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { RefreshCw, CalendarDays, Clock3, Landmark, ArrowRight } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+import { RefreshCw, CalendarDays, Clock3, Landmark } from 'lucide-react';
 import { StatCard, type StatTone } from '@/components/ui/StatCard';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorBox } from '@/components/ui/ErrorBox';
@@ -31,17 +29,6 @@ function scoreHint(value: number, max: number) {
   return <Badge variant={p.tone === 'good' ? 'rendah' : p.tone === 'warn' ? 'sedang' : 'tinggi'}>{p.label}</Badge>;
 }
 
-function totalRealisasiKementerian(input: ItkpAInput): number {
-  return (
-    input.realisasiETendering +
-    input.realisasiEPurchasing +
-    input.realisasiPLTransaksional +
-    input.realisasiPnLTransaksional +
-    input.pencatatanNonTender +
-    input.pencatatanSwakelola
-  );
-}
-
 interface BCDSummary {
   nilaiB: number;
   nilaiC: number;
@@ -52,7 +39,6 @@ interface BCDSummary {
 export function ItkpDashboard() {
   const [units, setUnits] = useState<ItkpAUnit[]>([]);
   const [kementerian, setKementerian] = useState<ItkpAInput | null>(null);
-  const [unidentified, setUnidentified] = useState<{ value: number; rows: number }>({ value: 0, rows: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -65,7 +51,6 @@ export function ItkpDashboard() {
       const result = await fetchItkpAData();
       setUnits(result.units);
       setKementerian(result.kementerian);
-      setUnidentified({ value: result.unidentifiedValue, rows: result.unidentifiedRows });
       setLastUpdate(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal memuat data ITKP dari Supabase.');
@@ -79,19 +64,6 @@ export function ItkpDashboard() {
   }, []);
 
   const unitOptions = useMemo(() => units.map((u) => u.name), [units]);
-
-  const unitRows = useMemo(
-    () => units.map((u) => ({ name: u.name, result: computeItkpA(u.input) })),
-    [units]
-  );
-
-  const averagesRow = useMemo(() => {
-    if (unitRows.length === 0) return null;
-    const n = unitRows.length;
-    const avgAt = (i: number) => unitRows.reduce((s, u) => s + u.result.rows[i].skor, 0) / n;
-    const avgTotal = unitRows.reduce((s, u) => s + u.result.total, 0) / n;
-    return { perComponent: unitRows[0].result.rows.map((_, i) => avgAt(i)), total: avgTotal };
-  }, [unitRows]);
 
   const currentAInput = useMemo<ItkpAInput | null>(() => {
     if (!selectedUnit) return kementerian;
@@ -153,19 +125,6 @@ export function ItkpDashboard() {
 
       {error && <ErrorBox className={styles.sectionSpacer}>{error}</ErrorBox>}
 
-      <div className={styles.dummyBanner}>
-        Indikator <strong>A</strong> memakai data live dari Supabase. Indikator <strong>B, C, D</strong> masih memakai{' '}
-        <strong>data contoh (dummy)</strong> — belum tersambung ke sumber data resmi.
-        {unidentified.rows > 0 && kementerian && (
-          <>
-            {' '}
-            Sekitar {fmtDec((unidentified.value / totalRealisasiKementerian(kementerian)) * 100)}% nilai realisasi tidak
-            dapat diatribusikan ke satker tertentu ({unidentified.rows} baris) — tetap dihitung di Total Kementerian, tapi
-            tidak muncul di breakdown per satker.
-          </>
-        )}
-      </div>
-
       <div className={styles.filterRow}>
         <span className={styles.filterLabel}>Tampilkan untuk:</span>
         <SearchableSelect
@@ -215,96 +174,6 @@ export function ItkpDashboard() {
           hint={scoreHint(resultBCD.nilaiD, 10)}
         />
       </div>
-
-      <div className={styles.bobotBar}>
-        <strong>Keterangan Bobot:</strong> A. Pemanfaatan Sistem (30) | B. Kualifikasi &amp; Kompetensi SDM PBJ (30) | C.
-        Tingkat Kematangan UKPBJ (30) | D. Integritas Pengadaan (10) — Total Bobot: 100
-      </div>
-
-      <div className={styles.sectionHead}>
-        <h3 className={styles.sectionTitle}>Nilai Indikator A (Pemanfaatan Sistem) per Satker</h3>
-        <span className={styles.sectionCaption}>Bobot 30 — klik baris untuk melihat rincian satker tersebut di atas</span>
-      </div>
-
-      {loading ? (
-        <div className={styles.loadingBox}>Memuat data dari Supabase...</div>
-      ) : (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th className={styles.th}>No.</th>
-                <th className={`${styles.th} ${styles.thSatker}`}>Satker</th>
-                {unitRows[0]?.result.rows.map((row, i) => (
-                  <th key={row.key} className={`${styles.th} ${styles.thNum}`}>
-                    A{i + 1}
-                    <span className={styles.thSub}>{row.label}</span>
-                    <span className={styles.thSub}>(Maks. {fmtDec(row.skorMax, 1)})</span>
-                  </th>
-                ))}
-                <th className={`${styles.th} ${styles.thNum}`}>Total A (Maks. 30)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {unitRows.map((u, idx) => (
-                <tr
-                  key={u.name}
-                  className={`${styles.rowClickable} ${selectedUnit === u.name ? styles.rowActive : ''}`}
-                  onClick={() => setSelectedUnit(u.name === selectedUnit ? '' : u.name)}
-                >
-                  <td className={styles.td}>{idx + 1}</td>
-                  <td className={`${styles.td} ${styles.tdSatker}`}>{u.name}</td>
-                  {u.result.rows.map((row) => (
-                    <td key={row.key} className={`${styles.td} ${styles.tdNum}`}>
-                      {fmtDec(row.skor, 1)}
-                    </td>
-                  ))}
-                  <td className={`${styles.td} ${styles.tdNum} ${styles.tdTotal}`}>{fmtDec(u.result.total, 1)}</td>
-                </tr>
-              ))}
-            </tbody>
-            {averagesRow && (
-              <tfoot>
-                <tr className={styles.rowAverage}>
-                  <td className={styles.td} colSpan={2}>
-                    Rata-rata
-                  </td>
-                  {averagesRow.perComponent.map((v, i) => (
-                    <td key={i} className={`${styles.td} ${styles.tdNum}`}>
-                      {fmtDec(v, 1)}
-                    </td>
-                  ))}
-                  <td className={`${styles.td} ${styles.tdNum} ${styles.tdTotal}`}>{fmtDec(averagesRow.total, 1)}</td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
-      )}
-
-      <p className={styles.footnote}>
-        Nilai Indikator A menggunakan 7 komponen dengan total bobot 30 sesuai Kepka LKPP Nomor 74 Tahun 2026. Satker
-        dipetakan dari 44 unit <code>data_afirmasi_pdn_perencanaan</code>, dijembatani ke satker realisasi lewat{' '}
-        <code>master_data.KPA</code>.
-      </p>
-
-      {resultA && (
-        <Card style={{ padding: '16px 20px', marginTop: 20 }} className={styles.detailLinkCard}>
-          <div>
-            <p className={styles.detailLinkTitle}>Rincian per komponen — {selectedUnit || KEMENTERIAN_LABEL}</p>
-            <p className={styles.detailLinkCaption}>
-              Lihat rumus, persentase, dan status tiap komponen A1–A7 (termasuk komponen yang tidak berlaku untuk
-              cakupan ini) di halaman detail.
-            </p>
-          </div>
-          <Link
-            href={`/itkp/pemanfaatan-sistem${selectedUnit ? `?satker=${encodeURIComponent(selectedUnit)}` : ''}`}
-            className={styles.detailLinkBtn}
-          >
-            Lihat Detail Pemanfaatan Sistem <ArrowRight size={15} />
-          </Link>
-        </Card>
-      )}
     </motion.div>
   );
 }
