@@ -26,10 +26,13 @@ export function anomaliOf(row: AnomaliRow): AnomaliJenis[] {
   const jenis: AnomaliJenis[] = [];
 
   // Realisasi tanpa RUP terumumkan. Hanya dinilai bila flag tersedia (false eksplisit).
-  if (total > 0 && row.is_from_sirup === false) jenis.push('tanpa_rup');
+  const tanpaRup = total > 0 && row.is_from_sirup === false;
+  if (tanpaRup) jenis.push('tanpa_rup');
 
-  // Realisasi melampaui pagu (termasuk pagu = 0 dengan realisasi > 0).
-  if (total > 0 && total > pagu) jenis.push('lebih_pagu');
+  // Realisasi melampaui pagu terencana. Hanya untuk paket yang PUNYA RUP terumumkan
+  // (pagu terkunci ke masterdata). Paket tanpa RUP berpagu 0 → cukup ditandai
+  // 'tanpa_rup' saja, jangan dobel-flag sebagai 'lebih_pagu'.
+  if (!tanpaRup && total > 0 && total > pagu) jenis.push('lebih_pagu');
 
   return jenis;
 }

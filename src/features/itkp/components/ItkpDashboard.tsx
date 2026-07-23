@@ -1,73 +1,50 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   RefreshCw,
   CalendarDays,
   Clock3,
-  Landmark,
   Info,
   TriangleAlert,
   ArrowRight,
-  LayoutGrid,
+  ArrowUpRight,
+  BookOpen,
+  MonitorSmartphone,
+  Users,
+  Building2,
+  ShieldCheck,
+  Minus,
 } from 'lucide-react';
 import Link from 'next/link';
-import { Badge, type BadgeVariant } from '@/components/ui/Badge';
+import { Badge } from '@/components/ui/Badge';
 import { ErrorBox } from '@/components/ui/ErrorBox';
 import { SearchableSelect } from '@/components/paket/SearchableSelect';
-import { computeItkpA, type ItkpAInput, type ItkpAResult, type ItkpARowResult } from '@/lib/itkp/calcA';
-import { computeItkpBCD } from '@/lib/itkp/calcBCD';
+import { computeItkpA, type ItkpAInput, type ItkpAResult } from '@/lib/itkp/calcA';
+import { computeItkpBCD, type ItkpBCDResult } from '@/lib/itkp/calcBCD';
 import { getDummyBCDForUnit } from '@/lib/itkp/dummyBCD';
 import { fetchItkpAData, type ItkpAUnit } from '@/lib/itkp/fetchA';
-import { fmtDec } from '@/lib/format';
+import { fmtDec, fmtPct } from '@/lib/format';
+import {
+  buildComponents,
+  predikatOf,
+  PREDIKAT_BANDS,
+  type ComponentCode,
+  type ItkpComponentModel,
+  type ItkpIndicatorModel,
+} from '@/lib/itkp/itkpModel';
 import styles from './ItkpDashboard.module.css';
 
 const KEMENTERIAN_LABEL = 'Kementerian (Total)';
 const TAHUN = 2026;
 
-type PredikatLevel = 'istimewa' | 'sangat_baik' | 'baik' | 'cukup_baik' | 'kurang';
-
-const PREDIKAT_BANDS: { level: PredikatLevel; label: string; min: number; max: number; rangeLabel: string }[] = [
-  { level: 'kurang', label: 'Kurang', min: 0, max: 35, rangeLabel: '< 35' },
-  { level: 'cukup_baik', label: 'Cukup Baik', min: 35, max: 50, rangeLabel: '35 ≤ skor < 50' },
-  { level: 'baik', label: 'Baik', min: 50, max: 65, rangeLabel: '50 ≤ skor < 65' },
-  { level: 'sangat_baik', label: 'Sangat Baik', min: 65, max: 80, rangeLabel: '65 ≤ skor < 80' },
-  { level: 'istimewa', label: 'Istimewa', min: 80, max: 100, rangeLabel: '≥ 80' },
-];
-
-function predikat(score: number): { label: string; level: PredikatLevel; rangeLabel: string } {
-  for (let i = PREDIKAT_BANDS.length - 1; i >= 0; i--) {
-    if (score >= PREDIKAT_BANDS[i].min) return PREDIKAT_BANDS[i];
-  }
-  return PREDIKAT_BANDS[0];
-}
-
-function nextPredikatLabel(level: PredikatLevel): string | null {
-  const idx = PREDIKAT_BANDS.findIndex((b) => b.level === level);
-  if (idx < 0 || idx === PREDIKAT_BANDS.length - 1) return null;
-  return PREDIKAT_BANDS[idx + 1].label;
-}
-
-interface StatusInfo {
-  label: string;
-  variant: BadgeVariant;
-}
-
-function statusForRatio(ratio: number, applicable: boolean): StatusInfo {
-  if (!applicable) return { label: 'Belum ada capaian', variant: 'default' };
-  if (ratio >= 1) return { label: 'Tercapai', variant: 'rendah' };
-  if (ratio >= 0.6) return { label: 'Baik', variant: 'rendah' };
-  if (ratio >= 0.3) return { label: 'Perlu perhatian', variant: 'sedang' };
-  return { label: 'Sangat rendah', variant: 'tinggi' };
-}
-
-interface BCDSummary {
-  nilaiB: number;
-  nilaiC: number;
-  nilaiD: number;
-  total: number;
-}
+const COMP_ICON: Record<ComponentCode, React.ReactNode> = {
+  A: <MonitorSmartphone size={18} />,
+  B: <Users size={18} />,
+  C: <Building2 size={18} />,
+  D: <ShieldCheck size={18} />,
+};
 
 export function ItkpDashboard() {
   const [units, setUnits] = useState<ItkpAUnit[]>([]);
@@ -76,6 +53,9 @@ export function ItkpDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [selectedUnit, setSelectedUnit] = useState<string>('');
+  const [activeCode, setActiveCode] = useState<ComponentCode>('A');
+  const [pedomanOpen, setPedomanOpen] = useState(false);
+  const rincianRef = useRef<HTMLElement | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -108,283 +88,392 @@ export function ItkpDashboard() {
     [currentAInput]
   );
 
-  const resultBCD: BCDSummary = useMemo(() => {
-    if (selectedUnit) {
-      const full = computeItkpBCD(getDummyBCDForUnit(selectedUnit));
-      return { nilaiB: full.nilaiB, nilaiC: full.nilaiC, nilaiD: full.nilaiD, total: full.total };
-    }
-    if (units.length === 0) return { nilaiB: 0, nilaiC: 0, nilaiD: 0, total: 0 };
+  // Rincian B/C/D hanya bermakna per unit (kondisi kualitatif tak dapat dirata-rata).
+  const bcdFull = useMemo<ItkpBCDResult | null>(
+    () => (selectedUnit ? computeItkpBCD(getDummyBCDForUnit(selectedUnit)) : null),
+    [selectedUnit]
+  );
+
+  const bcdAgg = useMemo(() => {
+    if (bcdFull) return { nilaiB: bcdFull.nilaiB, nilaiC: bcdFull.nilaiC, nilaiD: bcdFull.nilaiD };
+    if (units.length === 0) return { nilaiB: 0, nilaiC: 0, nilaiD: 0 };
     const perUnit = units.map((u) => computeItkpBCD(getDummyBCDForUnit(u.name)));
     const avg = (arr: number[]) => Math.round((arr.reduce((s, v) => s + v, 0) / arr.length) * 10) / 10;
-    const nilaiB = avg(perUnit.map((r) => r.nilaiB));
-    const nilaiC = avg(perUnit.map((r) => r.nilaiC));
-    const nilaiD = avg(perUnit.map((r) => r.nilaiD));
-    return { nilaiB, nilaiC, nilaiD, total: Math.round((nilaiB + nilaiC + nilaiD) * 10) / 10 };
-  }, [selectedUnit, units]);
+    return {
+      nilaiB: avg(perUnit.map((r) => r.nilaiB)),
+      nilaiC: avg(perUnit.map((r) => r.nilaiC)),
+      nilaiD: avg(perUnit.map((r) => r.nilaiD)),
+    };
+  }, [bcdFull, units]);
 
   const totalA = resultA?.total ?? 0;
-  const totalItkp = totalA + resultBCD.total;
-  const currentPredikat = predikat(totalItkp);
-  const nextLabel = nextPredikatLabel(currentPredikat.level);
+  const totalItkp = totalA + bcdAgg.nilaiB + bcdAgg.nilaiC + bcdAgg.nilaiD;
+  const currentPredikat = predikatOf(totalItkp);
 
   const detailHref = `/itkp/pemanfaatan-sistem${selectedUnit ? `?satker=${encodeURIComponent(selectedUnit)}` : ''}`;
+
+  const components = useMemo(
+    () =>
+      buildComponents({
+        resultA,
+        totalA,
+        nilaiB: bcdAgg.nilaiB,
+        nilaiC: bcdAgg.nilaiC,
+        nilaiD: bcdAgg.nilaiD,
+        bcdRows: bcdFull,
+        detailHrefA: detailHref,
+      }),
+    [resultA, totalA, bcdAgg, bcdFull, detailHref]
+  );
+
+  const activeComp = components.find((c) => c.code === activeCode) ?? components[0];
+
+  const selectComponent = (code: ComponentCode) => {
+    setActiveCode(code);
+    setPedomanOpen(false);
+    // Scroll halus ke rincian tanpa reload halaman.
+    window.requestAnimationFrame(() => {
+      rincianRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
   const updatedLabel = lastUpdate
     ? `${lastUpdate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}, ${lastUpdate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`
     : 'Memuat...';
 
+  const markerPos = Math.max(0, Math.min(100, totalItkp));
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
-      <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <div className={styles.headerIcon}>
-            <Landmark size={22} />
-          </div>
-          <div>
-            <h2 className={styles.headerTitle}>Dashboard Penilaian ITKP</h2>
-            <p className={styles.headerSub}>Kementerian Ketenagakerjaan</p>
-          </div>
-        </div>
+      {/* ── Judul ── */}
+      <div className={styles.pageHead}>
+        <span className={styles.crumb}>ITKP · Monitoring &amp; Evaluasi</span>
+        <h1 className={styles.pageTitle}>Dashboard Penilaian ITKP</h1>
       </div>
 
       {error && <ErrorBox className={styles.sectionSpacer}>{error}</ErrorBox>}
 
-      <div className={styles.toolbar}>
-        <div className={styles.toolbarFilter}>
-          <span className={styles.toolbarLabel}>Unit Penilaian</span>
-          <SearchableSelect
-            value={selectedUnit}
-            onChange={setSelectedUnit}
-            options={unitOptions}
-            placeholder={KEMENTERIAN_LABEL}
-            ariaLabel="Pilih satker"
-            className={styles.toolbarSelect}
-          />
-          <span className={styles.toolbarYearPill}>
-            <CalendarDays size={13} />
-            Tahun {TAHUN}
-          </span>
+      {/* ── Filter ── */}
+      <div className={styles.filterBar}>
+        <div className={styles.filterFields}>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>Tahun Penilaian</label>
+            <div className={styles.yearField}>
+              <CalendarDays size={15} className={styles.fieldIcon} />
+              <span>{TAHUN}</span>
+            </div>
+          </div>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} id="unitLabel">
+              Unit Penilaian
+            </label>
+            <SearchableSelect
+              value={selectedUnit}
+              onChange={setSelectedUnit}
+              options={unitOptions}
+              placeholder={KEMENTERIAN_LABEL}
+              ariaLabel="Pilih unit penilaian"
+              className={styles.unitSelect}
+            />
+          </div>
         </div>
-        <div className={styles.toolbarMeta}>
-          <span className={styles.toolbarUpdated}>
+        <div className={styles.updatedWrap}>
+          <span className={styles.updated}>
             <Clock3 size={13} />
             Data terakhir diperbarui {updatedLabel}
           </span>
-          <button type="button" className={styles.refreshBtn} onClick={load} disabled={loading} aria-label="Muat ulang data">
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            onClick={load}
+            disabled={loading}
+            aria-label="Muat ulang data"
+          >
             <RefreshCw size={16} className={loading ? styles.spinning : ''} />
           </button>
         </div>
       </div>
 
-      {/* Skor ITKP — hero */}
-      <div className={styles.heroCard}>
-        <div className={styles.heroTop}>
-          <span className={styles.heroLabel}>SKOR ITKP {TAHUN}</span>
-          <div className={styles.heroValueRow}>
-            <span className={styles.heroValue}>{fmtDec(totalItkp, 2)}</span>
-            <span className={`${styles.heroPredikatPill} ${styles[`predikat_${currentPredikat.level}`]}`}>
+      {/* ── Ringkasan Skor ITKP ── */}
+      <div className={styles.scoreSummary}>
+        {/* Skor */}
+        <div className={styles.sumScore}>
+          <span className={styles.sumLabel}>Skor ITKP {TAHUN}</span>
+          <div className={styles.sumScoreRow}>
+            <span className={styles.sumScoreValue}>{fmtDec(totalItkp, 2)}</span>
+            <span className={`${styles.predikatPill} ${styles[`predikat_${currentPredikat.level}`]}`}>
               {currentPredikat.label}
             </span>
           </div>
-          <span className={styles.heroRange}>{currentPredikat.rangeLabel}</span>
+          <span className={styles.sumScoreMeta}>Skor {fmtDec(totalItkp, 2)} dari 100</span>
         </div>
 
-        <div className={styles.scaleWrap}>
-          <div className={styles.scaleTrack}>
-            {PREDIKAT_BANDS.map((b) => (
-              <div
-                key={b.level}
-                className={`${styles.scaleSegment} ${styles[`seg_${b.level}`]}`}
-                style={{ width: `${b.max - b.min}%` }}
-              />
-            ))}
-            <div className={styles.scaleMarker} style={{ left: `${Math.max(0, Math.min(100, totalItkp))}%` }} />
-          </div>
-          <div className={styles.scaleTicks}>
-            {[0, 35, 50, 65, 80, 100].map((t) => (
-              <span key={t} className={styles.scaleTick} style={{ left: `${t}%` }}>
-                {t}
-              </span>
-            ))}
+        {/* Perbandingan tahun lalu — belum ada sumber data historis */}
+        <div className={styles.sumCompare}>
+          <span className={styles.sumLabel}>Perbandingan Tahun Lalu</span>
+          <div className={styles.compareEmpty}>
+            <Minus size={16} />
+            <span>Data tahun sebelumnya belum tersedia</span>
           </div>
         </div>
 
-        <span className={styles.heroCaption}>
-          {nextLabel ? `Menuju ${nextLabel}` : 'Predikat tertinggi telah tercapai'}
-        </span>
+        {/* Distribusi kategori */}
+        <div className={styles.sumDist}>
+          <span className={styles.sumLabel}>Distribusi Kategori Penilaian</span>
+          <div className={styles.distWrap}>
+            <div className={styles.distMarker} style={{ left: `${markerPos}%` }}>
+              <span className={styles.distMarkerValue}>{fmtDec(totalItkp, 2)}</span>
+              <span className={styles.distMarkerStem} />
+            </div>
+            <div className={styles.distTrack}>
+              {PREDIKAT_BANDS.map((b) => (
+                <div
+                  key={b.level}
+                  className={`${styles.distSeg} ${styles[`seg_${b.level}`]}`}
+                  style={{ width: `${b.max - b.min}%` }}
+                  title={`${b.label} · ${b.rangeLabel}`}
+                >
+                  <span className={styles.distSegLabel}>{b.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className={styles.distTicks}>
+              {[0, 35, 50, 65, 80, 100].map((t) => (
+                <span key={t} className={styles.distTick} style={{ left: `${t}%` }}>
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Indikator A-D */}
-      <section className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <div className={styles.panelHeading}>
-            <span className={styles.panelIcon}>
-              <LayoutGrid size={15} />
-            </span>
-            <div>
-              <h3 className={styles.panelTitle}>Komponen Penilaian ITKP</h3>
-              <p className={styles.panelSub}>Empat komponen pembentuk skor akhir</p>
-            </div>
-          </div>
-          <span className={styles.panelBadge}>4 komponen</span>
-        </div>
-        <div className={styles.indicatorRow}>
-          <IndicatorCard label="A. Pemanfaatan Sistem" score={totalA} max={30} bobot={30} href={detailHref} />
-          <IndicatorCard label="B. Kompetensi SDM PBJ" score={resultBCD.nilaiB} max={30} bobot={30} />
-          <IndicatorCard label="C. Kematangan UKPBJ" score={resultBCD.nilaiC} max={30} bobot={30} />
-          <IndicatorCard label="D. Integritas Pengadaan" score={resultBCD.nilaiD} max={10} bobot={10} />
-        </div>
-      </section>
+      {/* ── Kartu Komponen A–D ── */}
+      <div className={styles.compGrid}>
+        {components.map((c) => (
+          <ComponentCard key={c.code} comp={c} active={c.code === activeCode} onSelect={() => selectComponent(c.code)} />
+        ))}
+      </div>
 
-      {/* Indikator Pemanfaatan Sistem — A1-A7 */}
-      <section className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <div className={styles.panelHeading}>
-            <span className={styles.panelIcon}>
-              <LayoutGrid size={15} />
-            </span>
+      {/* ── Rincian Indikator Komponen Aktif ── */}
+      <section ref={rincianRef} className={`${styles.rincian} ${styles[`comp${activeComp.code}`]}`}>
+        <header className={styles.rincianHead}>
+          <div className={styles.rincianTitleWrap}>
+            <span className={styles.rincianIcon}>{COMP_ICON[activeComp.code]}</span>
             <div>
-              <h3 className={styles.panelTitle}>Indikator Pemanfaatan Sistem Pengadaan</h3>
-              <p className={styles.panelSub}>Rincian sub-indikator A1–A7 komponen A</p>
+              <h2 className={styles.rincianTitle}>
+                Rincian Indikator Komponen {activeComp.code} — {activeComp.name}
+              </h2>
+              <div className={styles.rincianMeta}>
+                <span>
+                  Bobot <strong>{activeComp.weight}%</strong>
+                </span>
+                <span className={styles.metaDot} />
+                <span>
+                  Skor{' '}
+                  <strong>
+                    {fmtDec(activeComp.score, 2)} / {fmtDec(activeComp.maxScore, 0)}
+                  </strong>
+                </span>
+                <span className={styles.metaDot} />
+                <span>
+                  Capaian <strong>{fmtPct(activeComp.percentage)}</strong>
+                </span>
+              </div>
             </div>
           </div>
-          <span className={styles.panelBadge}>Bobot 30%</span>
-        </div>
-        <div className={styles.aGrid}>
-          {resultA?.rows.map((row, i) => (
-            <SubIndicatorCard key={row.key} index={i + 1} row={row} />
+          <button
+            type="button"
+            className={styles.pedomanBtn}
+            onClick={() => setPedomanOpen((v) => !v)}
+            aria-expanded={pedomanOpen}
+          >
+            <BookOpen size={14} />
+            {pedomanOpen ? 'Tutup pedoman' : 'Lihat pedoman penilaian'}
+          </button>
+        </header>
+
+        {pedomanOpen && (
+          <div className={styles.pedomanPanel}>
+            <p className={styles.pedomanIntro}>
+              Formula perhitungan tiap indikator Komponen {activeComp.code} (sesuai Kepka penilaian ITKP):
+            </p>
+            <ul className={styles.pedomanList}>
+              {activeComp.indicators.map((ind) => (
+                <li key={ind.code}>
+                  <span className={styles.pedomanCode}>{ind.code}</span>
+                  <span>
+                    <strong>{ind.name}.</strong> {ind.formula}
+                  </span>
+                </li>
+              ))}
+              {activeComp.indicators.length === 0 && <li>Rincian tersedia saat memilih satu Unit Penilaian.</li>}
+            </ul>
+          </div>
+        )}
+
+        <div className={styles.indGrid}>
+          {activeComp.indicators.map((ind) => (
+            <IndicatorCard key={ind.code} ind={ind} />
           ))}
-          <RingkasanACard totalA={totalA} rows={resultA?.rows ?? []} href={detailHref} />
+          {activeComp.indicators.length === 0 && (
+            <div className={styles.indEmpty}>
+              <Info size={16} />
+              <p>
+                Rincian indikator Komponen {activeComp.code} ditampilkan saat memilih <strong>Unit Penilaian</strong>{' '}
+                tertentu. Pada tingkat Kementerian (Total), nilai komponen ini merupakan agregat antar-unit.
+              </p>
+            </div>
+          )}
+          <ComponentSummaryCard comp={activeComp} />
         </div>
       </section>
     </motion.div>
   );
 }
 
-function IndicatorCard({
-  label,
-  score,
-  max,
-  bobot,
-  href,
+// ── Kartu Komponen A–D ──
+function ComponentCard({
+  comp,
+  active,
+  onSelect,
 }: {
-  label: string;
-  score: number;
-  max: number;
-  bobot: number;
-  href?: string;
+  comp: ItkpComponentModel;
+  active: boolean;
+  onSelect: () => void;
 }) {
-  const ratio = max > 0 ? score / max : 0;
-  const status = statusForRatio(ratio, true);
-  const barPct = Math.max(0, Math.min(ratio * 100, 100));
-
-  const content = (
-    <>
-      <div className={styles.indicatorTop}>
-        <span className={styles.indicatorLabel}>{label}</span>
-        <Badge variant={status.variant}>{status.label}</Badge>
+  const barPct = Math.max(0, Math.min(comp.percentage, 100));
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={active}
+      className={`${styles.compCard} ${styles[`comp${comp.code}`]} ${active ? styles.compCardActive : ''}`}
+    >
+      <div className={styles.compTop}>
+        <span className={styles.compIcon}>{COMP_ICON[comp.code]}</span>
+        <Badge variant={comp.status.variant}>{comp.status.label}</Badge>
       </div>
-      <div className={styles.indicatorValue}>
-        {fmtDec(score, 2)}
-        <span className={styles.indicatorValueMax}>/{max}</span>
+      <div className={styles.compName}>
+        {comp.code}. {comp.name}
       </div>
-      <div className={styles.indicatorBarTrack}>
-        <div className={styles.indicatorBarFill} style={{ width: `${barPct}%` }} />
+      <span className={styles.compWeight}>Bobot {comp.weight}%</span>
+      <div className={styles.compScoreRow}>
+        <span className={styles.compScore}>{fmtDec(comp.score, 2)}</span>
+        <span className={styles.compScoreMax}>/ {fmtDec(comp.maxScore, 0)}</span>
       </div>
-      <div className={styles.indicatorFoot}>
-        <span>Bobot {bobot}%</span>
-        {href && (
-          <span className={styles.indicatorDetailLink}>
-            Lihat detail <ArrowRight size={12} />
-          </span>
-        )}
+      <div
+        className={styles.compBarTrack}
+        role="progressbar"
+        aria-valuenow={Math.round(comp.percentage)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Capaian Komponen ${comp.name}`}
+      >
+        <div className={styles.compBarFill} style={{ width: `${barPct}%` }} />
       </div>
-    </>
+      <div className={styles.compFoot}>
+        <span className={styles.compPct}>{fmtPct(comp.percentage)}</span>
+        <span className={styles.compDetail}>
+          Lihat rincian <ArrowRight size={13} />
+        </span>
+      </div>
+    </button>
   );
-
-  if (href) {
-    return (
-      <Link href={href} className={`${styles.indicatorCard} ${styles.indicatorCardClickable}`}>
-        {content}
-      </Link>
-    );
-  }
-  return <div className={styles.indicatorCard}>{content}</div>;
 }
 
-function SubIndicatorCard({ index, row }: { index: number; row: ItkpARowResult }) {
-  const ratio = row.skorMax > 0 ? row.skor / row.skorMax : 0;
-  const status = statusForRatio(ratio, row.applicable);
-  const pctNum = row.applicable && row.denValue > 0 ? (row.numValue / row.denValue) * 100 : null;
-  const barPct = pctNum === null ? 0 : Math.max(0, Math.min(pctNum, 100));
-  const overTarget = pctNum !== null && pctNum > 100;
-
+// ── Kartu Indikator ──
+function IndicatorCard({ ind }: { ind: ItkpIndicatorModel }) {
+  const barPct = ind.applicable ? Math.max(0, Math.min(ind.attainment, 100)) : 0;
   return (
-    <div className={styles.subCard}>
-      <div className={styles.subCardHead}>
-        <div className={styles.subCardTitle}>
-          <span className={styles.subCardIndex}>A{index}</span>
-          <span className={styles.subCardLabel}>{row.label}</span>
-          <button type="button" className={styles.infoBtn} title={row.formula} aria-label="Formula perhitungan">
+    <div className={styles.indCard}>
+      <div className={styles.indHead}>
+        <div className={styles.indTitle}>
+          <span className={styles.indCode}>{ind.code}</span>
+          <span className={styles.indName}>{ind.name}</span>
+          <button type="button" className={styles.infoBtn} title={ind.formula} aria-label={`Formula ${ind.name}`}>
             <Info size={12} />
           </button>
         </div>
-        <Badge variant={status.variant}>{status.label}</Badge>
+        <Badge variant={ind.status.variant}>{ind.status.label}</Badge>
       </div>
 
-      <div className={styles.subCardPct}>{row.applicable ? row.persentase : '-'}</div>
-      <span className={styles.subCardPctCaption}>Persentase capaian</span>
+      <div className={styles.indPct}>{ind.capaianLabel}</div>
+      <span className={styles.indPctCaption}>Persentase capaian</span>
 
-      <div className={styles.subCardBarTrack}>
-        <div className={`${styles.subCardBarFill} ${styles[`bar_${status.variant}`]}`} style={{ width: `${barPct}%` }} />
+      <div className={styles.indBarTrack}>
+        <div className={`${styles.indBarFill} ${styles[`bar_${ind.status.variant}`]}`} style={{ width: `${barPct}%` }} />
       </div>
-      {overTarget && (
-        <span className={styles.overBadge}>Melampaui target +{fmtDec(pctNum! - 100, 2)}%</span>
+      {ind.overTarget !== null && (
+        <span className={styles.overBadge}>
+          <ArrowUpRight size={11} /> Melampaui target +{fmtDec(ind.overTarget, 2)}%
+        </span>
       )}
 
-      <div className={styles.subCardScoreRow}>
+      <div className={styles.indScoreRow}>
         <span>Skor</span>
-        <span className={styles.subCardScoreValue}>
-          {row.applicable ? fmtDec(row.skor, 2) : '-'} / {fmtDec(row.skorMax, row.skorMax % 1 === 0 ? 0 : 1)}
+        <span className={styles.indScoreValue}>
+          {ind.applicable ? fmtDec(ind.score, 2) : '—'} / {fmtDec(ind.maxScore, ind.maxScore % 1 === 0 ? 0 : 1)}
         </span>
       </div>
 
-      <div className={`${styles.subCardNote} ${row.applicable ? '' : styles.subCardNoteWarn}`}>
-        {row.applicable ? <Info size={11} /> : <TriangleAlert size={11} />}
-        <span>{row.catatan}</span>
+      <div className={`${styles.indNote} ${ind.applicable ? '' : styles.indNoteWarn}`}>
+        {ind.applicable ? <Info size={11} /> : <TriangleAlert size={11} />}
+        <span>{ind.description}</span>
       </div>
     </div>
   );
 }
 
-function RingkasanACard({ totalA, rows, href }: { totalA: number; rows: ItkpARowResult[]; href: string }) {
-  const tercapai = rows.filter((r) => r.applicable && r.skor >= r.skorMax).length;
-  const perluPerhatian = rows.length - tercapai;
-
-  return (
-    <Link href={href} className={`${styles.subCard} ${styles.summaryCard}`}>
-      <span className={styles.summaryHead}>Ringkasan A</span>
-      <div className={styles.summaryScore}>
-        {fmtDec(totalA, 2)}
-        <span className={styles.summaryScoreMax}>/30</span>
-      </div>
-      <div className={styles.summaryRow}>
-        <span>Bobot</span>
-        <span>30%</span>
-      </div>
-      <div className={styles.summaryRow}>
-        <span>Komponen tercapai</span>
-        <span>
-          {tercapai} dari {rows.length}
+// ── Kartu Ringkasan Komponen ──
+function ComponentSummaryCard({ comp }: { comp: ItkpComponentModel }) {
+  const tercapai = comp.indicators.filter((i) => i.applicable && i.score >= i.maxScore).length;
+  const inner = (
+    <>
+      <span className={styles.summaryHead}>Ringkasan Komponen {comp.code}</span>
+      <div className={styles.summaryScoreRow}>
+        <span className={styles.summaryScore}>
+          {fmtDec(comp.score, 2)}
+          <span className={styles.summaryScoreMax}>/ {fmtDec(comp.maxScore, 0)}</span>
         </span>
+        <Badge variant={comp.status.variant}>{comp.status.label}</Badge>
       </div>
-      <div className={styles.summaryRow}>
-        <span>Perlu perhatian</span>
-        <span>{perluPerhatian}</span>
+      <div className={styles.summaryRows}>
+        <div className={styles.summaryRow}>
+          <span>Bobot</span>
+          <span>{comp.weight}%</span>
+        </div>
+        <div className={styles.summaryRow}>
+          <span>Persentase capaian</span>
+          <span>{fmtPct(comp.percentage)}</span>
+        </div>
+        <div className={styles.summaryRow}>
+          <span>Subindikator</span>
+          <span>{comp.indicators.length} indikator</span>
+        </div>
+        {comp.indicators.length > 0 && (
+          <div className={styles.summaryRow}>
+            <span>Indikator tercapai</span>
+            <span>
+              {tercapai} dari {comp.indicators.length}
+            </span>
+          </div>
+        )}
       </div>
-      <span className={styles.summaryCta}>
-        Lihat analisis <ArrowRight size={13} />
-      </span>
-    </Link>
+      {comp.detailHref && (
+        <span className={styles.summaryCta}>
+          Lihat analisis <ArrowRight size={13} />
+        </span>
+      )}
+    </>
   );
+
+  if (comp.detailHref) {
+    return (
+      <Link href={comp.detailHref} className={`${styles.summaryCard} ${styles.summaryCardLink}`}>
+        {inner}
+      </Link>
+    );
+  }
+  return <div className={styles.summaryCard}>{inner}</div>;
 }

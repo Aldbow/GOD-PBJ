@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
-import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { StatCard } from '@/components/ui/StatCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -11,7 +10,6 @@ import { PaketDetail } from '@/features/paket/components/PaketDetail';
 import { MetodePengadaanChart } from './MetodePengadaanChart';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PPK, Package } from '@/types';
-import Link from 'next/link';
 import styles from './PPKView.module.css';
 
 export function PPKView() {
@@ -127,9 +125,6 @@ export function PPKView() {
                 <p className={styles.actionText}>
                   <strong>Tindakan diperlukan:</strong> {needsAction.nama} berstatus risiko {needsAction.risiko} {!needsAction.sirup ? 'dan belum sesuai SIRUP' : ''}.
                 </p>
-                <Link href="/drilldown">
-                  <Button variant="secondary" size="md">Lihat detail paket →</Button>
-                </Link>
               </motion.div>
             )}
           </motion.div>

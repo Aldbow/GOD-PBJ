@@ -1,102 +1,98 @@
-/* ============ Header ============ */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 16px;
+/* ============================================================
+   Dashboard Penilaian ITKP — konten utama
+   ============================================================ */
+
+.sectionSpacer {
+  margin-bottom: 18px;
 }
 
-.headerLeft {
-  display: flex;
-  gap: 12px;
-  align-items: center;
+/* ============ Judul ============ */
+.pageHead {
+  margin-bottom: 16px;
 }
 
-.headerIcon {
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent);
-  box-shadow: var(--shadow-sm);
-}
-
-.headerTitle {
-  font-size: 22px;
+.crumb {
+  display: block;
+  font-size: 12px;
   font-weight: 600;
-  margin: 0 0 2px;
+  letter-spacing: 0.02em;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
   color: var(--text-primary);
   letter-spacing: -0.02em;
 }
 
-.headerSub {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.sectionSpacer {
-  margin-bottom: 20px;
-}
-
-/* ============ Toolbar ============ */
-.toolbar {
+/* ============ Filter bar ============ */
+.filterBar {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 12px 16px;
-  margin-bottom: 20px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow-sm);
 }
 
-.toolbarFilter {
+.filterFields {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-end;
+  gap: 14px;
   flex-wrap: wrap;
 }
 
-.toolbarLabel {
-  font-size: 13px;
-  font-weight: 500;
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-secondary);
-  white-space: nowrap;
 }
 
-.toolbarSelect {
-  min-width: 240px;
-}
-
-.toolbarYearPill {
+.yearField {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  background: var(--surface-2);
+  gap: 8px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  padding: 6px 12px;
-  border-radius: var(--radius-pill);
-  white-space: nowrap;
+  background: var(--surface-2);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 120px;
 }
 
-.toolbarMeta {
+.fieldIcon {
+  color: var(--text-tertiary);
+}
+
+.unitSelect {
+  min-width: 280px;
+}
+
+.updatedWrap {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.toolbarUpdated {
+.updated {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -109,10 +105,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-secondary);
@@ -136,380 +132,628 @@
 }
 
 @keyframes spin {
-  100% { transform: rotate(360deg); }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-/* ============ Hero — Skor ITKP ============ */
-.heroCard {
+/* ============ Ringkasan Skor ITKP ============ */
+.scoreSummary {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) minmax(220px, 260px) 1fr;
+  gap: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: 24px 28px;
+  padding: 22px 24px;
   box-shadow: var(--shadow-sm);
   margin-bottom: 20px;
 }
 
-.heroTop {
+.sumScore,
+.sumCompare,
+.sumDist {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 20px;
+  gap: 10px;
+  padding: 0 24px;
 }
 
-.heroLabel {
-  font-size: 13px;
+.sumScore {
+  padding-left: 0;
+  border-right: 1px solid var(--border);
+}
+
+.sumCompare {
+  border-right: 1px solid var(--border);
+}
+
+.sumDist {
+  padding-right: 0;
+}
+
+.sumLabel {
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   color: var(--text-tertiary);
   text-transform: uppercase;
 }
 
-.heroValueRow {
+.sumScoreRow {
   display: flex;
-  align-items: baseline;
-  gap: 14px;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-.heroValue {
-  font-size: 40px;
+.sumScoreValue {
+  font-size: 48px;
   font-weight: 800;
   font-family: var(--font-mono);
   letter-spacing: -0.03em;
-  color: var(--text-primary);
   line-height: 1;
+  color: var(--text-primary);
 }
 
-.heroPredikatPill {
-  font-size: 13px;
+.predikatPill {
+  font-size: 12px;
   font-weight: 700;
-  padding: 4px 14px;
+  padding: 4px 12px;
   border-radius: var(--radius-pill);
   color: #fff;
+  white-space: nowrap;
 }
 
-.predikat_istimewa { background: var(--amber-600); }
-.predikat_sangat_baik { background: var(--info-600); }
-.predikat_baik { background: var(--teal-600); }
-.predikat_cukup_baik { background: #EAB308; color: #000; }
-.predikat_kurang { background: var(--red-600); }
-
-.heroRange {
-  font-size: 12px;
-  color: var(--text-tertiary);
+.predikat_istimewa {
+  background: var(--amber-600);
+}
+.predikat_sangat_baik {
+  background: var(--info-600);
+}
+.predikat_baik {
+  background: var(--teal-600);
+}
+.predikat_cukup_baik {
+  background: #ca8a04;
+}
+.predikat_kurang {
+  background: var(--red-600);
 }
 
-.heroCaption {
-  display: block;
-  margin-top: 10px;
-  font-size: 12px;
-  font-weight: 500;
+.sumScoreMeta {
+  font-size: 13px;
   color: var(--text-secondary);
-  text-align: right;
 }
 
-/* Segmented scale */
-.scaleWrap {
-  width: 100%;
-}
-
-.scaleTrack {
-  position: relative;
+/* Perbandingan tahun lalu — empty state */
+.compareEmpty {
   display: flex;
-  width: 100%;
-  height: 14px;
-  border-radius: var(--radius-pill);
-  overflow: hidden;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  background: var(--surface-2);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  line-height: 1.4;
 }
 
-.scaleSegment {
-  height: 100%;
-}
-
-.seg_kurang { background: var(--red-600); }
-.seg_cukup_baik { background: #EAB308; }
-.seg_baik { background: var(--teal-600); }
-.seg_sangat_baik { background: var(--info-600); }
-.seg_istimewa { background: var(--amber-600); }
-
-.scaleMarker {
-  position: absolute;
-  top: -3px;
-  width: 3px;
-  height: 20px;
-  background: var(--text-primary);
-  border-radius: var(--radius-pill);
-  transform: translateX(-50%);
-  box-shadow: 0 0 0 2px var(--surface);
-}
-
-.scaleTicks {
+/* Distribusi kategori */
+.distWrap {
   position: relative;
-  height: 16px;
+  padding-top: 26px;
   margin-top: 4px;
 }
 
-.scaleTick {
+.distMarker {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+}
+
+.distMarkerValue {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+}
+
+.distMarkerStem {
+  width: 2px;
+  height: 8px;
+  background: var(--text-primary);
+}
+
+.distTrack {
+  display: flex;
+  width: 100%;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  gap: 2px;
+}
+
+.distSeg {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.distSegLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+
+.seg_kurang {
+  background: var(--red-600);
+}
+.seg_cukup_baik {
+  background: #ca8a04;
+}
+.seg_baik {
+  background: var(--teal-600);
+}
+.seg_sangat_baik {
+  background: var(--info-600);
+}
+.seg_istimewa {
+  background: var(--amber-600);
+}
+
+.distTicks {
+  position: relative;
+  height: 14px;
+  margin-top: 4px;
+}
+
+.distTick {
   position: absolute;
   transform: translateX(-50%);
-  font-size: 11px;
+  font-size: 10px;
   font-family: var(--font-mono);
   color: var(--text-tertiary);
 }
 
-/* ============ Panel (bungkus kartu) ============ */
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 18px 20px 20px;
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 20px;
+@media (max-width: 860px) {
+  .scoreSummary {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .sumScore,
+  .sumCompare,
+  .sumDist {
+    padding: 0;
+    border-right: none;
+  }
+  .sumScore,
+  .sumCompare {
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
 }
 
-.panelHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 14px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-.panelHeading {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  min-width: 0;
-}
-
-.panelIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border-radius: var(--radius-md, 10px);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--accent, var(--teal-600));
-}
-
-.panelTitle {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-}
-
-.panelSub {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  margin: 2px 0 0;
-  line-height: 1.3;
-}
-
-.panelBadge {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  padding: 4px 11px;
-  border-radius: var(--radius-pill);
-  white-space: nowrap;
-}
-
-/* ============ Indikator A-D ============ */
-.indicatorRow {
+/* ============ Kartu Komponen A–D ============ */
+.compGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
+  margin-bottom: 22px;
 }
 
 @media (max-width: 900px) {
-  .indicatorRow {
+  .compGrid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 520px) {
-  .indicatorRow {
+  .compGrid {
     grid-template-columns: 1fr;
   }
 }
 
-.indicatorCard {
-  background: var(--surface-2);
+/* Identitas warna per komponen (dipakai kartu + rincian) */
+.compA {
+  --c: var(--teal-600);
+  --cText: var(--teal-700);
+  --cTint: var(--teal-100);
+}
+.compB {
+  --c: var(--amber-600);
+  --cText: var(--amber-700);
+  --cTint: var(--amber-100);
+}
+.compC {
+  --c: var(--purple-600);
+  --cText: var(--purple-600);
+  --cTint: var(--purple-100);
+}
+.compD {
+  --c: var(--info-600);
+  --cText: var(--info-700);
+  --cTint: var(--info-100);
+}
+
+.compCard {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  text-align: left;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease, border-color var(--dur-fast) ease;
+  font: inherit;
   color: inherit;
-  transition: all var(--dur-fast) ease;
 }
 
-.indicatorCardClickable:hover {
-  transform: translateY(-2px);
-  background: var(--surface);
+.compCard:hover {
+  transform: translateY(-1px);
   box-shadow: var(--shadow-md);
-  border-color: var(--teal-500);
+  border-color: color-mix(in srgb, var(--c) 40%, var(--border));
 }
 
-.indicatorTop {
+.compCardActive {
+  border-color: var(--c);
+  box-shadow: 0 0 0 1px var(--c), var(--shadow-md);
+  background: linear-gradient(180deg, var(--cTint), transparent 70%), var(--surface);
+}
+
+.compTop {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.indicatorLabel {
+.compIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--cTint);
+  color: var(--cText);
+  flex-shrink: 0;
+}
+
+.compName {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.3;
 }
 
-.indicatorValue {
-  font-size: 28px;
+.compWeight {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: -4px;
+}
+
+.compScoreRow {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.compScore {
+  font-size: 26px;
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--text-primary);
   line-height: 1;
 }
 
-.indicatorValueMax {
-  font-size: 15px;
+.compScoreMax {
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-tertiary);
-  margin-left: 2px;
 }
 
-.indicatorBarTrack {
-  height: 9px;
+.compBarTrack {
+  height: 8px;
   background: var(--track-bg);
   border-radius: var(--radius-pill);
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
-.indicatorBarFill {
+.compBarFill {
   height: 100%;
   border-radius: var(--radius-pill);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%),
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%),
     linear-gradient(
       90deg,
-      color-mix(in srgb, var(--teal-600) 72%, #000 28%) 0%,
-      var(--teal-600) 48%,
-      color-mix(in srgb, var(--teal-600) 58%, #fff 42%) 100%
+      color-mix(in srgb, var(--c) 72%, #000 28%) 0%,
+      var(--c) 48%,
+      color-mix(in srgb, var(--c) 58%, #fff 42%) 100%
     );
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--teal-600) 40%, transparent);
-  transition: width var(--dur-med, 0.4s) cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--c) 40%, transparent);
+  transition: width var(--dur-med) cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.indicatorFoot {
+.compFoot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
-  color: var(--text-secondary);
+  margin-top: 2px;
 }
 
-.indicatorDetailLink {
+.compPct {
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--cText);
+}
+
+.compDetail {
   display: flex;
   align-items: center;
   gap: 4px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--teal-600);
+  color: var(--text-secondary);
 }
 
-/* ============ Section header ============ */
-.sectionHeader {
+.compCard:hover .compDetail,
+.compCardActive .compDetail {
+  color: var(--cText);
+}
+
+/* ============ Rincian Indikator ============ */
+.rincian {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--c);
+  border-radius: var(--radius-xl);
+  padding: 20px 22px 22px;
+  box-shadow: var(--shadow-sm);
+  scroll-margin-top: 16px;
+}
+
+.rincianHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rincianTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.rincianIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--cTint);
+  color: var(--cText);
+}
+
+.rincianTitle {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.rincianMeta {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.rincianMeta strong {
   color: var(--text-primary);
-  margin-bottom: 14px;
+  font-weight: 700;
 }
 
-.sectionTitle {
-  font-size: 16px;
+.metaDot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+
+.pedomanBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
   font-weight: 600;
-  margin: 0;
+  color: var(--cText);
+  background: var(--cTint);
+  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+  border-radius: var(--radius-pill);
+  padding: 7px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--dur-fast) ease;
 }
 
-/* ============ Indikator A1-A7 grid ============ */
-.aGrid {
+.pedomanBtn:hover {
+  border-color: var(--c);
+}
+
+.pedomanPanel {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.pedomanIntro {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+}
+
+.pedomanList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pedomanList li {
+  display: flex;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.pedomanList strong {
+  color: var(--text-primary);
+}
+
+.pedomanCode {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cText);
+  background: var(--cTint);
+  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+  height: fit-content;
+}
+
+/* Grid indikator */
+.indGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
+  align-items: stretch;
 }
 
-@media (max-width: 1024px) {
-  .aGrid {
+@media (max-width: 1100px) {
+  .indGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .indGrid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 560px) {
-  .aGrid {
+@media (max-width: 480px) {
+  .indGrid {
     grid-template-columns: 1fr;
   }
 }
 
-.subCard {
+.indEmpty {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 1px dashed var(--border-strong);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: 16px 18px;
+  color: var(--text-tertiary);
+}
+
+.indEmpty p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.indEmpty strong {
+  color: var(--text-primary);
+}
+
+/* ============ Kartu Indikator ============ */
+.indCard {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  text-decoration: none;
-  color: inherit;
-  transition: all var(--dur-fast) ease;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 15px;
+  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
 }
 
-.subCard:hover {
-  background: var(--surface);
+.indCard:hover {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-sm);
 }
 
-.subCardHead {
+.indHead {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
 }
 
-.subCardTitle {
+.indTitle {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
   gap: 6px;
   min-width: 0;
 }
 
-.subCardIndex {
+.indCode {
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-tertiary);
   font-family: var(--font-mono);
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+  flex-shrink: 0;
 }
 
-.subCardLabel {
+.indName {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
@@ -527,47 +771,47 @@
   color: var(--text-tertiary);
   cursor: help;
   flex-shrink: 0;
+  padding: 0;
 }
 
 .infoBtn:hover {
   color: var(--text-secondary);
 }
 
-.subCardPct {
+.indPct {
   font-size: 24px;
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--text-primary);
   line-height: 1;
+  margin-top: 2px;
 }
 
-.subCardPctCaption {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: -4px;
+.indPctCaption {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  margin-top: -3px;
 }
 
-.subCardBarTrack {
-  height: 9px;
+.indBarTrack {
+  height: 7px;
   background: var(--track-bg);
   border-radius: var(--radius-pill);
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
+  margin-top: 2px;
 }
 
-.subCardBarFill {
+.indBarFill {
   height: 100%;
   border-radius: var(--radius-pill);
-  transition: width var(--dur-med, 0.4s) cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width var(--dur-med) cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Sheen bersama untuk semua varian bar */
 .bar_rendah,
 .bar_sedang,
 .bar_tinggi,
 .bar_default {
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%),
-    var(--bar-grad);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%), var(--bar-grad);
   box-shadow: 0 1px 4px var(--bar-glow);
 }
 
@@ -612,16 +856,19 @@
 }
 
 .overBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   align-self: flex-start;
   font-size: 11px;
   font-weight: 600;
-  color: var(--info-600);
+  color: var(--info-700);
   background: var(--info-100);
   padding: 2px 8px;
   border-radius: var(--radius-pill);
 }
 
-.subCardScoreRow {
+.indScoreRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -629,15 +876,16 @@
   color: var(--text-secondary);
   border-top: 1px solid var(--border);
   padding-top: 8px;
+  margin-top: 2px;
 }
 
-.subCardScoreValue {
+.indScoreValue {
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--text-primary);
 }
 
-.subCardNote {
+.indNote {
   display: flex;
   align-items: flex-start;
   gap: 5px;
@@ -646,43 +894,67 @@
   color: var(--text-tertiary);
 }
 
-.subCardNoteWarn {
-  color: var(--amber-600);
+.indNoteWarn {
+  color: var(--amber-700);
 }
 
-/* Ringkasan A — accented cell */
+/* ============ Kartu Ringkasan Komponen ============ */
 .summaryCard {
-  background: var(--teal-100);
-  border-color: color-mix(in srgb, var(--teal-600) 30%, transparent);
-  justify-content: space-between;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: linear-gradient(180deg, var(--cTint), transparent 80%), var(--surface-2);
+  border: 1px solid color-mix(in srgb, var(--c) 30%, var(--border));
+  border-radius: var(--radius-lg);
+  padding: 15px;
+  text-decoration: none;
+  color: inherit;
 }
 
-.summaryCard:hover {
-  background: var(--teal-100);
-  border-color: color-mix(in srgb, var(--teal-600) 50%, transparent);
+.summaryCardLink {
+  transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.summaryCardLink:hover {
+  transform: translateY(-1px);
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  border-color: var(--c);
 }
 
 .summaryHead {
   font-size: 13px;
   font-weight: 700;
-  color: var(--teal-700);
+  color: var(--cText);
+}
+
+.summaryScoreRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .summaryScore {
   font-size: 26px;
   font-weight: 800;
   font-family: var(--font-mono);
-  color: var(--teal-700);
+  color: var(--text-primary);
   line-height: 1;
 }
 
 .summaryScoreMax {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  opacity: 0.7;
+  color: var(--text-tertiary);
   margin-left: 2px;
+}
+
+.summaryRows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--c) 20%, var(--border));
+  padding-top: 10px;
 }
 
 .summaryRow {
@@ -693,69 +965,18 @@
   color: var(--text-secondary);
 }
 
+.summaryRow span:last-child {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .summaryCta {
   display: flex;
   align-items: center;
   gap: 4px;
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 4px;
   font-size: 12px;
   font-weight: 700;
-  color: var(--teal-700);
-}
-
-/* ============ Prioritas Perbaikan ============ */
-.priorityCard {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 18px 20px;
-  box-shadow: var(--shadow-sm);
-}
-
-.priorityList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.priorityItem {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  padding: 6px 0;
-}
-
-.priorityItem:not(:last-child) {
-  border-bottom: 1px dashed var(--border);
-}
-
-.priorityRank {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-pill);
-  background: var(--red-100);
-  color: var(--red-600);
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.priorityLabel {
-  flex: 1;
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.priorityPct {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  color: var(--red-600);
+  color: var(--cText);
 }
