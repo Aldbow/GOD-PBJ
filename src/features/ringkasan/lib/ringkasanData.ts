@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { summarizeAnomali, anomaliOf, type AnomaliSummary, type AnomaliJenis } from '@/lib/anomali';
 
 // Satu baris paket dari view gabungan (sudah termasuk status_kurasi setelah migrasi
 // sql/add_status_kurasi_to_gabungan_view.sql).
@@ -13,6 +14,7 @@ export interface GabunganRow {
   status_kurasi: string | null;
   catatan_kurasi: string | null;
   rekomendasi_kurasi: string | null;
+  is_from_sirup: boolean | null;
 }
 
 export interface MetodeAggregate {
@@ -50,10 +52,23 @@ export interface RingkasanKpi {
   pctRealisasi: number;
 }
 
+export interface AnomaliDetail {
+  kd_rup: string;
+  rup_name: string | null;
+  satker: string | null;
+  nama_ppk: string | null;
+  metode_pengadaan: string | null;
+  pagu: number;
+  total: number;
+  jenis: AnomaliJenis[];
+}
+
 export interface RingkasanAggregate {
   kpi: RingkasanKpi;
   metode: MetodeAggregate[];
   kurasi: KurasiAggregate;
+  anomali: AnomaliSummary;
+  anomaliRows: AnomaliDetail[];
 }
 
 export interface RingkasanFilterValue {
@@ -61,7 +76,7 @@ export interface RingkasanFilterValue {
   ppk: string; // '' = Semua PPK
 }
 
-const SELECT_COLS = 'kd_rup,rup_name,satker,nama_ppk,metode_pengadaan,pagu,total,status_kurasi,catatan_kurasi,rekomendasi_kurasi';
+const SELECT_COLS = 'kd_rup,rup_name,satker,nama_ppk,metode_pengadaan,pagu,total,status_kurasi,catatan_kurasi,rekomendasi_kurasi,is_from_sirup';
 
 // Ambil SELURUH baris view gabungan via paginasi (pola sama seperti fetchAll di
 // src/lib/itkp/fetchA.ts). View bisa >1000 baris sedangkan Supabase membatasi
@@ -186,5 +201,28 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
       pctAkurasi: totalDikurasi > 0 ? (akurat / totalDikurasi) * 100 : 0,
       pctSelesai: totalPaket > 0 ? (totalDikurasi / totalPaket) * 100 : 0,
     },
+    anomali: summarizeAnomali(data),
+    anomaliRows: buildAnomaliRows(data),
   };
+}
+
+// Daftar baris anomali (detail), diurutkan dari paling parah ke ringan.
+function buildAnomaliRows(rows: GabunganRow[]): AnomaliDetail[] {
+  const list: AnomaliDetail[] = [];
+  for (const r of rows) {
+    const jenis = anomaliOf(r);
+    if (jenis.length === 0) continue;
+    list.push({
+      kd_rup: String(r.kd_rup),
+      rup_name: r.rup_name,
+      satker: r.satker,
+      nama_ppk: r.nama_ppk,
+      metode_pengadaan: r.metode_pengadaan,
+      pagu: num(r.pagu),
+      total: num(r.total),
+      jenis,
+    });
+  }
+  const skor = (d: AnomaliDetail) => (d.jenis.includes('tanpa_rup') ? 2 : 0) + (d.jenis.includes('lebih_pagu') ? 1 : 0);
+  return list.sort((a, b) => skor(b) - skor(a) || b.total - a.total);
 }

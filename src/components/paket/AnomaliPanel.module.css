@@ -1,0 +1,181 @@
+.section {
+  margin-bottom: 24px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 14px;
+}
+
+.titleIcon { color: #d03b3b; }
+
+.totalBadge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c0392b;
+  background: color-mix(in srgb, #d03b3b 12%, transparent);
+  border: 1px solid color-mix(in srgb, #d03b3b 28%, transparent);
+  padding: 2px 9px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.okBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0a7d0a;
+  background: color-mix(in srgb, #0ca30c 12%, transparent);
+  border: 1px solid color-mix(in srgb, #0ca30c 28%, transparent);
+  padding: 2px 9px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+:global([data-theme='dark']) .totalBadge { color: #ff8a80; }
+:global([data-theme='dark']) .okBadge { color: #4ade80; }
+
+.empty {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+}
+.empty svg { color: #0ca30c; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  text-align: left;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  transition: border-color var(--dur-fast, 0.15s) ease, box-shadow var(--dur-fast, 0.15s) ease;
+  cursor: default;
+  font: inherit;
+  color: inherit;
+}
+
+button.tile { cursor: pointer; }
+button.tile:disabled { cursor: default; opacity: 0.6; }
+
+.tile-critical { border-left-color: #d03b3b; }
+.tile-serious { border-left-color: #ec835a; }
+
+button.tile:not(:disabled):hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
+}
+
+.tileActive {
+  border-color: var(--info-600);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--info-600) 30%, transparent);
+}
+
+.iconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.sev-critical { background: color-mix(in srgb, #d03b3b 14%, transparent); color: #c0392b; }
+.sev-serious { background: color-mix(in srgb, #ec835a 18%, transparent); color: #c05a2e; }
+
+:global([data-theme='dark']) .sev-critical { color: #ff8a80; }
+:global([data-theme='dark']) .sev-serious { color: #f0a074; }
+
+.body { flex: 1; min-width: 0; }
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.count {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.countUnit {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.nilai {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 7px 0 0;
+}
+.nilai strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+.desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+  opacity: 0.85;
+}
+
+.filterHint {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+.tileActive .filterHint { color: var(--info-600); font-weight: 600; }
+
+/* Badge kecil untuk baris tabel */
+.rowBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #c0392b;
+  background: color-mix(in srgb, #d03b3b 12%, transparent);
+  border: 1px solid color-mix(in srgb, #d03b3b 28%, transparent);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill, 999px);
+  width: fit-content;
+  margin-top: 3px;
+}
+:global([data-theme='dark']) .rowBadge { color: #ff8a80; }

@@ -10,6 +10,8 @@ import { useOrgFilters } from '@/hooks/useOrgFilters';
 import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
 import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
 import { MetricGrid, DualProgressBar } from '@/components/paket/SummaryCards';
+import { AnomaliPanel, AnomaliBadge } from '@/components/paket/AnomaliPanel';
+import { summarizeAnomali, matchesAnomali, type AnomaliJenis } from '@/lib/anomali';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
 import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
 import { Badge } from '@/components/ui/Badge';
@@ -52,6 +54,7 @@ export function TenderView() {
   const [metodeFilter, setMetodeFilter] = useState<string[]>([]);
   const [tipeRupFilter, setTipeRupFilter] = useState<string[]>([]);
   const [kurasiFilter, setKurasiFilter] = useState<string[]>([]);
+  const [anomaliFilter, setAnomaliFilter] = useState<AnomaliJenis[]>([]);
   const [sortBy, setSortBy] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -134,8 +137,14 @@ export function TenderView() {
           (p.nama_ppk && p.nama_ppk.toLowerCase().includes(q))
       );
     }
+    if (anomaliFilter.length > 0) d = d.filter((p) => matchesAnomali(p, anomaliFilter));
     return d;
-  }, [baseData, search]);
+  }, [baseData, search, anomaliFilter]);
+
+  // Ringkasan anomali dihitung dari baseData (sebelum filter anomali) agar angka tile stabil.
+  const anomaliSummary = useMemo(() => summarizeAnomali(baseData), [baseData]);
+  const toggleAnomali = (j: AnomaliJenis) =>
+    setAnomaliFilter((prev) => (prev.includes(j) ? prev.filter((x) => x !== j) : [...prev, j]));
 
   // contextPagu deliberately NOT gated by is_from_sirup here (matches original TenderView behavior,
   // which differs from Pengadaan Langsung / Penunjukan Langsung's gated contextPagu).
@@ -165,7 +174,7 @@ export function TenderView() {
     return copy;
   }, [filteredData, activeSort]);
 
-  const hasActiveExtraFilters = metodeFilter.length > 0 || tipeRupFilter.length > 0 || kurasiFilter.length > 0 || sortBy.length > 0;
+  const hasActiveExtraFilters = metodeFilter.length > 0 || tipeRupFilter.length > 0 || kurasiFilter.length > 0 || anomaliFilter.length > 0 || sortBy.length > 0;
 
   const columns: PaketColumn<any>[] = useMemo(
     () => [
@@ -178,6 +187,7 @@ export function TenderView() {
               {p.rup_name}
             </span>
             <span className={styles.rupCode}>RUP: {p.kd_rup || '-'}</span>
+            <AnomaliBadge row={p} />
           </div>
         ),
       },
@@ -329,6 +339,8 @@ export function TenderView() {
             ]}
           />
 
+          <AnomaliPanel summary={anomaliSummary} activeFilter={anomaliFilter} onToggleFilter={toggleAnomali} />
+
           <div className={styles.progressWrap}>
             <DualProgressBar
               title="Progres Penyerapan Anggaran"
@@ -395,6 +407,7 @@ export function TenderView() {
                     setMetodeFilter([]);
                     setTipeRupFilter([]);
                     setKurasiFilter([]);
+                    setAnomaliFilter([]);
                     setSortBy([]);
                   }}
                 >

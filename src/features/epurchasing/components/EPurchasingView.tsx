@@ -11,6 +11,8 @@ import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
 import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
 import { FilterToggle } from '@/components/paket/FilterToggle';
 import { MetricGrid, DualProgressBar } from '@/components/paket/SummaryCards';
+import { AnomaliPanel, AnomaliBadge } from '@/components/paket/AnomaliPanel';
+import { summarizeAnomali, matchesAnomali, type AnomaliJenis } from '@/lib/anomali';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
 import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
 import { Badge } from '@/components/ui/Badge';
@@ -50,6 +52,7 @@ export function EPurchasingView() {
 
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [kurasiFilter, setKurasiFilter] = useState<string[]>([]);
+  const [anomaliFilter, setAnomaliFilter] = useState<AnomaliJenis[]>([]);
   const [sortBy, setSortBy] = useState<string[]>(['PCT_DESC']);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAbnormal, setShowAbnormal] = useState(false);
@@ -174,9 +177,14 @@ export function EPurchasingView() {
       const matchesAbnormal = !showAbnormal || (p.total || 0) > (p.pagu || 0);
       const matchesNoMasterData = !showNoMasterData || (p.nama_ppk === 'Tidak Diketahui' && (p.total || 0) > 0);
 
-      return matchesSearch && matchesStatus && matchesKurasi && matchesAbnormal && matchesNoMasterData;
+      return matchesSearch && matchesStatus && matchesKurasi && matchesAbnormal && matchesNoMasterData && matchesAnomali(p, anomaliFilter);
     });
-  }, [baseData, search, statusFilter, kurasiFilter, showAbnormal, showNoMasterData]);
+  }, [baseData, search, statusFilter, kurasiFilter, showAbnormal, showNoMasterData, anomaliFilter]);
+
+  // Ringkasan anomali dari baseData (sebelum filter anomali) agar angka tile stabil.
+  const anomaliSummary = useMemo(() => summarizeAnomali(baseData), [baseData]);
+  const toggleAnomali = (j: AnomaliJenis) =>
+    setAnomaliFilter((prev) => (prev.includes(j) ? prev.filter((x) => x !== j) : [...prev, j]));
 
   const totalPaket = filteredData.length;
   const paketSelesai = filteredData.filter((p) => ['COMPLETED', 'PAYMENT_OUTSIDE_SYSTEM'].includes(p.status)).length;
@@ -217,7 +225,7 @@ export function EPurchasingView() {
     return copy;
   }, [filteredData, activeSort]);
 
-  const hasActiveExtraFilters = statusFilter.length > 0 || kurasiFilter.length > 0 || activeSort !== 'PCT_DESC' || showAbnormal || showNoMasterData;
+  const hasActiveExtraFilters = statusFilter.length > 0 || kurasiFilter.length > 0 || anomaliFilter.length > 0 || activeSort !== 'PCT_DESC' || showAbnormal || showNoMasterData;
 
   const columns: PaketColumn<any>[] = useMemo(
     () => [
@@ -230,6 +238,7 @@ export function EPurchasingView() {
               {p.rup_name}
             </span>
             <span className={styles.rupCode}>RUP: {p.rup_code || '-'}</span>
+            <AnomaliBadge row={p} />
           </div>
         ),
       },
@@ -354,6 +363,8 @@ export function EPurchasingView() {
             ]}
           />
 
+          <AnomaliPanel summary={anomaliSummary} activeFilter={anomaliFilter} onToggleFilter={toggleAnomali} />
+
           <div className={styles.progressWrap}>
             <DualProgressBar
               title="Progres Penyerapan Anggaran"
@@ -451,6 +462,7 @@ export function EPurchasingView() {
                     setSortBy(['PCT_DESC']);
                     setStatusFilter([]);
                     setKurasiFilter([]);
+                    setAnomaliFilter([]);
                     setShowAbnormal(false);
                     setShowNoMasterData(false);
                   }}

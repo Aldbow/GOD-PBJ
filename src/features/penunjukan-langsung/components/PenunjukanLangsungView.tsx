@@ -10,6 +10,8 @@ import { useOrgFilters } from '@/hooks/useOrgFilters';
 import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
 import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
 import { MetricGrid, DualProgressBar } from '@/components/paket/SummaryCards';
+import { AnomaliPanel, AnomaliBadge } from '@/components/paket/AnomaliPanel';
+import { summarizeAnomali, matchesAnomali, type AnomaliJenis } from '@/lib/anomali';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
 import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
 import { Badge } from '@/components/ui/Badge';
@@ -50,6 +52,7 @@ export function PenunjukanLangsungView() {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [tipeRupFilter, setTipeRupFilter] = useState<string[]>([]);
   const [kurasiFilter, setKurasiFilter] = useState<string[]>([]);
+  const [anomaliFilter, setAnomaliFilter] = useState<AnomaliJenis[]>([]);
   const [sortBy, setSortBy] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -139,8 +142,14 @@ export function PenunjukanLangsungView() {
     if (kurasiFilter.length > 0) {
       d = d.filter((item) => kurasiFilter.includes(item.status_kurasi || 'Belum Dikurasi'));
     }
+    if (anomaliFilter.length > 0) d = d.filter((item) => matchesAnomali(item, anomaliFilter));
     return d;
-  }, [baseData, search, statusFilter, kurasiFilter]);
+  }, [baseData, search, statusFilter, kurasiFilter, anomaliFilter]);
+
+  // Ringkasan anomali dari baseData (sebelum filter anomali) agar angka tile stabil.
+  const anomaliSummary = useMemo(() => summarizeAnomali(baseData), [baseData]);
+  const toggleAnomali = (j: AnomaliJenis) =>
+    setAnomaliFilter((prev) => (prev.includes(j) ? prev.filter((x) => x !== j) : [...prev, j]));
 
   const contextPagu = baseData.filter((p) => p.is_from_sirup !== false).reduce((s, d) => s + (Number(d.pagu) || 0), 0);
   const contextRealisasi = filteredData.reduce((s, d) => s + (Number(d.total) || 0), 0);
@@ -171,7 +180,7 @@ export function PenunjukanLangsungView() {
     return copy;
   }, [filteredData, activeSort]);
 
-  const hasActiveExtraFilters = statusFilter.length > 0 || tipeRupFilter.length > 0 || kurasiFilter.length > 0 || sortBy.length > 0;
+  const hasActiveExtraFilters = statusFilter.length > 0 || tipeRupFilter.length > 0 || kurasiFilter.length > 0 || anomaliFilter.length > 0 || sortBy.length > 0;
 
   const columns: PaketColumn<any>[] = useMemo(
     () => [
@@ -184,6 +193,7 @@ export function PenunjukanLangsungView() {
               {p.rup_name}
             </span>
             <span className={styles.rupCode}>RUP: {p.kd_rup || '-'}</span>
+            <AnomaliBadge row={p} />
           </div>
         ),
       },
@@ -337,6 +347,8 @@ export function PenunjukanLangsungView() {
             ]}
           />
 
+          <AnomaliPanel summary={anomaliSummary} activeFilter={anomaliFilter} onToggleFilter={toggleAnomali} />
+
           <div className={styles.progressWrap}>
             <DualProgressBar
               title="Progres Penyerapan Anggaran"
@@ -403,6 +415,7 @@ export function PenunjukanLangsungView() {
                     setStatusFilter([]);
                     setTipeRupFilter([]);
                     setKurasiFilter([]);
+                    setAnomaliFilter([]);
                     setSortBy([]);
                   }}
                 >

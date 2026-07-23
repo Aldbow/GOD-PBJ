@@ -25,6 +25,8 @@ import { StatusPaketChart } from './charts/StatusPaketChart';
 import { metodeColor, useIsDark } from './charts/chartTheme';
 import { ItkpGauge } from './ItkpGauge';
 import { KurasiAkurasi } from './KurasiAkurasi';
+import { AnomaliPanel } from '@/components/paket/AnomaliPanel';
+import { AnomaliTable } from './AnomaliTable';
 import styles from './RingkasanView.module.css';
 
 const container: Variants = {
@@ -240,6 +242,12 @@ export function RingkasanView() {
           <ItkpGauge satker={applied.satker} />
           <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} />
         </div>
+      </motion.div>
+
+      {/* Baris 8 — Deteksi Anomali */}
+      <motion.div variants={item}>
+        <AnomaliPanel summary={agg.anomali} />
+        <AnomaliTable rows={agg.anomaliRows} />
       </motion.div>
 
       <ExportDataModal
