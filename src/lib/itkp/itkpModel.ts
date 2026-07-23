@@ -3,23 +3,35 @@ import type { ItkpAResult } from './calcA';
 import type { ItkpBCDResult } from './calcBCD';
 import { fmtPct } from '@/lib/format';
 
-// ── Predikat / kategori penilaian ITKP (batas resmi, jangan di-hardcode di UI) ──
-export type PredikatLevel = 'kurang' | 'cukup_baik' | 'baik' | 'sangat_baik' | 'istimewa';
+// ── Predikat Indeks Tata Kelola Pengadaan 2026–2029 (batas resmi sesuai tabel) ──
+// Nilai   Predikat  Interpretasi
+// 90–100  AA        Sangat Memuaskan
+// 80–<90  A         Memuaskan
+// 70–<80  BB        Sangat Baik
+// 60–<70  B         Baik
+// 50–<60  CC        Cukup (Memadai)
+// 30–<50  C         Kurang
+// <30     D         Sangat Kurang
+export type PredikatLevel = 'd' | 'c' | 'cc' | 'b' | 'bb' | 'a' | 'aa';
 
 export interface PredikatBand {
   level: PredikatLevel;
-  label: string;
+  kode: string; // AA, A, BB, B, CC, C, D
+  label: string; // interpretasi
   min: number;
   max: number;
   rangeLabel: string;
+  color: string; // warna badge/segmen (teks putih)
 }
 
 export const PREDIKAT_BANDS: PredikatBand[] = [
-  { level: 'kurang', label: 'Kurang', min: 0, max: 35, rangeLabel: '< 35' },
-  { level: 'cukup_baik', label: 'Cukup Baik', min: 35, max: 50, rangeLabel: '35–<50' },
-  { level: 'baik', label: 'Baik', min: 50, max: 65, rangeLabel: '50–<65' },
-  { level: 'sangat_baik', label: 'Sangat Baik', min: 65, max: 80, rangeLabel: '65–<80' },
-  { level: 'istimewa', label: 'Istimewa', min: 80, max: 100, rangeLabel: '≥ 80' },
+  { level: 'd', kode: 'D', label: 'Sangat Kurang', min: 0, max: 30, rangeLabel: '< 30', color: '#B3261E' },
+  { level: 'c', kode: 'C', label: 'Kurang', min: 30, max: 50, rangeLabel: '30–<50', color: '#D35400' },
+  { level: 'cc', kode: 'CC', label: 'Cukup (Memadai)', min: 50, max: 60, rangeLabel: '50–<60', color: '#B8860B' },
+  { level: 'b', kode: 'B', label: 'Baik', min: 60, max: 70, rangeLabel: '60–<70', color: '#6B8E23' },
+  { level: 'bb', kode: 'BB', label: 'Sangat Baik', min: 70, max: 80, rangeLabel: '70–<80', color: '#1FA089' },
+  { level: 'a', kode: 'A', label: 'Memuaskan', min: 80, max: 90, rangeLabel: '80–<90', color: '#1D5FA8' },
+  { level: 'aa', kode: 'AA', label: 'Sangat Memuaskan', min: 90, max: 100, rangeLabel: '90–100', color: '#3730A3' },
 ];
 
 export function predikatOf(score: number): PredikatBand {
@@ -27,6 +39,13 @@ export function predikatOf(score: number): PredikatBand {
     if (score >= PREDIKAT_BANDS[i].min) return PREDIKAT_BANDS[i];
   }
   return PREDIKAT_BANDS[0];
+}
+
+// Interpretasi predikat satu tingkat di atas level saat ini (null bila tertinggi).
+export function nextPredikatLabel(level: PredikatLevel): string | null {
+  const idx = PREDIKAT_BANDS.findIndex((b) => b.level === level);
+  if (idx < 0 || idx === PREDIKAT_BANDS.length - 1) return null;
+  return PREDIKAT_BANDS[idx + 1].label;
 }
 
 // ── Status capaian (dipakai badge + warna progress indikator) ──

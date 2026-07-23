@@ -7,35 +7,13 @@ import { computeItkpBCD } from '@/lib/itkp/calcBCD';
 import { getDummyBCDForUnit } from '@/lib/itkp/dummyBCD';
 import { fetchItkpAData, type ItkpAUnit } from '@/lib/itkp/fetchA';
 import { normSatker } from '@/lib/itkp/crosswalk';
+import { predikatOf, nextPredikatLabel } from '@/lib/itkp/itkpModel';
 import { fmtDec, fmtPct } from '@/lib/format';
 import { Skeleton } from '@/components/ui/Skeleton';
 import styles from './ItkpGauge.module.css';
 
 // Skala total ITKP = A(30) + B(30) + C(30) + D(10).
 const MAX_TOTAL = 100;
-
-type PredikatLevel = 'kurang' | 'cukup_baik' | 'baik' | 'sangat_baik' | 'istimewa';
-
-const PREDIKAT_BANDS: { level: PredikatLevel; label: string; min: number; max: number; className: string }[] = [
-  { level: 'kurang', label: 'Kurang', min: 0, max: 35, className: styles.catKurang },
-  { level: 'cukup_baik', label: 'Cukup Baik', min: 35, max: 50, className: styles.catCukup },
-  { level: 'baik', label: 'Baik', min: 50, max: 65, className: styles.catBaik },
-  { level: 'sangat_baik', label: 'Sangat Baik', min: 65, max: 80, className: styles.catSangatBaik },
-  { level: 'istimewa', label: 'Istimewa', min: 80, max: 100, className: styles.catIstimewa },
-];
-
-function predikat(score: number) {
-  for (let i = PREDIKAT_BANDS.length - 1; i >= 0; i--) {
-    if (score >= PREDIKAT_BANDS[i].min) return PREDIKAT_BANDS[i];
-  }
-  return PREDIKAT_BANDS[0];
-}
-
-function nextPredikatLabel(level: PredikatLevel): string | null {
-  const idx = PREDIKAT_BANDS.findIndex((b) => b.level === level);
-  if (idx < 0 || idx === PREDIKAT_BANDS.length - 1) return null;
-  return PREDIKAT_BANDS[idx + 1].label;
-}
 
 // Geometri gauge semi-lingkaran (viewBox 200x110).
 const ARC_PATH = 'M 18 100 A 82 82 0 0 1 182 100';
@@ -105,7 +83,7 @@ export function ItkpGauge({ satker }: { satker: string }) {
   const totalA = resultA.total;
   const totalItkp = totalA + bcd.total;
   const ratio = Math.max(0, Math.min(totalItkp / MAX_TOTAL, 1));
-  const band = predikat(totalItkp);
+  const band = predikatOf(totalItkp);
   const nextLabel = nextPredikatLabel(band.level);
 
   const komponen: Komponen[] = [
@@ -122,7 +100,9 @@ export function ItkpGauge({ satker }: { satker: string }) {
           <h3 className={styles.title}>Skor ITKP 2026</h3>
           <p className={styles.scope}>{scopeLabel}</p>
         </div>
-        <span className={`${styles.catPill} ${band.className}`}>{band.label}</span>
+        <span className={styles.catPill} style={{ background: band.color, color: '#fff' }}>
+          {band.kode} · {band.label}
+        </span>
       </div>
 
       {/* Hero — total ITKP /100 */}
@@ -152,8 +132,8 @@ export function ItkpGauge({ satker }: { satker: string }) {
 
         <div className={styles.heroMeta}>
           <span className={styles.heroLabel}>Total Skor ITKP</span>
-          <span className={styles.heroCategory}>{band.label}</span>
-          <span className={styles.heroRange}>Rentang predikat {band.min}–{band.max}</span>
+          <span className={styles.heroCategory}>{band.kode} · {band.label}</span>
+          <span className={styles.heroRange}>Rentang predikat {band.rangeLabel}</span>
           <div className={styles.heroDivider} />
           <div className={styles.heroKpi}>
             <span className={styles.heroKpiLabel}>Capaian</span>

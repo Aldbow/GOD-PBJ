@@ -15,7 +15,6 @@ import {
   Users,
   Building2,
   ShieldCheck,
-  Minus,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
@@ -201,20 +200,13 @@ export function ItkpDashboard() {
           <span className={styles.sumLabel}>Skor ITKP {TAHUN}</span>
           <div className={styles.sumScoreRow}>
             <span className={styles.sumScoreValue}>{fmtDec(totalItkp, 2)}</span>
-            <span className={`${styles.predikatPill} ${styles[`predikat_${currentPredikat.level}`]}`}>
-              {currentPredikat.label}
+            <span className={styles.predikatPill} style={{ background: currentPredikat.color }}>
+              {currentPredikat.kode} · {currentPredikat.label}
             </span>
           </div>
-          <span className={styles.sumScoreMeta}>Skor {fmtDec(totalItkp, 2)} dari 100</span>
-        </div>
-
-        {/* Perbandingan tahun lalu — belum ada sumber data historis */}
-        <div className={styles.sumCompare}>
-          <span className={styles.sumLabel}>Perbandingan Tahun Lalu</span>
-          <div className={styles.compareEmpty}>
-            <Minus size={16} />
-            <span>Data tahun sebelumnya belum tersedia</span>
-          </div>
+          <span className={styles.sumScoreMeta}>
+            Predikat {currentPredikat.kode} ({currentPredikat.rangeLabel}) · skor {fmtDec(totalItkp, 2)} dari 100
+          </span>
         </div>
 
         {/* Distribusi kategori */}
@@ -229,16 +221,16 @@ export function ItkpDashboard() {
               {PREDIKAT_BANDS.map((b) => (
                 <div
                   key={b.level}
-                  className={`${styles.distSeg} ${styles[`seg_${b.level}`]}`}
-                  style={{ width: `${b.max - b.min}%` }}
-                  title={`${b.label} · ${b.rangeLabel}`}
+                  className={styles.distSeg}
+                  style={{ width: `${b.max - b.min}%`, background: b.color }}
+                  title={`${b.kode} · ${b.label} · ${b.rangeLabel}`}
                 >
-                  <span className={styles.distSegLabel}>{b.label}</span>
+                  <span className={styles.distSegLabel}>{b.kode}</span>
                 </div>
               ))}
             </div>
             <div className={styles.distTicks}>
-              {[0, 35, 50, 65, 80, 100].map((t) => (
+              {[0, 30, 50, 60, 70, 80, 90, 100].map((t) => (
                 <span key={t} className={styles.distTick} style={{ left: `${t}%` }}>
                   {t}
                 </span>

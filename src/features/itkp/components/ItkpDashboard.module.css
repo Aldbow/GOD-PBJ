@@ -140,7 +140,7 @@
 /* ============ Ringkasan Skor ITKP ============ */
 .scoreSummary {
   display: grid;
-  grid-template-columns: minmax(220px, 260px) minmax(220px, 260px) 1fr;
+  grid-template-columns: minmax(220px, 280px) 1fr;
   gap: 0;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -151,7 +151,6 @@
 }
 
 .sumScore,
-.sumCompare,
 .sumDist {
   display: flex;
   flex-direction: column;
@@ -161,10 +160,6 @@
 
 .sumScore {
   padding-left: 0;
-  border-right: 1px solid var(--border);
-}
-
-.sumCompare {
   border-right: 1px solid var(--border);
 }
 
@@ -205,39 +200,9 @@
   white-space: nowrap;
 }
 
-.predikat_istimewa {
-  background: var(--amber-600);
-}
-.predikat_sangat_baik {
-  background: var(--info-600);
-}
-.predikat_baik {
-  background: var(--teal-600);
-}
-.predikat_cukup_baik {
-  background: #ca8a04;
-}
-.predikat_kurang {
-  background: var(--red-600);
-}
-
 .sumScoreMeta {
   font-size: 13px;
   color: var(--text-secondary);
-}
-
-/* Perbandingan tahun lalu — empty state */
-.compareEmpty {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-tertiary);
-  background: var(--surface-2);
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-  line-height: 1.4;
 }
 
 /* Distribusi kategori */
@@ -294,30 +259,15 @@
 }
 
 .distSegLabel {
-  font-size: 10.5px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
   color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 0 4px;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
-}
-
-.seg_kurang {
-  background: var(--red-600);
-}
-.seg_cukup_baik {
-  background: #ca8a04;
-}
-.seg_baik {
-  background: var(--teal-600);
-}
-.seg_sangat_baik {
-  background: var(--info-600);
-}
-.seg_istimewa {
-  background: var(--amber-600);
+  padding: 0 2px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
 }
 
 .distTicks {
@@ -340,13 +290,11 @@
     gap: 18px;
   }
   .sumScore,
-  .sumCompare,
   .sumDist {
     padding: 0;
     border-right: none;
   }
-  .sumScore,
-  .sumCompare {
+  .sumScore {
     padding-bottom: 18px;
     border-bottom: 1px solid var(--border);
   }

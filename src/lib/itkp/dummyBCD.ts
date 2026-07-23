@@ -11,7 +11,7 @@ const FIXED_BCD_INPUT: ItkpBCDInput = {
   penugasan: 'd', // Sebagian JF/Personel Lainnya ditugaskan sebagai Pokja Pemilihan
   renaksi: 'ppk', // Menyusun Renaksi PPK bersertifikat kompetensi saja
   kematangan: 'sembilan_sembilan', // 9/9 Proaktif
-  nilaiSpi: 86.46,
+  nilaiSpi: 66.12,
   tahunPenilaianSpi: 2026,
 };
 
