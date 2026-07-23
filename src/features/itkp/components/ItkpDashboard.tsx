@@ -11,7 +11,6 @@ import {
   TriangleAlert,
   ArrowRight,
   LayoutGrid,
-  Flag,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge, type BadgeVariant } from '@/components/ui/Badge';
@@ -21,7 +20,7 @@ import { computeItkpA, type ItkpAInput, type ItkpAResult, type ItkpARowResult } 
 import { computeItkpBCD } from '@/lib/itkp/calcBCD';
 import { getDummyBCDForUnit } from '@/lib/itkp/dummyBCD';
 import { fetchItkpAData, type ItkpAUnit } from '@/lib/itkp/fetchA';
-import { fmtDec, fmtPct } from '@/lib/format';
+import { fmtDec } from '@/lib/format';
 import styles from './ItkpDashboard.module.css';
 
 const KEMENTERIAN_LABEL = 'Kementerian (Total)';
@@ -129,15 +128,6 @@ export function ItkpDashboard() {
   const nextLabel = nextPredikatLabel(currentPredikat.level);
 
   const detailHref = `/itkp/pemanfaatan-sistem${selectedUnit ? `?satker=${encodeURIComponent(selectedUnit)}` : ''}`;
-
-  const priorityItems = useMemo(() => {
-    if (!resultA) return [];
-    return resultA.rows
-      .filter((r) => r.applicable && r.skor < r.skorMax && r.denValue > 0)
-      .map((r) => ({ label: r.label, pct: (r.numValue / r.denValue) * 100 }))
-      .sort((a, b) => a.pct - b.pct)
-      .slice(0, 3);
-  }, [resultA]);
 
   const updatedLabel = lastUpdate
     ? `${lastUpdate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}, ${lastUpdate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`
@@ -267,25 +257,6 @@ export function ItkpDashboard() {
           <RingkasanACard totalA={totalA} rows={resultA?.rows ?? []} href={detailHref} />
         </div>
       </section>
-
-      {/* Prioritas Perbaikan */}
-      {priorityItems.length > 0 && (
-        <div className={styles.priorityCard}>
-          <div className={styles.sectionHeader}>
-            <Flag size={16} />
-            <h3 className={styles.sectionTitle}>Prioritas Perbaikan</h3>
-          </div>
-          <ol className={styles.priorityList}>
-            {priorityItems.map((item, i) => (
-              <li key={item.label} className={styles.priorityItem}>
-                <span className={styles.priorityRank}>{i + 1}</span>
-                <span className={styles.priorityLabel}>{item.label}</span>
-                <span className={styles.priorityPct}>{fmtPct(item.pct, 2)}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
     </motion.div>
   );
 }

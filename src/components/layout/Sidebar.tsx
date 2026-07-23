@@ -132,10 +132,7 @@ export function Sidebar() {
 
       {!collapsed && (
         <div className={styles.sidebarFoot}>
-          <span className={styles.footVersion}>Prototipe v0.1</span>
-          Aksi perubahan — Kemnaker
-          <br />
-          Data ilustratif, 22 Jun 2026
+          UKPBJ Kementerian Ketenagakerjaan
         </div>
       )}
     </aside>
