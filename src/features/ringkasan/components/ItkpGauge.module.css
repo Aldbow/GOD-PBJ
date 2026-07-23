@@ -1,0 +1,315 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  height: 100%;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.scope {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 3px 0 0;
+}
+
+.catPill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 11px;
+  border-radius: var(--radius-pill, 999px);
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.catKurang     { background: color-mix(in srgb, #d03b3b 14%, transparent); color: #c0392b; border-color: color-mix(in srgb, #d03b3b 30%, transparent); }
+.catCukup      { background: color-mix(in srgb, #eda100 16%, transparent); color: #b07a00; border-color: color-mix(in srgb, #eda100 32%, transparent); }
+.catBaik       { background: color-mix(in srgb, #2F80ED 14%, transparent); color: #1A5D91; border-color: color-mix(in srgb, #2F80ED 30%, transparent); }
+.catSangatBaik { background: color-mix(in srgb, #1FA89A 16%, transparent); color: #147a70; border-color: color-mix(in srgb, #1FA89A 32%, transparent); }
+.catIstimewa   { background: color-mix(in srgb, #0ca30c 14%, transparent); color: #0a7d0a; border-color: color-mix(in srgb, #0ca30c 30%, transparent); }
+
+:global([data-theme='dark']) .catKurang { color: #ff8a80; }
+:global([data-theme='dark']) .catCukup { color: #f0c34d; }
+:global([data-theme='dark']) .catBaik { color: #6db3ff; }
+:global([data-theme='dark']) .catSangatBaik { color: #5fd6c8; }
+:global([data-theme='dark']) .catIstimewa { color: #4ade80; }
+
+/* Hero: gauge + meta */
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 4px 6px;
+  flex-wrap: wrap;
+}
+
+.gaugeWrap {
+  position: relative;
+  width: 210px;
+  max-width: 100%;
+  flex: 1 1 190px;
+}
+
+.gauge { width: 100%; display: block; }
+
+.gaugeTrack {
+  fill: none;
+  stroke: var(--surface-2);
+  stroke-width: 15;
+}
+
+.gaugeValue {
+  fill: none;
+  stroke: url(#itkpGaugeGrad);
+  stroke-width: 15;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gaugeCenter {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.gaugeScore {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.gaugeMax {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.heroMeta {
+  flex: 1 1 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 150px;
+}
+
+.heroLabel {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.heroCategory {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.heroRange {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.heroDivider {
+  height: 1px;
+  background: var(--border);
+  margin: 10px 0 8px;
+}
+
+.heroKpi {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.heroKpiLabel {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.heroKpiVal {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--info-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.heroNext {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Section umum */
+.section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.sectionHead {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+
+.sectionHead svg { color: var(--info-600); }
+
+/* Komponen A–D */
+.compList {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.compRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.compLabel {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compTrack {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.compFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.7s ease;
+}
+
+.compScore {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 52px;
+  text-align: right;
+}
+
+.compMax {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.compBobot {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: right;
+}
+
+/* Sub-indikator A1–A7 */
+.miniList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.miniRow {
+  display: grid;
+  grid-template-columns: 1fr 88px auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.miniLabel {
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.miniLabel b { color: var(--info-600); margin-right: 4px; }
+
+.miniTrack {
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.miniFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1A5D91, #27B6D6);
+  transition: width 0.6s ease;
+}
+
+.miniVal {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 52px;
+  text-align: right;
+}
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin: 14px 0 0;
+  line-height: 1.5;
+}
+
+.errText {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 24px 0;
+}
+
+@media (max-width: 560px) {
+  .compRow { grid-template-columns: 1fr auto auto; }
+  .compTrack { display: none; }
+  .miniRow { grid-template-columns: 1fr 56px auto; }
+}

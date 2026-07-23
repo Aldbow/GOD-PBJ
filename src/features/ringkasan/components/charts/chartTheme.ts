@@ -1,0 +1,97 @@
+"use client";
+
+import { useEffect, useState } from 'react';
+
+// Pantau atribut data-theme pada <html> agar chart ikut light/dark.
+// Pola sama seperti RealisasiChart.tsx.
+export function useIsDark(): boolean {
+  const [isDark, setIsDark] = useState(false);
+  useEffect(() => {
+    const read = () => setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    read();
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((m) => {
+        if (m.attributeName === 'data-theme') read();
+      });
+    });
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
+  return isDark;
+}
+
+type ColorPair = { light: string; dark: string };
+const pick = (c: ColorPair, isDark: boolean) => (isDark ? c.dark : c.light);
+
+// Palet kategorikal tervalidasi (dataviz skill) — LOLOS gate CVD adjacent di
+// kedua mode terhadap surface aplikasi. Warna dipetakan PER-ENTITAS (metode),
+// bukan per-peringkat, sehingga warna tiap metode stabil walau set-nya berubah
+// karena filter.
+const SLOT = {
+  blue: { light: '#2a78d6', dark: '#3987e5' },
+  orange: { light: '#eb6834', dark: '#d95926' },
+  aqua: { light: '#1baf7a', dark: '#199e70' },
+  yellow: { light: '#eda100', dark: '#c98500' },
+  magenta: { light: '#e87ba4', dark: '#d55181' },
+  green: { light: '#008300', dark: '#008300' },
+  violet: { light: '#4a3aa7', dark: '#9085e9' },
+  red: { light: '#e34948', dark: '#e66767' },
+} satisfies Record<string, ColorPair>;
+
+const METODE_SLOT: Record<string, ColorPair> = {
+  'Tender': SLOT.blue,
+  'E-Purchasing': SLOT.orange,
+  'Pengadaan Langsung': SLOT.aqua,
+  'Penunjukan Langsung': SLOT.yellow,
+  'Swakelola': SLOT.magenta,
+  'Seleksi': SLOT.green,
+  'Tender Cepat': SLOT.violet,
+  'Pencatatan Non Tender': SLOT.red,
+};
+
+const OTHER: ColorPair = { light: '#94a3b8', dark: '#64748b' };
+
+export function metodeColor(metode: string, isDark: boolean): string {
+  return pick(METODE_SLOT[metode] ?? OTHER, isDark);
+}
+
+export function metodePalette(metodes: string[], isDark: boolean): string[] {
+  return metodes.map((m) => metodeColor(m, isDark));
+}
+
+// Warna seri semantik (bukan kategori metode).
+export const SERIES = {
+  pagu: { light: '#94a3b8', dark: '#5b6472' } as ColorPair, // netral (konteks)
+  realisasi: { light: '#2a78d6', dark: '#3987e5' } as ColorPair, // biru brand
+  sudah: { light: '#0ca30c', dark: '#0ca30c' } as ColorPair, // status good
+  belum: { light: '#cbd5e1', dark: '#475569' } as ColorPair, // netral
+  akurat: { light: '#0ca30c', dark: '#0ca30c' } as ColorPair,
+  perluKoreksi: { light: '#d03b3b', dark: '#e66767' } as ColorPair,
+  belumKurasi: { light: '#cbd5e1', dark: '#475569' } as ColorPair,
+};
+
+export function seriesColor(key: keyof typeof SERIES, isDark: boolean): string {
+  return pick(SERIES[key], isDark);
+}
+
+// Ink/grid untuk sumbu & tooltip mengikuti tema.
+export function chartInk(isDark: boolean) {
+  return {
+    tick: isDark ? '#9CA3B8' : '#5B6472',
+    grid: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(100,116,139,0.14)',
+    surface: isDark ? '#131924' : '#FFFFFF',
+    border: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(11,11,11,0.10)',
+    tooltipBg: isDark ? '#1A2130' : '#0f172a',
+    tooltipText: '#FFFFFF',
+  };
+}
+
+// Format Rupiah ringkas untuk label/axis chart: Rp1,2 M / Rp450 Jt / Rp0.
+export function fmtCompactRp(m: number): string {
+  const n = Number(m) || 0;
+  if (Math.abs(n) >= 1e12) return 'Rp' + (n / 1e12).toFixed(1).replace('.', ',') + ' T';
+  if (Math.abs(n) >= 1e9) return 'Rp' + (n / 1e9).toFixed(1).replace('.', ',') + ' M';
+  if (Math.abs(n) >= 1e6) return 'Rp' + (n / 1e6).toFixed(0) + ' Jt';
+  if (Math.abs(n) >= 1e3) return 'Rp' + (n / 1e3).toFixed(0) + ' Rb';
+  return 'Rp' + n.toLocaleString('id-ID');
+}

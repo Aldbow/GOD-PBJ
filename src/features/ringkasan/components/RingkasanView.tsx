@@ -1,353 +1,251 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
-import { ProgressBar } from '@/components/ui/ProgressBar';
-import { RealisasiChart } from './RealisasiChart';
-import { Badge } from '@/components/ui/Badge';
-import { StatCard } from '@/components/ui/StatCard';
-import { SectionHeader } from '@/components/ui/SectionHeader';
-import { Skeleton } from '@/components/ui/Skeleton';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { RefreshCw, Download, PieChart, BarChart3, Layers } from 'lucide-react';
+import { ErrorBox } from '@/components/ui/ErrorBox';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
-import { Package } from '@/types';
-import { supabase } from '@/lib/supabase';
+import { fmtInt, fmtPct, fmtRupiah } from '@/lib/format';
+import {
+  fetchGabunganRows,
+  aggregate,
+  listSatker,
+  listPpk,
+  filterRows,
+  type GabunganRow,
+  type RingkasanFilterValue,
+} from '../lib/ringkasanData';
+import { RingkasanFilter } from './RingkasanFilter';
+import { KpiCards } from './KpiCards';
+import { MetodeDonutChart } from './charts/MetodeDonutChart';
+import { MetodeBarChart } from './charts/MetodeBarChart';
+import { RealisasiMetodeChart } from './charts/RealisasiMetodeChart';
+import { StatusPaketChart } from './charts/StatusPaketChart';
+import { metodeColor, useIsDark } from './charts/chartTheme';
+import { ItkpGauge } from './ItkpGauge';
+import { KurasiAkurasi } from './KurasiAkurasi';
 import styles from './RingkasanView.module.css';
 
-const containerVariants: Variants = {
+const container: Variants = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+const item: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 26 } },
 };
 
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300 } }
-};
+const EMPTY_FILTER: RingkasanFilterValue = { satker: '', ppk: '' };
 
 export function RingkasanView() {
-  const [allRisks, setAllRisks] = useState<any[]>([]);
-  const [risks, setRisks] = useState<{ satkerName: string, pkg: Package }[]>([]);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [isCurationLoading, setIsCurationLoading] = useState(false);
-  const [isCurationAutoRunning, setIsCurationAutoRunning] = useState(false);
-  const [curationMessage, setCurationMessage] = useState<string | null>(null);
-  const [curationStats, setCurationStats] = useState<{ akurat: number; tidakAkurat: number; belum: number } | null>(null);
+  const [rows, setRows] = useState<GabunganRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [applied, setApplied] = useState<RingkasanFilterValue>(EMPTY_FILTER);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const isDark = useIsDark();
 
-  const stopAutoCurationRef = useRef(false);
-
-  // Hitung ringkasan kurasi dari data nyata (tabel ai_kurasi_paket) — bukan angka dummy.
-  const fetchCurationStats = async () => {
-    const [akuratRes, tidakAkuratRes, totalRes] = await Promise.all([
-      supabase.from('ai_kurasi_paket').select('*', { count: 'exact', head: true }).eq('status_kurasi', 'Akurat'),
-      supabase.from('ai_kurasi_paket').select('*', { count: 'exact', head: true }).eq('status_kurasi', 'Tidak Akurat'),
-      supabase.from('view_dashboard_gabungan_satker').select('*', { count: 'exact', head: true }),
-    ]);
-
-    const akurat = akuratRes.count ?? 0;
-    const tidakAkurat = tidakAkuratRes.count ?? 0;
-    const total = totalRes.count ?? 0;
-    // "Belum Dikurasi" = seluruh paket yang belum punya keputusan Akurat/Tidak Akurat.
-    const belum = Math.max(total - akurat - tidakAkurat, 0);
-
-    setCurationStats({ akurat, tidakAkurat, belum });
-  };
-
-  const handleRunCuration = async () => {
-    setIsCurationLoading(true);
-    setIsCurationAutoRunning(true);
-    stopAutoCurationRef.current = false;
-    setCurationMessage('Memulai kurasi otomatis...');
-    let totalProcessedSoFar = 0;
-    let consecutiveRateLimits = 0;
-    const MAX_CONSECUTIVE_RATE_LIMITS = 3; // hentikan bila kuota (mis. harian) terus mentok
-
-    while (!stopAutoCurationRef.current) {
-      try {
-        const res = await fetch('/api/kurasi', { method: 'POST' });
-        const data = await res.json();
-
-        if (res.ok) {
-           consecutiveRateLimits = 0;
-           // Gunakan updated_count (baris yang BENAR-BENAR tersimpan), bukan total_processed,
-           // agar loop berhenti bila tidak ada progres nyata (mencegah pengulangan tanpa henti).
-           const updated = data.updated_count ?? 0;
-           totalProcessedSoFar += updated;
-
-           if (updated === 0) {
-              setCurationMessage(`Selesai! Tidak ada lagi data yang perlu dikurasi. (Total yang berhasil dikurasi: ${totalProcessedSoFar} paket)`);
-              break;
-           }
-
-           setCurationMessage(`Telah mengurasi ${totalProcessedSoFar} data. Menunggu 5 detik untuk permintaan berikutnya...`);
-           await new Promise(resolve => setTimeout(resolve, 5000));
-        } else if (res.status === 429) {
-           consecutiveRateLimits += 1;
-           if (consecutiveRateLimits >= MAX_CONSECUTIVE_RATE_LIMITS) {
-              setCurationMessage(`Kuota Gemini API terus tercapai (kemungkinan batas harian free tier habis). Kurasi dihentikan. Total berhasil: ${totalProcessedSoFar} paket. Coba lagi nanti atau aktifkan billing.`);
-              break;
-           }
-           const waitSec = Math.min(Math.max(Number(data.retryAfterSeconds) || 35, 5), 60);
-           setCurationMessage(`Batas akses (kuota) Gemini API tercapai. Menunggu ${waitSec} detik sebelum mencoba lagi (${consecutiveRateLimits}/${MAX_CONSECUTIVE_RATE_LIMITS})...`);
-           await new Promise(resolve => setTimeout(resolve, waitSec * 1000));
-        } else {
-           setCurationMessage(`Terjadi kesalahan: ${data.error}. Menghentikan kurasi otomatis.`);
-           break;
-        }
-      } catch (err) {
-        setCurationMessage('Gagal menghubungi server API. Menghentikan kurasi otomatis.');
-        break;
-      }
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchGabunganRows();
+      setRows(data);
+      setLastUpdate(new Date());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Gagal memuat data ringkasan.');
+    } finally {
+      setLoading(false);
     }
-    
-    setIsCurationLoading(false);
-    setIsCurationAutoRunning(false);
-    // Segarkan ringkasan kurasi dengan angka terbaru setelah proses selesai/berhenti.
-    fetchCurationStats();
-  };
-
-  const handleStopCuration = () => {
-    stopAutoCurationRef.current = true;
-    setCurationMessage('Perintah berhenti diterima. Menunggu AI menyelesaikan paket yang sedang dikerjakan...');
-  };
-
-  useEffect(() => {
-    // Fetch all risks for export, display top 5
-    const fetchRisks = async () => {
-      const { data, error } = await supabase
-        .from('view_dashboard_gabungan_satker')
-        .select('*');
-
-      if (data && !error) {
-        const topRisks = data.map((row: any) => {
-          const paguNum = Number(row.pagu) || 0;
-          const totalNum = Number(row.total) || 0;
-          const realisasi = paguNum > 0 ? Math.round((totalNum / paguNum) * 100) : 0;
-          let risiko: 'tinggi' | 'sedang' | 'rendah' = 'rendah';
-          if (paguNum > 1000000000 && realisasi === 0) {
-            risiko = 'tinggi';
-          } else if (realisasi < 50 && row.status !== 'Selesai' && row.status !== 'COMPLETED') {
-            risiko = 'sedang';
-          }
-
-          return {
-            satkerName: row.satker,
-            pkg: {
-              id: row.kd_rup,
-              satkerId: row.satker,
-              nama: row.rup_name || 'Tidak Diketahui',
-              nilai: paguNum / 1000000000,
-              spse: row.status || 'BELUM REALISASI',
-              sirup: row.status_aktif_rup === true || row.status_aktif_rup === 'true',
-              realisasi: Math.min(realisasi, 100),
-              risiko,
-              pic: row.nama_ppk || 'Tidak Diketahui'
-            }
-          };
-        });
-        
-        // Sort by risk priority if needed, here we just take the raw data
-        const flatRisks = topRisks.map((r: any) => ({
-          satkerName: r.satkerName,
-          kd_rup: r.pkg.id,
-          nama: r.pkg.nama,
-          pic: r.pkg.pic,
-          nilai_rp: r.pkg.nilai * 1000000000,
-          realisasi: r.pkg.realisasi,
-          spse: r.pkg.spse,
-          risiko: r.pkg.risiko,
-        }));
-
-        setAllRisks(flatRisks);
-        setRisks(topRisks.slice(0, 5));
-      }
-    };
-    const loadInitial = async () => {
-      await fetchRisks();
-      await fetchCurationStats();
-    };
-    loadInitial();
   }, []);
 
-  const exportColumns: any[] = [
-    { key: 'satkerName', label: 'Nama Satker' },
-    { key: 'kd_rup', label: 'Kode RUP' },
-    { key: 'nama', label: 'Nama Paket', width: 40 },
-    { key: 'pic', label: 'Nama PPK' },
-    { key: 'nilai_rp', label: 'Pagu (Rp)', type: 'currency' },
-    { key: 'realisasi', label: 'Realisasi (%)', type: 'number' },
-    { key: 'spse', label: 'Status SPSE' },
-    { key: 'risiko', label: 'Tingkat Risiko' },
-  ];
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const agg = useMemo(() => aggregate(rows, applied), [rows, applied]);
+  const satkerOptions = useMemo(() => listSatker(rows), [rows]);
+  const getPpkOptions = useCallback((satker: string) => listPpk(rows, satker), [rows]);
+
+  const updatedLabel = lastUpdate
+    ? `${lastUpdate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}, ${lastUpdate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`
+    : 'Memuat...';
+
+  // Data export dari baris terfilter.
+  const exportColumns = useMemo(
+    () => [
+      { key: 'satker', label: 'Satuan Kerja' },
+      { key: 'nama_ppk', label: 'Nama PPK' },
+      { key: 'rup_name', label: 'Nama Paket', width: 40 },
+      { key: 'metode_pengadaan', label: 'Metode' },
+      { key: 'pagu', label: 'Pagu (Rp)', type: 'currency' },
+      { key: 'total', label: 'Realisasi (Rp)', type: 'currency' },
+      { key: 'realisasi_pct', label: 'Realisasi (%)', type: 'number' },
+      { key: 'status_kurasi', label: 'Status Kurasi' },
+    ],
+    []
+  );
+
+  const buildExportRows = useCallback(
+    (f: RingkasanFilterValue) =>
+      filterRows(rows, f).map((r) => {
+        const pagu = Number(r.pagu) || 0;
+        const total = Number(r.total) || 0;
+        return {
+          satker: r.satker || 'Tidak Diketahui',
+          nama_ppk: r.nama_ppk || 'Tidak Diketahui',
+          rup_name: r.rup_name || 'Tidak Diketahui',
+          metode_pengadaan: r.metode_pengadaan || 'Lainnya',
+          pagu,
+          total,
+          realisasi_pct: pagu > 0 ? Math.round((total / pagu) * 100) : 0,
+          status_kurasi: r.status_kurasi || 'Belum Dikurasi',
+        };
+      }),
+    [rows]
+  );
+
+  const allExport = useMemo(() => buildExportRows(EMPTY_FILTER), [buildExportRows]);
+  const filteredExport = useMemo(() => buildExportRows(applied), [buildExportRows, applied]);
+
+  const totalPaketSemua = agg.metode.reduce((s, m) => s + m.jumlahPaket, 0);
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="show">
-      {/* Banner */}
-      <motion.div variants={itemVariants} className={styles.banner}>
+    <motion.div variants={container} initial="hidden" animate="show">
+      {/* Baris 1 — Header */}
+      <motion.div variants={item} className={styles.pageHeader}>
         <div>
-          <p className={styles.bannerEyebrow}>Proyeksi predikat ITKP tahun berjalan</p>
-          <p className={styles.bannerValue}>
-            Sangat baik <span className={styles.bannerSub}>(skor 87,4 / target 85)</span>
+          <h1 className={styles.pageTitle}>Ringkasan Pengadaan</h1>
+          <p className={styles.pageSub}>
+            Gambaran umum pelaksanaan pengadaan, realisasi anggaran, pemanfaatan sistem, dan hasil kurasi paket.
           </p>
+          <p className={styles.pagePeriod}>Data terakhir diperbarui {updatedLabel}</p>
         </div>
-        <div className={styles.bannerProgress}>
-          <ProgressBar value={87} label="87% tercapai" />
-        </div>
-      </motion.div>
-
-      {/* ITKP Indicators */}
-      <SectionHeader title="Indikator ITKP" />
-      <motion.div variants={itemVariants} className={styles.statGrid}>
-        <StatCard
-          label="Reviu RUP"
-          value="92"
-          unit="/100"
-          tone="good"
-          hint="▲ stabil, di atas target"
-        />
-        <StatCard
-          label="Pemilihan penyedia"
-          value="85"
-          unit="/100"
-          tone="warn"
-          hint="▬ mendekati ambang batas"
-        />
-        <StatCard
-          label="Tingkat kematangan UKPBJ"
-          value="90"
-          unit="/100"
-          tone="good"
-          hint="▲ naik dari kuartal lalu"
-        />
-        <StatCard
-          label="Kualifikasi & kompetensi SDM PBJ"
-          value="68"
-          unit="/100"
-          tone="danger"
-          hint="⚠ perlu intervensi pelatihan"
-        />
-      </motion.div>
-
-      {/* AI Curation Indicators */}
-      <SectionHeader
-        title="Status Validasi / Kurasi AI"
-        caption="Kepatuhan metode pemilihan terhadap pagu & jenis pengadaan"
-        action={
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {isCurationAutoRunning && (
-              <button 
-                className={styles.exportBtnHeader} 
-                onClick={handleStopCuration}
-                style={{ backgroundColor: 'var(--red-50, #fef2f2)', color: 'var(--red-700, #b91c1c)', borderColor: 'var(--red-200, #fecaca)' }}
-              >
-                Hentikan Kurasi
-              </button>
-            )}
-            <button 
-              className={styles.exportBtnHeader} 
-              onClick={handleRunCuration}
-              disabled={isCurationLoading}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: isCurationLoading ? 0.7 : 1, cursor: isCurationLoading ? 'not-allowed' : 'pointer' }}
-            >
-              {isCurationLoading && <Loader2 size={16} className={styles.spinner} style={{ animation: 'spin 1s linear infinite' }} />}
-              {isCurationLoading ? 'AI Sedang Bekerja...' : 'Jalankan Kurasi Otomatis'}
-            </button>
-          </div>
-        }
-      />
-      {isCurationLoading && (
-        <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', backgroundColor: 'var(--blue-950, #eff6ff)', border: '1px solid var(--blue-200, #bfdbfe)' }}>
-          <p style={{ margin: 0, fontSize: '13px', color: 'var(--blue-900, #1e3a8a)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-            AI sedang menganalisa data. Mohon tunggu, proses ini mungkin memakan waktu hingga 15-30 detik...
-          </p>
-        </div>
-      )}
-      {!isCurationLoading && curationMessage && (
-        <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', backgroundColor: 'var(--surface-sunken)', border: '1px solid var(--border)' }}>
-          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)' }}>{curationMessage}</p>
-        </div>
-      )}
-      <motion.div variants={itemVariants} className={styles.statGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: '24px' }}>
-        <StatCard
-          label="Total Data Akurat"
-          value={curationStats ? curationStats.akurat.toLocaleString('id-ID') : '—'}
-          unit=" pkt"
-          tone="good"
-          hint="✅ Sesuai aturan pengadaan"
-        />
-        <StatCard
-          label="Data Tidak Akurat"
-          value={curationStats ? curationStats.tidakAkurat.toLocaleString('id-ID') : '—'}
-          unit=" pkt"
-          tone="danger"
-          hint="❌ Menyalahi batas nilai/metode"
-        />
-        <StatCard
-          label="Belum Dikurasi"
-          value={curationStats ? curationStats.belum.toLocaleString('id-ID') : '—'}
-          unit=" pkt"
-          tone="warn"
-          hint="Menunggu pemrosesan"
-        />
-      </motion.div>
-
-      {/* Chart */}
-      <motion.div variants={itemVariants}>
-        <RealisasiChart />
-      </motion.div>
-
-      {/* Risks */}
-      <SectionHeader
-        title="Register risiko lintas satker"
-        caption="data ilustratif dari 5 satker contoh"
-        action={
-          <button 
-            className={styles.exportBtnHeader}
-            onClick={() => setIsExportModalOpen(true)}
-          >
-            Export Data
+        <div className={styles.headerActions}>
+          <button className={styles.ghostBtn} onClick={() => setIsExportOpen(true)} disabled={loading}>
+            <Download size={15} /> Export
           </button>
-        }
-      />
-      <motion.div variants={itemVariants} className={styles.riskList}>
-        {risks.length === 0
-          ? Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className={styles.riskRow}>
-                <Skeleton width={92} height={22} radius="var(--radius-pill)" />
-                <div className={styles.riskBody}>
-                  <Skeleton width="52%" height={13} />
-                  <Skeleton width="72%" height={11} style={{ marginTop: 7 }} />
-                </div>
-                <Skeleton width={80} height={12} />
-              </div>
-            ))
-          : risks.map((r, i) => (
-              <motion.div key={i} whileHover={{ x: 3 }} className={styles.riskRow}>
-                <Badge variant={r.pkg.risiko}>Risiko {r.pkg.risiko}</Badge>
-                <div className={styles.riskBody}>
-                  <p className={styles.riskName}>{r.pkg.nama}</p>
-                  <p className={styles.riskMeta}>
-                    Satker: {r.satkerName} · PIC: {r.pkg.pic} · {r.pkg.sirup ? 'sesuai SIRUP' : 'SIRUP belum sesuai'}
-                  </p>
-                </div>
-                <a href={`/drilldown?satker=${encodeURIComponent(r.satkerName)}`} className={styles.riskLink}>
-                  Lihat detail <ArrowRight size={14} />
-                </a>
-              </motion.div>
-            ))}
+          <button className={styles.ghostBtn} onClick={load} disabled={loading} aria-label="Muat ulang data">
+            <RefreshCw size={15} className={loading ? styles.spin : ''} /> Refresh
+          </button>
+        </div>
       </motion.div>
-      
+
+      {error && <ErrorBox className={styles.spacer}>{error}</ErrorBox>}
+
+      {/* Baris 2 — Filter */}
+      <motion.div variants={item}>
+        <RingkasanFilter
+          satkerOptions={satkerOptions}
+          getPpkOptions={getPpkOptions}
+          applied={applied}
+          onApply={setApplied}
+          disabled={loading}
+        />
+      </motion.div>
+
+      {/* Baris 3 — KPI Cards */}
+      <motion.div variants={item}>
+        <KpiCards kpi={agg.kpi} loading={loading} />
+      </motion.div>
+
+      {/* Baris 4 — Ringkasan Metode Pengadaan */}
+      <motion.div variants={item}>
+        <SectionHeader title="Ringkasan Metode Pengadaan" caption="Distribusi paket, pagu & realisasi per metode" />
+        <div className={styles.methodGrid}>
+          <div className={styles.panel}>
+            <div className={styles.panelTitle}><PieChart size={15} /> Proporsi Jumlah Paket</div>
+            <MetodeDonutChart metode={agg.metode} totalPaket={totalPaketSemua} />
+          </div>
+          <div className={styles.panel}>
+            <div className={styles.panelTitle}><BarChart3 size={15} /> Jumlah Paket per Metode</div>
+            <MetodeBarChart metode={agg.metode} />
+          </div>
+        </div>
+
+        <div className={`${styles.panel} ${styles.tablePanel}`}>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Metode</th>
+                  <th className={styles.num}>Jumlah Paket</th>
+                  <th className={styles.num}>Pagu</th>
+                  <th className={styles.num}>Realisasi</th>
+                  <th className={styles.num}>% Realisasi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agg.metode.map((m) => (
+                  <tr key={m.metode}>
+                    <td>
+                      <span className={styles.swatch} style={{ background: metodeColor(m.metode, isDark) }} />
+                      {m.metode}
+                    </td>
+                    <td className={styles.num}>{fmtInt(m.jumlahPaket)}</td>
+                    <td className={styles.num}>{fmtRupiah(m.pagu)}</td>
+                    <td className={styles.num}>{fmtRupiah(m.realisasi)}</td>
+                    <td className={styles.num}>{fmtPct(m.pctRealisasi)}</td>
+                  </tr>
+                ))}
+                {agg.metode.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className={styles.tableEmpty}>Tidak ada data untuk filter ini.</td>
+                  </tr>
+                )}
+              </tbody>
+              {agg.metode.length > 0 && (
+                <tfoot>
+                  <tr>
+                    <td>Total</td>
+                    <td className={styles.num}>{fmtInt(agg.kpi.totalPaket)}</td>
+                    <td className={styles.num}>{fmtRupiah(agg.kpi.totalPagu)}</td>
+                    <td className={styles.num}>{fmtRupiah(agg.kpi.totalRealisasi)}</td>
+                    <td className={styles.num}>{fmtPct(agg.kpi.pctRealisasi)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Baris 5 — Realisasi Berdasarkan Metode */}
+      <motion.div variants={item}>
+        <SectionHeader title="Realisasi Berdasarkan Metode Pengadaan" caption="Perbandingan pagu dan realisasi" />
+        <div className={styles.panel}>
+          <RealisasiMetodeChart metode={agg.metode} />
+        </div>
+      </motion.div>
+
+      {/* Baris 6 — Status Paket per Metode */}
+      <motion.div variants={item}>
+        <SectionHeader title="Status Paket per Metode" caption="Paket sudah vs belum realisasi" />
+        <div className={styles.panel}>
+          <div className={styles.panelTitle}><Layers size={15} /> Distribusi Status Paket</div>
+          <StatusPaketChart metode={agg.metode} />
+        </div>
+      </motion.div>
+
+      {/* Baris 7 — ITKP & Kurasi (dua kolom) */}
+      <motion.div variants={item}>
+        <SectionHeader title="Pemanfaatan Sistem & Kualitas Kurasi" />
+        <div className={styles.twoCol}>
+          <ItkpGauge satker={applied.satker} />
+          <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} />
+        </div>
+      </motion.div>
+
       <ExportDataModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        title="Laporan Realisasi & Risiko PBJ"
-        filename={`Laporan_Realisasi_${new Date().toISOString().slice(0,10)}`}
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        title="Laporan Ringkasan Pengadaan"
+        filename={`Ringkasan_Pengadaan_${new Date().toISOString().slice(0, 10)}`}
         columns={exportColumns}
-        allData={allRisks}
-        filteredData={allRisks}
+        allData={allExport}
+        filteredData={filteredExport}
       />
     </motion.div>
   );

@@ -1,133 +1,163 @@
-.banner {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--info-600) 22%, transparent);
-  background:
-    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--info-600) 16%, transparent), transparent 60%),
-    var(--info-100);
-  border-radius: var(--radius-lg);
-  padding: 20px 24px;
+/* Baris 1 — Header halaman */
+.pageHeader {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
-  gap: 20px;
+  gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
-.bannerEyebrow {
-  font-size: 12px;
-  color: var(--info-600);
-  margin: 0 0 6px;
-  font-weight: 500;
-}
-
-.bannerValue {
-  font-size: 22px;
-  font-weight: 600;
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
   color: var(--text-primary);
   margin: 0;
-  font-family: var(--font-mono);
   letter-spacing: -0.02em;
 }
 
-.bannerSub {
-  font-family: var(--font-sans);
-  font-weight: 400;
-  font-size: 13px;
+.pageSub {
+  font-size: 13.5px;
   color: var(--text-secondary);
-  letter-spacing: 0;
+  margin: 6px 0 0;
+  max-width: 640px;
+  line-height: 1.5;
 }
 
-.bannerProgress {
-  width: 240px;
-  max-width: 100%;
-}
-
-.statGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
-  margin-bottom: 28px;
-}
-
-.riskList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 28px;
-}
-
-.riskRow {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 13px 15px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
-}
-
-.riskRow:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-sm);
-}
-
-.riskBody {
-  flex: 1;
-  min-width: 180px;
-}
-
-.riskName {
-  font-size: 13px;
-  font-weight: 500;
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.riskMeta {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin: 3px 0 0;
-}
-
-.riskLink {
+.pagePeriod {
   font-size: 12px;
-  color: var(--info-600);
-  font-weight: 500;
-  text-decoration: none;
-  white-space: nowrap;
+  color: var(--text-secondary);
+  margin: 8px 0 0;
+  opacity: 0.85;
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+}
+
+.ghostBtn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  transition: gap var(--dur-fast) ease;
-}
-
-.riskLink:hover {
-  gap: 8px;
-}
-
-.skelRow {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.exportBtnHeader {
-  background-color: var(--surface);
+  gap: 6px;
+  background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
-  padding: 6px 12px;
+  padding: 8px 13px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--dur-fast) ease;
+  transition: all var(--dur-fast, 0.15s) ease;
+}
+.ghostBtn:hover:not(:disabled) { border-color: var(--border-strong); background: var(--surface-hover); }
+.ghostBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.spin { animation: ringkasanSpin 1s linear infinite; }
+@keyframes ringkasanSpin { to { transform: rotate(360deg); } }
+
+.spacer { margin-bottom: 20px; }
+
+/* Panel generik untuk chart */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 16px;
 }
 
-.exportBtnHeader:hover {
-  background-color: var(--bg-primary, #f8fafc);
-  border-color: var(--border-strong);
+.panelTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+
+.panelTitle svg { color: var(--info-600); }
+
+/* Baris 4 — dua chart berdampingan */
+.methodGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .methodGrid { grid-template-columns: 1fr; }
+}
+
+/* Tabel ringkas metode */
+.tablePanel { padding: 0; overflow: hidden; }
+
+.tableScroll { overflow-x: auto; }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  padding: 12px 18px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.table thead th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  font-weight: 600;
+  background: var(--surface-2);
+}
+
+.table tbody td { color: var(--text-primary); }
+
+.table tbody tr:hover { background: var(--surface-hover); }
+
+.table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table tfoot td {
+  font-weight: 700;
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border-bottom: none;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.tableEmpty {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 28px 0;
+}
+
+/* Baris 7 — dua kolom ITKP + Kurasi */
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 960px) {
+  .twoCol { grid-template-columns: 1fr; }
 }

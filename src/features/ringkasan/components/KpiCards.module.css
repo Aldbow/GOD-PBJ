@@ -1,0 +1,117 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+@media (max-width: 1200px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 720px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 420px) { .grid { grid-template-columns: 1fr; } }
+
+.card {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 128px;
+  transition: border-color var(--dur-fast, 0.15s) ease, box-shadow var(--dur-fast, 0.15s) ease;
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
+}
+
+/* Aksen kiri per-variant */
+.card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+.brand::before { background: linear-gradient(180deg, #163B63, #27B6D6); }
+.good::before { background: #0ca30c; }
+.warn::before { background: #eda100; }
+.neutral::before { background: var(--border-strong, #cbd5e1); }
+
+/* Kartu prioritas (Total Pagu) pakai gradient halus */
+.brand {
+  background:
+    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, #27B6D6 12%, transparent), transparent 55%),
+    var(--surface);
+}
+
+.top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: var(--surface-2);
+  color: var(--info-600);
+}
+.good .icon { color: #0a7d0a; background: color-mix(in srgb, #0ca30c 12%, transparent); }
+.warn .icon { color: #b07a00; background: color-mix(in srgb, #eda100 14%, transparent); }
+.brand .icon { color: #1A5D91; background: color-mix(in srgb, #1A5D91 12%, transparent); }
+
+:global([data-theme='dark']) .good .icon { color: #4ade80; }
+:global([data-theme='dark']) .warn .icon { color: #f0c34d; }
+:global([data-theme='dark']) .brand .icon { color: #6db3ff; }
+
+.value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 12px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.track {
+  height: 5px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+.good .fill { background: #0ca30c; }
+.warn .fill { background: #eda100; }
+.brand .fill { background: linear-gradient(90deg, #1A5D91, #27B6D6); }
+.neutral .fill { background: var(--info-600); }
+
+.hint {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: auto;
+  padding-top: 8px;
+}
