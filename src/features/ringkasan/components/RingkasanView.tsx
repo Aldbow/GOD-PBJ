@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { RefreshCw, Download, PieChart, BarChart3, Layers } from 'lucide-react';
+import { RefreshCw, Download, PieChart, BarChart3 } from 'lucide-react';
 import { ErrorBox } from '@/components/ui/ErrorBox';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
@@ -20,8 +20,6 @@ import { RingkasanFilter } from './RingkasanFilter';
 import { KpiCards } from './KpiCards';
 import { MetodeDonutChart } from './charts/MetodeDonutChart';
 import { MetodeBarChart } from './charts/MetodeBarChart';
-import { RealisasiMetodeChart } from './charts/RealisasiMetodeChart';
-import { StatusPaketChart } from './charts/StatusPaketChart';
 import { metodeColor, useIsDark } from './charts/chartTheme';
 import { ItkpGauge } from './ItkpGauge';
 import { KurasiAkurasi } from './KurasiAkurasi';
@@ -215,23 +213,6 @@ export function RingkasanView() {
               )}
             </table>
           </div>
-        </div>
-      </motion.div>
-
-      {/* Baris 5 — Realisasi Berdasarkan Metode */}
-      <motion.div variants={item}>
-        <SectionHeader title="Realisasi Berdasarkan Metode Pengadaan" caption="Perbandingan pagu dan realisasi" />
-        <div className={styles.panel}>
-          <RealisasiMetodeChart metode={agg.metode} />
-        </div>
-      </motion.div>
-
-      {/* Baris 6 — Status Paket per Metode */}
-      <motion.div variants={item}>
-        <SectionHeader title="Status Paket per Metode" caption="Paket sudah vs belum realisasi" />
-        <div className={styles.panel}>
-          <div className={styles.panelTitle}><Layers size={15} /> Distribusi Status Paket</div>
-          <StatusPaketChart metode={agg.metode} />
         </div>
       </motion.div>
 
