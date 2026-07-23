@@ -83,7 +83,9 @@ export function RingkasanView() {
       { key: 'pagu', label: 'Pagu (Rp)', type: 'currency' },
       { key: 'total', label: 'Realisasi (Rp)', type: 'currency' },
       { key: 'realisasi_pct', label: 'Realisasi (%)', type: 'number' },
-      { key: 'status_kurasi', label: 'Status Kurasi' },
+      { key: 'status_kurasi', label: 'Status Kurasi AI' },
+      { key: 'catatan_kurasi', label: 'Catatan Kurasi AI', width: 40 },
+      { key: 'rekomendasi_kurasi', label: 'Rekomendasi Kurasi AI', width: 40 },
     ],
     []
   );
@@ -102,6 +104,8 @@ export function RingkasanView() {
           total,
           realisasi_pct: pagu > 0 ? Math.round((total / pagu) * 100) : 0,
           status_kurasi: r.status_kurasi || 'Belum Dikurasi',
+          catatan_kurasi: r.catatan_kurasi || '-',
+          rekomendasi_kurasi: r.rekomendasi_kurasi || '-',
         };
       }),
     [rows]

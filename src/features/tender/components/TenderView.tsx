@@ -268,6 +268,8 @@ export function TenderView() {
     { key: 'pct', label: 'Realisasi (%)', type: 'number' },
     { key: 'status', label: 'Status' },
     { key: 'status_kurasi', label: 'Status Kurasi AI' },
+    { key: 'catatan_kurasi', label: 'Catatan Kurasi AI', width: 40 },
+    { key: 'rekomendasi_kurasi', label: 'Rekomendasi Kurasi AI', width: 40 },
   ], []);
 
   const mapForExport = (item: any) => ({
@@ -275,7 +277,9 @@ export function TenderView() {
     is_multiple_rup: item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP',
     pct: (Number(item.pagu) || 0) > 0 ? ((Number(item.total) || 0) / (Number(item.pagu) || 0)) * 100 : 0,
     status: (Number(item.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI',
-    status_kurasi: item.status_kurasi || 'Belum Dikurasi'
+    status_kurasi: item.status_kurasi || 'Belum Dikurasi',
+    catatan_kurasi: item.catatan_kurasi || '-',
+    rekomendasi_kurasi: item.rekomendasi_kurasi || '-'
   });
 
   const exportAllData = useMemo(() => baseData.map(mapForExport), [baseData]);

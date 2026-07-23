@@ -291,13 +291,17 @@ export function SwakelolaView() {
     { key: 'pct', label: 'Realisasi (%)', type: 'number' },
     { key: 'status', label: 'Status' },
     { key: 'status_kurasi', label: 'Status Kurasi AI' },
+    { key: 'catatan_kurasi', label: 'Catatan Kurasi AI', width: 40 },
+    { key: 'rekomendasi_kurasi', label: 'Rekomendasi Kurasi AI', width: 40 },
   ], []);
 
   const mapForExport = (item: any) => ({
     ...item,
     tipe_swakelola_formatted: item.tipe_swakelola ? `Tipe ${item.tipe_swakelola}` : '-',
     pct: (Number(item.pagu) || 0) > 0 ? ((Number(item.total) || 0) / (Number(item.pagu) || 0)) * 100 : 0,
-    status_kurasi: item.status_kurasi || 'Belum Dikurasi'
+    status_kurasi: item.status_kurasi || 'Belum Dikurasi',
+    catatan_kurasi: item.catatan_kurasi || '-',
+    rekomendasi_kurasi: item.rekomendasi_kurasi || '-'
   });
 
   const exportAllData = useMemo(() => baseData.map(mapForExport), [baseData]);

@@ -302,6 +302,8 @@ export function EPurchasingView() {
     { key: 'kode_penyedia', label: 'Penyedia' },
     { key: 'status', label: 'Status' },
     { key: 'status_kurasi', label: 'Status Kurasi AI' },
+    { key: 'catatan_kurasi', label: 'Catatan Kurasi AI', width: 40 },
+    { key: 'rekomendasi_kurasi', label: 'Rekomendasi Kurasi AI', width: 40 },
     { key: 'pagu', label: 'Pagu (Rp)', type: 'currency' },
     { key: 'total', label: 'Realisasi (Rp)', type: 'currency' },
     { key: 'pct', label: 'Realisasi (%)', type: 'number' },
@@ -309,7 +311,10 @@ export function EPurchasingView() {
 
   const mapForExport = (item: any) => ({
     ...item,
-    pct: (item.pagu || 0) > 0 ? ((item.total || 0) / (item.pagu || 0)) * 100 : 0
+    pct: (item.pagu || 0) > 0 ? ((item.total || 0) / (item.pagu || 0)) * 100 : 0,
+    status_kurasi: item.status_kurasi || 'Belum Dikurasi',
+    catatan_kurasi: item.catatan_kurasi || '-',
+    rekomendasi_kurasi: item.rekomendasi_kurasi || '-'
   });
 
   const exportAllData = useMemo(() => baseData.map(mapForExport), [baseData]);
