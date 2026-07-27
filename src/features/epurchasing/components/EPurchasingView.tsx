@@ -515,11 +515,11 @@ export function EPurchasingView() {
               </div>
               <div>
                 <span className={styles.modalFieldLabel}>Total Nilai Pagu</span>
-                <span className={styles.modalFieldValue}>{fmtRupiah(selectedItem.pagu)}</span>
+                <span className={styles.modalFieldValue}>{fmtRupiahDetail(selectedItem.pagu)}</span>
               </div>
               <div>
                 <span className={styles.modalFieldLabel}>Total Nilai Realisasi</span>
-                <span className={styles.modalFieldValueStrong}>{fmtRupiah(selectedItem.total)}</span>
+                <span className={styles.modalFieldValueStrong}>{fmtRupiahDetail(selectedItem.total)}</span>
               </div>
             </div>
 

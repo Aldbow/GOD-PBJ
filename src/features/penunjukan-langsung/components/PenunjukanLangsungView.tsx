@@ -469,19 +469,19 @@ export function PenunjukanLangsungView() {
               <div className={styles.modalDivider} />
               <div>
                 <span className={styles.modalFieldLabel}>Total Nilai Pagu</span>
-                <span className={styles.modalFieldValue}>{fmtRupiah(Number(selectedItem.pagu))}</span>
+                <span className={styles.modalFieldValue}>{fmtRupiahDetail(Number(selectedItem.pagu))}</span>
               </div>
               <div>
                 <span className={styles.modalFieldLabel}>Total Realisasi Keseluruhan</span>
-                <span className={styles.modalFieldValueStrong}>{fmtRupiah(Number(selectedItem.total))}</span>
+                <span className={styles.modalFieldValueStrong}>{fmtRupiahDetail(Number(selectedItem.total))}</span>
               </div>
               <div>
                 <span className={styles.modalFieldLabel}>- Realisasi (Pencatatan)</span>
-                <span className={styles.modalFieldValueMuted}>{fmtRupiah(Number(selectedItem.total_pencatatan || 0))}</span>
+                <span className={styles.modalFieldValueMuted}>{fmtRupiahDetail(Number(selectedItem.total_pencatatan || 0))}</span>
               </div>
               <div>
                 <span className={styles.modalFieldLabel}>- Realisasi (Transaksional)</span>
-                <span className={styles.modalFieldValueMuted}>{fmtRupiah(Number(selectedItem.total_transaksional || 0))}</span>
+                <span className={styles.modalFieldValueMuted}>{fmtRupiahDetail(Number(selectedItem.total_transaksional || 0))}</span>
               </div>
             </div>
 
