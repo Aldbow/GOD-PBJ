@@ -132,15 +132,23 @@ export async function POST() {
       );
     }
 
-    // 1. Ambil batch dari penyedia dulu; bila penyedia sudah habis, lanjut ke swakelola.
-    //    Dengan begini frontend cukup memanggil ulang endpoint ini sampai kedua sumber habis.
-    let source: 'penyedia' | 'swakelola' = 'penyedia';
-    let paketList = await fetchPenyediaBatch(BATCH_SIZE);
+    // 1. Ambil batch campuran (penyedia & swakelola) agar keduanya diproses secara bersamaan.
+    const halfBatch = Math.floor(BATCH_SIZE / 2);
+    let paketPenyedia = await fetchPenyediaBatch(halfBatch);
+    let paketSwakelola = await fetchSwakelolaBatch(halfBatch);
 
-    if (paketList.length === 0) {
-      source = 'swakelola';
-      paketList = await fetchSwakelolaBatch(BATCH_SIZE);
+    // Jika salah satu tipe kurang dari setengah batch (karena sudah hampir habis di database), 
+    // alokasikan sisa kuotanya ke tipe yang lain agar jumlah data yang diproses tetap optimal sebesar BATCH_SIZE.
+    if (paketPenyedia.length < halfBatch) {
+      const sisaKuota = BATCH_SIZE - paketPenyedia.length;
+      paketSwakelola = await fetchSwakelolaBatch(sisaKuota);
+    } else if (paketSwakelola.length < halfBatch) {
+      const sisaKuota = BATCH_SIZE - paketSwakelola.length;
+      paketPenyedia = await fetchPenyediaBatch(sisaKuota);
     }
+
+    const paketList = [...paketPenyedia, ...paketSwakelola];
+    const source = 'penyedia & swakelola (campuran)';
 
     if (paketList.length === 0) {
       return NextResponse.json({
