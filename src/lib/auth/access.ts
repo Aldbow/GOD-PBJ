@@ -47,6 +47,8 @@ export const PUBLIC_ROUTES = ['/login'];
  * '/' hanya cocok persis; entri lain cocok bila path == entri atau diawali `entri + '/'`.
  */
 export function canAccess(role: Role, path: string): boolean {
+  if (path.startsWith('http://') || path.startsWith('https://')) return true;
+  
   const allow = ROUTE_ACCESS[role];
   if (allow === '*') return true;
   return allow.some((base) =>

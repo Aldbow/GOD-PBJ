@@ -47,8 +47,8 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'prioritas-nasional',
     label: 'Program Prioritas Nasional',
     links: [
-      { name: 'Prioritas Nasional', href: '/prioritas-nasional', icon: React.createElement(Star, { size: 18 }) },
-      { name: 'Master Data PN', href: '/program-prioritas', icon: React.createElement(Database, { size: 18 }) },
+      { name: 'Prioritas Nasional', href: 'https://god-pbj.vercel.app/prioritas-nasional', icon: React.createElement(Star, { size: 18 }) },
+      { name: 'Master Data PN', href: 'https://god-pbj.vercel.app/program-prioritas', icon: React.createElement(Database, { size: 18 }) },
     ],
   },
 ];
