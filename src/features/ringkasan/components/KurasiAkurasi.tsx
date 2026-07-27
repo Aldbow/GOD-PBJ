@@ -112,12 +112,15 @@ export function KurasiAkurasi({ kurasi, metode, onRefresh, isFullWidth = false }
                   <stop offset="100%" stopColor="#27B6D6" />
                 </linearGradient>
               </defs>
-              <circle cx="65" cy="65" r={RING_R} className={styles.ringTrack} />
+              <circle cx="65" cy="65" r={RING_R} className={styles.ringTrack} fill="transparent" strokeWidth="11" stroke="var(--surface-2, #e2e8f0)" />
               <circle
                 cx="65"
                 cy="65"
                 r={RING_R}
                 className={styles.ringValue}
+                fill="transparent"
+                strokeWidth="11"
+                stroke="url(#kurasiRingGrad)"
                 style={{ strokeDasharray: RING_C, strokeDashoffset: RING_C * (1 - pctAkurasi / 100) }}
                 transform="rotate(-90 65 65)"
               />

@@ -139,11 +139,14 @@ export function ItkpGauge({ satker, forceComponentA = false }: { satker: string;
                     <stop offset="100%" stopColor="#27B6D6" />
                   </linearGradient>
                 </defs>
-                <path d={ARC_PATH} className={styles.gaugeTrack} strokeLinecap="round" />
+                <path d={ARC_PATH} className={styles.gaugeTrack} strokeLinecap="round" fill="transparent" strokeWidth="15" stroke="var(--surface-2, #e2e8f0)" />
                 <path
                   d={ARC_PATH}
                   className={styles.gaugeValue}
                   strokeLinecap="round"
+                  fill="transparent"
+                  strokeWidth="15"
+                  stroke="url(#itkpGaugeGrad)"
                   style={{ strokeDasharray: ARC_LEN, strokeDashoffset: ARC_LEN * (1 - ratio) }}
                 />
               </svg>

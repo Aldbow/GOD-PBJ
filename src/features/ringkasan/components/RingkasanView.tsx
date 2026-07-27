@@ -2,7 +2,9 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer } from 'lucide-react';
+import * as htmlToImage from 'html-to-image';
+import { jsPDF } from 'jspdf';
 import { ErrorBox } from '@/components/ui/ErrorBox';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
@@ -53,7 +55,37 @@ export function RingkasanView() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSatkerForDetail, setSelectedSatkerForDetail] = useState<string | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const isDark = useIsDark();
+
+  const handleDownloadPdf = async () => {
+    const el = document.getElementById('report-snapshot');
+    if (!el) return;
+    setDownloadingPdf(true);
+    try {
+      const imgData = await htmlToImage.toPng(el, {
+        pixelRatio: 2, // 2x for better resolution
+        backgroundColor: isDark ? '#0f172a' : '#f8fafc', // slate-900 / slate-50
+      });
+      
+      const img = new Image();
+      img.src = imgData;
+      await new Promise((resolve) => { img.onload = resolve; });
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [img.width, img.height]
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, img.width, img.height);
+      const filename = `Laporan_Ringkasan_Pengadaan_${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(filename);
+    } catch (err) {
+      console.error('Failed to generate PDF', err);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -204,6 +236,9 @@ export function RingkasanView() {
           <p className={styles.pagePeriod}>Data terakhir diperbarui {updatedLabel}</p>
         </div>
         <div className={styles.headerActions}>
+          <button className={styles.ghostBtn} onClick={handleDownloadPdf} disabled={loading || downloadingPdf}>
+            {downloadingPdf ? <RefreshCw size={15} className={styles.spin} /> : <Printer size={15} />} Cetak Laporan
+          </button>
           <button className={styles.ghostBtn} onClick={() => setIsExportOpen(true)} disabled={loading}>
             <Download size={15} /> Export
           </button>
@@ -215,6 +250,7 @@ export function RingkasanView() {
 
       {error && <ErrorBox className={styles.spacer}>{error}</ErrorBox>}
 
+      <div id="report-snapshot" style={{ padding: '4px' }}>
       {/* Baris 2 — Filter */}
       <motion.div variants={item}>
         <RingkasanFilter
@@ -423,7 +459,8 @@ export function RingkasanView() {
         <AnomaliPanel summary={agg.anomali} />
         <AnomaliTable rows={agg.anomaliRows} />
       </motion.div>
-
+      </div>
+      
       <ExportDataModal
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
