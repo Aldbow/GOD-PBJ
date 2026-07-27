@@ -19,11 +19,10 @@ import {
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorBox } from '@/components/ui/ErrorBox';
-import { SearchableSelect } from '@/components/paket/SearchableSelect';
 import { computeItkpA, type ItkpAInput, type ItkpAResult } from '@/lib/itkp/calcA';
 import { computeItkpBCD, type ItkpBCDResult } from '@/lib/itkp/calcBCD';
 import { getDummyBCDForUnit } from '@/lib/itkp/dummyBCD';
-import { fetchItkpAData, type ItkpAUnit } from '@/lib/itkp/fetchA';
+import { fetchItkpAData } from '@/lib/itkp/fetchA';
 import { fmtDec, fmtPct } from '@/lib/format';
 import {
   buildComponents,
