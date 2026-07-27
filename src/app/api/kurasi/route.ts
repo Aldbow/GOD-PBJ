@@ -98,7 +98,7 @@ DATA YANG TERSEDIA untuk tiap paket: kd_rup, rup_name (nama paket), pagu (nilai 
 PENTING — BATASAN DATA:
 - Data KODE AKUN / mata anggaran TIDAK tersedia. JANGAN menilai kesesuaian kode akun.
 - Fokus penilaian HANYA pada kesesuaian nilai pagu terhadap metode_pengadaan dan jenis_pengadaan.
-- Jika data tidak cukup untuk menilai (mis. jenis_pengadaan kosong/tidak jelas, atau butuh informasi yang tidak ada), tandai "Belum Dikurasi". JANGAN menebak.
+- Jika data tidak cukup untuk menilai (mis. jenis_pengadaan kosong/tidak jelas, atau butuh informasi yang tidak ada), tandai "Belum Dikurasi". JANGAN menebak, namun Anda WAJIB memberikan alasan spesifik di catatan_kurasi.
 
 STATUS:
 - "Akurat": metode pemilihan sesuai dengan pagu dan jenis pengadaannya.
@@ -126,8 +126,8 @@ Maka WAJIB tambahkan kalimat ini di akhir rekomendasi_kurasi: "Catatan: Pengadaa
 
 Untuk setiap paket berikan:
 - status_kurasi: salah satu dari nilai di atas.
-- catatan_kurasi: alasan singkat berbasis aturan (sebutkan pagu, metode, dan jenis bila relevan).
-- rekomendasi_kurasi: saran metode yang seharusnya bila "Tidak Akurat" (atau pengingat SPSE bila relevan); isi "-" bila murni "Akurat" dan tidak butuh pengingat SPSE.`;
+- catatan_kurasi: alasan singkat berbasis aturan (sebutkan pagu, metode, dan jenis bila relevan). Jika statusnya "Belum Dikurasi", JELASKAN ALASANNYA di sini (misal: "Penunjukan Langsung memerlukan dokumen justifikasi keadaan khusus di luar data RUP", atau "Jenis pengadaan kosong sehingga batas nilai tidak bisa divalidasi").
+- rekomendasi_kurasi: saran metode yang seharusnya bila "Tidak Akurat" (atau pengingat SPSE bila relevan). Jika "Belum Dikurasi", sarankan "Perlu reviu manual dokumen pemilihan". Isi "-" HANYA bila murni "Akurat" dan tidak butuh pengingat SPSE.`;
 
 export async function POST() {
   try {
