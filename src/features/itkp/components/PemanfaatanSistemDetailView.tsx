@@ -316,7 +316,6 @@ export function PemanfaatanSistemDetailView() {
                   ))}
                   <th className={`${styles.th} ${styles.thNum} ${styles.thSortable}`} onClick={() => toggleSort('total')}>
                     Skor Total {renderSortIcon('total')}
-                    <span className={styles.thSub}>(Maks. 30)</span>
                   </th>
                   <th className={`${styles.th} ${styles.thNum} ${styles.thSortable}`} onClick={() => toggleSort('capaian')}>
                     Capaian (%) {renderSortIcon('capaian')}
