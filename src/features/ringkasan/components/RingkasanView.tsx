@@ -177,6 +177,16 @@ export function RingkasanView() {
     return styles.badgeGreen;
   };
 
+  // Jika filter PPK aktif tapi Satker kosong, cari Satker dari PPK tersebut untuk ITKP.
+  const impliedSatkerForItkp = useMemo(() => {
+    if (applied.satker) return applied.satker;
+    if (applied.ppk) {
+      const row = rows.find((r) => r.nama_ppk === applied.ppk && r.satker);
+      return row?.satker || '';
+    }
+    return '';
+  }, [applied, rows]);
+
   return (
     <motion.div variants={container} initial="hidden" animate="show">
       {/* Baris 1 — Header */}
@@ -388,7 +398,7 @@ export function RingkasanView() {
       <motion.div variants={item}>
         <SectionHeader title="Pemanfaatan Sistem & Kualitas Kurasi" />
         <div className={styles.twoCol}>
-          <ItkpGauge satker={applied.satker} />
+          <ItkpGauge satker={impliedSatkerForItkp} />
           <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} />
         </div>
       </motion.div>

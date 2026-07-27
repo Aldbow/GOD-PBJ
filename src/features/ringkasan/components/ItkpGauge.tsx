@@ -82,12 +82,22 @@ export function ItkpGauge({ satker }: { satker: string }) {
 
   const totalA = resultA.total;
   const totalItkp = totalA + bcd.total;
-  const ratio = Math.max(0, Math.min(totalItkp / MAX_TOTAL, 1));
-  const band = predikatOf(totalItkp);
+  
+  const isSatker = !!matchedUnit;
+  const displayTotal = isSatker ? totalA : totalItkp;
+  const displayMax = isSatker ? resultA.totalMaxSaatIni : MAX_TOTAL;
+  
+  const ratio = displayMax > 0 ? Math.max(0, Math.min(displayTotal / displayMax, 1)) : 0;
+  
+  // Normalisasi predikat jika khusus satker agar tidak anjlok (karena max 30)
+  const normTotal = isSatker ? ratio * 100 : totalItkp;
+  const band = predikatOf(normTotal);
   const nextLabel = nextPredikatLabel(band.level);
 
-  const komponen: Komponen[] = [
-    { key: 'A', label: 'A. Pemanfaatan Sistem', score: totalA, max: 30, bobot: 30, color: '#1A5D91' },
+  const komponen: Komponen[] = isSatker ? [
+    { key: 'A', label: 'A. Pemanfaatan Sistem', score: totalA, max: resultA.totalMaxSaatIni, bobot: 100, color: '#1A5D91' }
+  ] : [
+    { key: 'A', label: 'A. Pemanfaatan Sistem', score: totalA, max: resultA.totalMaxSaatIni, bobot: 30, color: '#1A5D91' },
     { key: 'B', label: 'B. Kompetensi SDM PBJ', score: bcd.nilaiB, max: 30, bobot: 30, color: '#1FA89A' },
     { key: 'C', label: 'C. Kematangan UKPBJ', score: bcd.nilaiC, max: 30, bobot: 30, color: '#5B61D6' },
     { key: 'D', label: 'D. Integritas Pengadaan', score: bcd.nilaiD, max: 10, bobot: 10, color: '#27B6D6' },
@@ -97,18 +107,20 @@ export function ItkpGauge({ satker }: { satker: string }) {
     <div className={styles.card}>
       <div className={styles.head}>
         <div>
-          <h3 className={styles.title}>Skor ITKP 2026</h3>
-          <p className={styles.scope}>{scopeLabel}</p>
+          <h3 className={styles.title}>{isSatker ? `Skor ITKP Pemanfaatan Sistem Satuan Kerja ${scopeLabel}` : 'Skor ITKP 2026'}</h3>
+          {!isSatker && <p className={styles.scope}>{scopeLabel}</p>}
         </div>
-        <span className={styles.catPill} style={{ background: band.color, color: '#fff' }}>
-          {band.kode} · {band.label}
-        </span>
+        {!isSatker && (
+          <span className={styles.catPill} style={{ background: band.color, color: '#fff' }}>
+            {band.kode} · {band.label}
+          </span>
+        )}
       </div>
 
-      {/* Hero — total ITKP /100 */}
+      {/* Hero */}
       <div className={styles.hero}>
         <div className={styles.gaugeWrap}>
-          <svg viewBox="0 0 200 110" className={styles.gauge} role="img" aria-label={`Skor total ${fmtDec(totalItkp)} dari ${MAX_TOTAL}`}>
+          <svg viewBox="0 0 200 110" className={styles.gauge} role="img" aria-label={`Skor total ${fmtDec(displayTotal)} dari ${fmtDec(displayMax)}`}>
             <defs>
               <linearGradient id="itkpGaugeGrad" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#163B63" />
@@ -125,23 +137,29 @@ export function ItkpGauge({ satker }: { satker: string }) {
             />
           </svg>
           <div className={styles.gaugeCenter}>
-            <span className={styles.gaugeScore}>{fmtDec(totalItkp)}</span>
-            <span className={styles.gaugeMax}>/ {MAX_TOTAL}</span>
+            <span className={styles.gaugeScore}>{fmtDec(displayTotal, displayTotal % 1 === 0 ? 0 : 1)}</span>
+            <span className={styles.gaugeMax}>/ {fmtDec(displayMax, displayMax % 1 === 0 ? 0 : 1)}</span>
           </div>
         </div>
 
         <div className={styles.heroMeta}>
-          <span className={styles.heroLabel}>Total Skor ITKP</span>
-          <span className={styles.heroCategory}>{band.kode} · {band.label}</span>
-          <span className={styles.heroRange}>Rentang predikat {band.rangeLabel}</span>
+          <span className={styles.heroLabel}>{isSatker ? 'Skor Pemanfaatan Sistem' : 'Total Skor ITKP'}</span>
+          {!isSatker && (
+            <>
+              <span className={styles.heroCategory}>{band.kode} · {band.label}</span>
+              <span className={styles.heroRange}>Rentang predikat {band.rangeLabel}</span>
+            </>
+          )}
           <div className={styles.heroDivider} />
           <div className={styles.heroKpi}>
             <span className={styles.heroKpiLabel}>Capaian</span>
             <span className={styles.heroKpiVal}>{fmtPct(ratio * 100)}</span>
           </div>
-          <span className={styles.heroNext}>
-            {nextLabel ? `Menuju predikat ${nextLabel}` : 'Predikat tertinggi tercapai'}
-          </span>
+          {!isSatker && (
+            <span className={styles.heroNext}>
+              {nextLabel ? `Menuju predikat ${nextLabel}` : 'Predikat tertinggi tercapai'}
+            </span>
+          )}
         </div>
       </div>
 
