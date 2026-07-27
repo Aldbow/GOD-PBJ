@@ -99,33 +99,53 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 13.5px;
 }
 
 .table th,
 .table td {
-  padding: 12px 18px;
+  padding: 14px 16px;
   text-align: left;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .table thead th {
-  font-size: 11px;
+  font-size: 11.5px;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   color: var(--text-secondary);
   font-weight: 600;
   background: var(--surface-2);
+  border-bottom: 2px solid var(--border);
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.table thead th:hover {
+  background: var(--surface-hover);
 }
 
 .table tbody td { color: var(--text-primary); }
 
+.table tbody tr { transition: background 0.15s ease; }
 .table tbody tr:hover { background: var(--surface-hover); }
 
 .table .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.colPeringkat {
+  width: 1%;
+  text-align: center !important;
+}
+
+.colSatker {
+  white-space: normal !important;
+  min-width: 250px;
+  line-height: 1.4;
 }
 
 .table tfoot td {
@@ -142,6 +162,37 @@
   border-radius: 3px;
   margin-right: 8px;
   vertical-align: middle;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badgeRed {
+  background: var(--error-50, rgba(239, 68, 68, 0.15));
+  color: var(--error-600, #dc2626);
+}
+
+.badgeYellow {
+  background: var(--warn-50, rgba(245, 158, 11, 0.15));
+  color: var(--warn-700, #b45309);
+}
+
+.badgeBlue {
+  background: var(--info-50, rgba(59, 130, 246, 0.15));
+  color: var(--info-600, #2563eb);
+}
+
+.badgeGreen {
+  background: var(--success-50, rgba(16, 185, 129, 0.15));
+  color: var(--success-600, #059669);
 }
 
 .rowHighlight td {

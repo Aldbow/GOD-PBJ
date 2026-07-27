@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { RefreshCw, Download, PieChart, BarChart3 } from 'lucide-react';
+import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { ErrorBox } from '@/components/ui/ErrorBox';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
@@ -26,6 +26,7 @@ import { ItkpGauge } from './ItkpGauge';
 import { KurasiAkurasi } from './KurasiAkurasi';
 import { AnomaliPanel } from '@/components/paket/AnomaliPanel';
 import { AnomaliTable } from './AnomaliTable';
+import { SatkerDetailModal } from './SatkerDetailModal';
 import styles from './RingkasanView.module.css';
 
 const container: Variants = {
@@ -46,6 +47,10 @@ export function RingkasanView() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [applied, setApplied] = useState<RingkasanFilterValue>(EMPTY_FILTER);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [sortCol, setSortCol] = useState<'peringkat' | 'satker' | 'jumlahPaket' | 'pagu' | 'realisasi' | 'pctRealisasi'>('pctRealisasi');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedSatkerForDetail, setSelectedSatkerForDetail] = useState<string | null>(null);
   const isDark = useIsDark();
 
   const load = useCallback(async () => {
@@ -116,6 +121,50 @@ export function RingkasanView() {
   const filteredExport = useMemo(() => buildExportRows(applied), [buildExportRows, applied]);
 
   const totalPaketSemua = agg.metode.reduce((s, m) => s + m.jumlahPaket, 0);
+
+  const handleSort = (col: typeof sortCol) => {
+    if (sortCol === col) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortCol(col);
+      setSortDir('desc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: typeof sortCol }) => {
+    if (sortCol !== col) return <ChevronsUpDown size={14} style={{ opacity: 0.3, marginLeft: 4, verticalAlign: 'middle', display: 'inline-block' }} />;
+    return sortDir === 'asc' ? (
+      <ChevronUp size={14} style={{ marginLeft: 4, verticalAlign: 'middle', display: 'inline-block' }} />
+    ) : (
+      <ChevronDown size={14} style={{ marginLeft: 4, verticalAlign: 'middle', display: 'inline-block' }} />
+    );
+  };
+
+  const sortedSatker = useMemo(() => {
+    const withRank = [...agg.satker]
+      .sort((a, b) => b.pctRealisasi - a.pctRealisasi)
+      .map((s, i) => ({ ...s, baseRank: i + 1 }));
+
+    return withRank.sort((a, b) => {
+      const valA = sortCol === 'peringkat' ? a.baseRank : a[sortCol];
+      const valB = sortCol === 'peringkat' ? b.baseRank : b[sortCol];
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      return sortDir === 'asc' ? (valA as number) - (valB as number) : (valB as number) - (valA as number);
+    });
+  }, [agg.satker, sortCol, sortDir]);
+
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.max(1, Math.ceil(sortedSatker.length / ITEMS_PER_PAGE));
+  const paginatedSatker = sortedSatker.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const getCapaianBadgeClass = (pct: number) => {
+    if (pct < 25) return styles.badgeRed;
+    if (pct < 50) return styles.badgeYellow;
+    if (pct < 75) return styles.badgeBlue;
+    return styles.badgeGreen;
+  };
 
   return (
     <motion.div variants={container} initial="hidden" animate="show">
@@ -232,26 +281,48 @@ export function RingkasanView() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Peringkat</th>
-                  <th>Satker</th>
-                  <th className={styles.num}>Jumlah Paket</th>
-                  <th className={styles.num}>Pagu</th>
-                  <th className={styles.num}>Realisasi</th>
-                  <th className={styles.num}>% Capaian</th>
+                  <th onClick={() => handleSort('peringkat')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }} className={styles.colPeringkat}>
+                    Peringkat <SortIcon col="peringkat" />
+                  </th>
+                  <th onClick={() => handleSort('satker')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }} className={styles.colSatker}>
+                    Satker <SortIcon col="satker" />
+                  </th>
+                  <th className={styles.num} onClick={() => handleSort('jumlahPaket')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    Jumlah Paket <SortIcon col="jumlahPaket" />
+                  </th>
+                  <th className={styles.num} onClick={() => handleSort('pagu')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    Pagu <SortIcon col="pagu" />
+                  </th>
+                  <th className={styles.num} onClick={() => handleSort('realisasi')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    Realisasi <SortIcon col="realisasi" />
+                  </th>
+                  <th className={styles.num} onClick={() => handleSort('pctRealisasi')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    % Capaian <SortIcon col="pctRealisasi" />
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {agg.satker.map((s, i) => (
-                  <tr key={s.satker} className={s.satker === applied.satker ? styles.rowHighlight : undefined}>
-                    <td className={styles.num}>{i + 1}</td>
-                    <td>{s.satker}</td>
+                {paginatedSatker.map((s) => (
+                  <tr 
+                    key={s.satker} 
+                    className={s.satker === applied.satker ? styles.rowHighlight : undefined}
+                    onClick={() => setSelectedSatkerForDetail(s.satker)}
+                    style={{ cursor: 'pointer' }}
+                    title="Klik untuk melihat detail satuan kerja"
+                  >
+                    <td className={`${styles.num} ${styles.colPeringkat}`}>{s.baseRank}</td>
+                    <td className={styles.colSatker}>{s.satker}</td>
                     <td className={styles.num}>{fmtInt(s.jumlahPaket)}</td>
                     <td className={styles.num}>{fmtRupiah(s.pagu)}</td>
                     <td className={styles.num}>{fmtRupiah(s.realisasi)}</td>
-                    <td className={styles.num}>{fmtPct(s.pctRealisasi)}</td>
+                    <td className={styles.num}>
+                      <span className={`${styles.badge} ${getCapaianBadgeClass(s.pctRealisasi)}`}>
+                        {fmtPct(s.pctRealisasi)}
+                      </span>
+                    </td>
                   </tr>
                 ))}
-                {agg.satker.length === 0 && (
+                {paginatedSatker.length === 0 && (
                   <tr>
                     <td colSpan={6} className={styles.tableEmpty}>Tidak ada data untuk filter ini.</td>
                   </tr>
@@ -259,6 +330,27 @@ export function RingkasanView() {
               </tbody>
             </table>
           </div>
+          {agg.satker.length > ITEMS_PER_PAGE && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '24px', marginBottom: '8px' }}>
+              <button 
+                className={styles.ghostBtn} 
+                disabled={currentPage === 1} 
+                onClick={() => setCurrentPage(p => p - 1)}
+              >
+                Sebelumnya
+              </button>
+              <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>
+                Halaman {currentPage} dari {totalPages}
+              </span>
+              <button 
+                className={styles.ghostBtn} 
+                disabled={currentPage === totalPages} 
+                onClick={() => setCurrentPage(p => p + 1)}
+              >
+                Selanjutnya
+              </button>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -285,6 +377,12 @@ export function RingkasanView() {
         columns={exportColumns}
         allData={allExport}
         filteredData={filteredExport}
+      />
+      
+      <SatkerDetailModal 
+        satkerName={selectedSatkerForDetail}
+        rows={rows}
+        onClose={() => setSelectedSatkerForDetail(null)}
       />
     </motion.div>
   );

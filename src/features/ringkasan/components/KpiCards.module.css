@@ -41,10 +41,28 @@
 .warn::before { background: #eda100; }
 .neutral::before { background: var(--border-strong, #cbd5e1); }
 
-/* Kartu prioritas (Total Pagu) pakai gradient halus */
+/* Kartu prioritas pakai gradient halus sesuai warna aksen */
 .brand {
   background:
     radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, #27B6D6 12%, transparent), transparent 55%),
+    var(--surface);
+}
+
+.good {
+  background:
+    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, #0ca30c 12%, transparent), transparent 55%),
+    var(--surface);
+}
+
+.warn {
+  background:
+    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, #eda100 12%, transparent), transparent 55%),
+    var(--surface);
+}
+
+.neutral {
+  background:
+    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, #64748b 12%, transparent), transparent 55%),
     var(--surface);
 }
 

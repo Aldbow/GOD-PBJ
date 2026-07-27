@@ -33,8 +33,7 @@ type Row = SatkerAggregate & { isOther?: boolean; pinnedRank?: number };
 export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerAggregate[]; selectedSatker: string }) {
   const isDark = useIsDark();
   const ink = chartInk(isDark);
-  const [metric, setMetric] = useState<Metric>('realisasi');
-  const cfg = METRICS[metric];
+  const cfg = METRICS['pct'];
 
   const rows = useMemo<Row[]>(() => {
     const sorted = [...satker].sort((a, b) => cfg.getValue(b) - cfg.getValue(a));
@@ -43,24 +42,8 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
     const top = sorted.slice(0, TOP_N);
     const rest = sorted.slice(TOP_N);
     const selectedInRest = !!selectedSatker && rest.some((s) => s.satker === selectedSatker);
-    const restForOther = selectedInRest ? rest.filter((s) => s.satker !== selectedSatker) : rest;
 
     const list: Row[] = [...top];
-
-    if (restForOther.length > 0) {
-      const jumlahPaket = restForOther.reduce((s, r) => s + r.jumlahPaket, 0);
-      const pagu = restForOther.reduce((s, r) => s + r.pagu, 0);
-      const realisasi = restForOther.reduce((s, r) => s + r.realisasi, 0);
-      list.push({
-        satker: `Lainnya (${restForOther.length} satker)`,
-        jumlahPaket,
-        pagu,
-        realisasi,
-        belum: Math.max(pagu - realisasi, 0),
-        pctRealisasi: pagu > 0 ? (realisasi / pagu) * 100 : 0,
-        isOther: true,
-      });
-    }
 
     if (selectedInRest) {
       const s = sorted.find((r) => r.satker === selectedSatker)!;
@@ -68,7 +51,7 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
     }
 
     return list;
-  }, [satker, metric, selectedSatker, cfg]);
+  }, [satker, selectedSatker, cfg]);
 
   // Plugin ringan: tulis nilai metrik aktif di ujung tiap bar.
   const endLabelPlugin = useMemo<Plugin<'bar'>>(
@@ -94,11 +77,6 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
 
   const { data, options } = useMemo(() => {
     const labels = rows.map((r) => (r.pinnedRank ? `${r.satker} · Peringkat #${r.pinnedRank}` : r.satker));
-    const colors = rows.map((r) => {
-      if (r.isOther) return rankColor('other', isDark);
-      if (r.satker === selectedSatker) return rankColor('highlight', isDark);
-      return rankColor('base', isDark);
-    });
 
     return {
       data: {
@@ -106,8 +84,27 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
         datasets: [
           {
             data: rows.map((r) => cfg.getValue(r)),
-            backgroundColor: colors,
-            borderRadius: 4,
+            backgroundColor: (context: any) => {
+              const { chart, dataIndex } = context;
+              const r = rows[dataIndex];
+              if (!r || !chart.chartArea) return rankColor(r?.satker === selectedSatker ? 'highlight' : 'base', isDark);
+              
+              const { left, right } = chart.chartArea;
+              const ctx = chart.ctx;
+              const gradient = ctx.createLinearGradient(left, 0, right, 0);
+              
+              if (r.satker === selectedSatker) {
+                // Highlight: Purple to Pink (Premium look)
+                gradient.addColorStop(0, '#7928CA');
+                gradient.addColorStop(1, '#FF0080');
+              } else {
+                // Base: Blue to Cyan
+                gradient.addColorStop(0, '#007CF0');
+                gradient.addColorStop(1, '#00DFD8');
+              }
+              return gradient;
+            },
+            borderRadius: 6,
             borderSkipped: false,
             barThickness: 'flex' as const,
             maxBarThickness: 22,
@@ -145,6 +142,8 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
         },
         scales: {
           x: {
+            min: 0,
+            max: 100,
             beginAtZero: true,
             ticks: { color: ink.tick, precision: 0 },
             grid: { color: ink.grid },
@@ -160,18 +159,6 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
 
   return (
     <div>
-      <div className={styles.toggle} style={{ marginBottom: 14 }}>
-        <button className={`${styles.toggleBtn} ${metric === 'realisasi' ? styles.toggleActive : ''}`} onClick={() => setMetric('realisasi')}>
-          Realisasi (Rp)
-        </button>
-        <button className={`${styles.toggleBtn} ${metric === 'pct' ? styles.toggleActive : ''}`} onClick={() => setMetric('pct')}>
-          % Capaian
-        </button>
-        <button className={`${styles.toggleBtn} ${metric === 'belum' ? styles.toggleActive : ''}`} onClick={() => setMetric('belum')}>
-          Sisa Anggaran
-        </button>
-      </div>
-
       {rows.length === 0 ? (
         <div className={styles.empty}>Tidak ada data untuk filter ini.</div>
       ) : (
@@ -186,11 +173,6 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
             {!!selectedSatker && (
               <span className={styles.legendItem}>
                 <span className={styles.swatch} style={{ background: rankColor('highlight', isDark) }} /> Satker terpilih (filter)
-              </span>
-            )}
-            {rows.some((r) => r.isOther) && (
-              <span className={styles.legendItem}>
-                <span className={styles.swatch} style={{ background: rankColor('other', isDark) }} /> Lainnya
               </span>
             )}
           </div>
