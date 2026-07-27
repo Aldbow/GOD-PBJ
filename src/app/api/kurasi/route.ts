@@ -105,23 +105,29 @@ STATUS:
 - "Tidak Akurat": metode melanggar batas nilai untuk jenis pengadaannya.
 - "Belum Dikurasi": data tidak cukup untuk dinilai secara meyakinkan.
 
-ATURAN BATAS NILAI (Perpres 12/2021 dan perubahannya):
-- E-Purchasing: tidak dibatasi nilai (dipakai bila barang/jasa tersedia di e-katalog).
+ATURAN BATAS NILAI (Perpres No. 46 Tahun 2025):
+- E-Purchasing: tidak dibatasi nilai (wajib bila tersedia di katalog elektronik).
 - Pengadaan Langsung — Barang & Jasa Lainnya: pagu maksimal Rp200.000.000.
 - Pengadaan Langsung — Pekerjaan Konstruksi: pagu maksimal Rp400.000.000.
 - Pengadaan Langsung — Jasa Konsultansi: pagu maksimal Rp100.000.000.
 - Tender — Barang & Jasa Lainnya: pagu di atas Rp200.000.000.
 - Tender — Pekerjaan Konstruksi: pagu di atas Rp400.000.000.
 - Seleksi — Jasa Konsultansi: pagu di atas Rp100.000.000.
-- Tender Cepat: tidak dibatasi nilai.
-- Penunjukan Langsung: hanya untuk kondisi khusus (darurat/keadaan kahar, penyedia tunggal/monopoli, Inpres). Alasan tersebut TIDAK ada di data, jadi tandai "Belum Dikurasi" — jangan otomatis "Tidak Akurat".
-- Swakelola: tidak dinilai dari batas nilai penyedia. Tandai "Belum Dikurasi" kecuali ada indikasi pelanggaran yang jelas dari data.
+- Tender Cepat: tidak dibatasi nilai (untuk spesifikasi standar, penyedia terkualifikasi).
+- Penunjukan Langsung: tidak dibatasi nilai, HANYA untuk kondisi khusus (Keadaan Kahar / Hanya 1 Penyedia yang mampu / Instruksi Presiden / sesuai Pasal 38 (5) dan Pasal 41 (5) Perpres No.46/2025). Karena info ini tidak ada di data, tandai "Belum Dikurasi" — jangan otomatis "Tidak Akurat".
+- Swakelola: tidak dinilai dari batas nilai penyedia. Tandai "Belum Dikurasi" kecuali ada indikasi pelanggaran yang jelas.
 - Jika status_dikecualikan bernilai true: perlakukan sebagai pengadaan yang dikecualikan; umumnya "Akurat" selama pagu wajar.
+
+TUGAS TAMBAHAN (SPSE Transaksional): 
+Jika metode adalah "Pengadaan Langsung", dan nilainya memenuhi syarat berikut:
+- Barang/Pekerjaan Konstruksi/Jasa Lainnya dengan pagu >= Rp 50.000.000
+- ATAU Jasa Konsultansi berapapun nilainya
+Maka WAJIB tambahkan kalimat ini di akhir rekomendasi_kurasi: "Catatan: Pengadaan Langsung ini wajib menggunakan SPSE fitur transaksional sesuai Perpres 46/2025." (walaupun status_kurasi nya Akurat).
 
 Untuk setiap paket berikan:
 - status_kurasi: salah satu dari nilai di atas.
 - catatan_kurasi: alasan singkat berbasis aturan (sebutkan pagu, metode, dan jenis bila relevan).
-- rekomendasi_kurasi: saran metode yang seharusnya bila "Tidak Akurat"; isi "-" bila "Akurat" atau "Belum Dikurasi".`;
+- rekomendasi_kurasi: saran metode yang seharusnya bila "Tidak Akurat" (atau pengingat SPSE bila relevan); isi "-" bila murni "Akurat" dan tidak butuh pengingat SPSE.`;
 
 export async function POST() {
   try {
