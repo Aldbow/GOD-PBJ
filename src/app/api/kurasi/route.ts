@@ -15,8 +15,8 @@ const ai = new GoogleGenAI({
 // Model dibuat konfigurabel lewat env agar mudah diganti tanpa ubah kode bila ID model berubah.
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 
-// Batch kecil (bukan 100) untuk menghindari respons JSON terpotong (truncation) yang membuat JSON.parse gagal.
-const BATCH_SIZE = 40;
+// Batch (dinaikkan ke 100 agar dapat memproses lebih banyak data per request).
+const BATCH_SIZE = 100;
 
 // Zod Schema for Structured Output
 const KurasiItemSchema = z.object({
@@ -202,8 +202,8 @@ export async function POST() {
         break;
       } catch (error) {
         lastError = error;
-        if (isRateLimitError(error)) {
-          console.warn(`[Kurasi] Model ${model} terkena limit. Mencoba model fallback...`);
+        if (isRateLimitOrModelError(error)) {
+          console.warn(`[Kurasi] Model ${model} terkena limit atau tidak tersedia. Mencoba model fallback...`);
           continue;
         } else {
           // Jika error bukan rate limit, langsung lemparkan
@@ -280,10 +280,10 @@ export async function POST() {
 
     // Deteksi rate limit / kuota Gemini (RESOURCE_EXHAUSTED) dan teruskan sebagai HTTP 429,
     // agar frontend menjalankan logika tunggu-lalu-lanjut, bukan berhenti total.
-    if (isRateLimitError(error)) {
+    if (isRateLimitOrModelError(error)) {
       return NextResponse.json(
         {
-          error: 'Batas akses/kuota Gemini API tercapai (429).',
+          error: 'Batas akses/kuota Gemini API tercapai (429) atau model tidak tersedia.',
           retryAfterSeconds: extractRetryAfterSeconds(detail),
           details: detail,
         },
@@ -298,14 +298,14 @@ export async function POST() {
   }
 }
 
-// Cek apakah error dari Gemini adalah 429 / RESOURCE_EXHAUSTED.
-function isRateLimitError(error: unknown): boolean {
+// Cek apakah error dari Gemini adalah 429 (Rate Limit) atau 404/400 (Model Not Found/Invalid/Deprecated).
+function isRateLimitOrModelError(error: unknown): boolean {
   if (typeof error === 'object' && error !== null) {
     const status = (error as { status?: number }).status;
-    if (status === 429) return true;
+    if (status === 429 || status === 404 || status === 400) return true;
   }
   const msg = error instanceof Error ? error.message : String(error);
-  return msg.includes('RESOURCE_EXHAUSTED') || msg.includes('"code":429') || msg.includes('exceeded your current quota');
+  return msg.includes('RESOURCE_EXHAUSTED') || msg.includes('"code":429') || msg.includes('exceeded your current quota') || msg.includes('"code":404') || msg.includes('NOT_FOUND') || msg.includes('Invalid model') || msg.includes('"code":400');
 }
 
 // Ambil saran jeda retry (detik) dari pesan error Gemini, mis. "retryDelay":"34s".
