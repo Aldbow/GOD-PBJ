@@ -72,6 +72,18 @@ export interface AnomaliDetail {
   jenis: AnomaliJenis[];
 }
 
+export interface KurasiTidakAkuratDetail {
+  kd_rup: string;
+  rup_name: string | null;
+  satker: string | null;
+  nama_ppk: string | null;
+  metode_pengadaan: string | null;
+  pagu: number;
+  total: number;
+  catatan_kurasi: string | null;
+  rekomendasi_kurasi: string | null;
+}
+
 export interface RingkasanAggregate {
   kpi: RingkasanKpi;
   metode: MetodeAggregate[];
@@ -79,6 +91,7 @@ export interface RingkasanAggregate {
   kurasi: KurasiAggregate;
   anomali: AnomaliSummary;
   anomaliRows: AnomaliDetail[];
+  kurasiTidakAkurat: KurasiTidakAkuratDetail[];
 }
 
 export interface RingkasanFilterValue {
@@ -233,7 +246,25 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
     },
     anomali: summarizeAnomali(data),
     anomaliRows: buildAnomaliRows(data),
+    kurasiTidakAkurat: buildKurasiTidakAkuratRows(data),
   };
+}
+
+// Daftar paket dengan status_kurasi = 'Tidak Akurat' (untuk tabel awareness saat filter aktif).
+function buildKurasiTidakAkuratRows(rows: GabunganRow[]): KurasiTidakAkuratDetail[] {
+  return rows
+    .filter((r) => r.status_kurasi === 'Tidak Akurat')
+    .map((r) => ({
+      kd_rup: String(r.kd_rup),
+      rup_name: r.rup_name,
+      satker: r.satker,
+      nama_ppk: r.nama_ppk,
+      metode_pengadaan: r.metode_pengadaan,
+      pagu: num(r.pagu),
+      total: num(r.total),
+      catatan_kurasi: r.catatan_kurasi,
+      rekomendasi_kurasi: r.rekomendasi_kurasi,
+    }));
 }
 
 // Daftar baris anomali (detail), diurutkan dari paling parah ke ringan.

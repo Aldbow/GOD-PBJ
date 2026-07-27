@@ -28,7 +28,7 @@ interface Komponen {
   color: string;
 }
 
-export function ItkpGauge({ satker }: { satker: string }) {
+export function ItkpGauge({ satker, forceComponentA = false }: { satker: string; forceComponentA?: boolean }) {
   const [units, setUnits] = useState<ItkpAUnit[]>([]);
   const [kementerian, setKementerian] = useState<ItkpAInput | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,17 +84,20 @@ export function ItkpGauge({ satker }: { satker: string }) {
   const totalItkp = totalA + bcd.total;
   
   const isSatker = !!matchedUnit;
-  const displayTotal = isSatker ? totalA : totalItkp;
-  const displayMax = isSatker ? resultA.totalMaxSaatIni : MAX_TOTAL;
-  
+  // forceComponentA: dipaksa dari luar (mis. filter PPK aktif) walau ITKP tidak
+  // punya granularitas per-PPK — tetap tampilkan Komponen A saja sebagai pendekatan.
+  const componentAOnly = isSatker || forceComponentA;
+  const displayTotal = componentAOnly ? totalA : totalItkp;
+  const displayMax = componentAOnly ? resultA.totalMaxSaatIni : MAX_TOTAL;
+
   const ratio = displayMax > 0 ? Math.max(0, Math.min(displayTotal / displayMax, 1)) : 0;
-  
-  // Normalisasi predikat jika khusus satker agar tidak anjlok (karena max 30)
-  const normTotal = isSatker ? ratio * 100 : totalItkp;
+
+  // Normalisasi predikat jika khusus komponen A agar tidak anjlok (karena max 30)
+  const normTotal = componentAOnly ? ratio * 100 : totalItkp;
   const band = predikatOf(normTotal);
   const nextLabel = nextPredikatLabel(band.level);
 
-  const komponen: Komponen[] = isSatker ? [
+  const komponen: Komponen[] = componentAOnly ? [
     { key: 'A', label: 'A. Pemanfaatan Sistem', score: totalA, max: resultA.totalMaxSaatIni, bobot: 100, color: '#1A5D91' }
   ] : [
     { key: 'A', label: 'A. Pemanfaatan Sistem', score: totalA, max: resultA.totalMaxSaatIni, bobot: 30, color: '#1A5D91' },
@@ -107,10 +110,16 @@ export function ItkpGauge({ satker }: { satker: string }) {
     <div className={styles.card}>
       <div className={styles.head}>
         <div>
-          <h3 className={styles.title}>{isSatker ? `Skor ITKP Pemanfaatan Sistem Satuan Kerja ${scopeLabel}` : 'Skor ITKP 2026'}</h3>
-          {!isSatker && <p className={styles.scope}>{scopeLabel}</p>}
+          <h3 className={styles.title}>
+            {isSatker
+              ? `Skor ITKP Pemanfaatan Sistem Satuan Kerja ${scopeLabel}`
+              : forceComponentA
+                ? 'Skor ITKP Pemanfaatan Sistem (Hasil Filter)'
+                : 'Skor ITKP 2026'}
+          </h3>
+          {!componentAOnly && <p className={styles.scope}>{scopeLabel}</p>}
         </div>
-        {!isSatker && (
+        {!componentAOnly && (
           <span className={styles.catPill} style={{ background: band.color, color: '#fff' }}>
             {band.kode} · {band.label}
           </span>
@@ -143,8 +152,8 @@ export function ItkpGauge({ satker }: { satker: string }) {
         </div>
 
         <div className={styles.heroMeta}>
-          <span className={styles.heroLabel}>{isSatker ? 'Skor Pemanfaatan Sistem' : 'Total Skor ITKP'}</span>
-          {!isSatker && (
+          <span className={styles.heroLabel}>{componentAOnly ? 'Skor Pemanfaatan Sistem' : 'Total Skor ITKP'}</span>
+          {!componentAOnly && (
             <>
               <span className={styles.heroCategory}>{band.kode} · {band.label}</span>
               <span className={styles.heroRange}>Rentang predikat {band.rangeLabel}</span>
@@ -155,7 +164,7 @@ export function ItkpGauge({ satker }: { satker: string }) {
             <span className={styles.heroKpiLabel}>Capaian</span>
             <span className={styles.heroKpiVal}>{fmtPct(ratio * 100)}</span>
           </div>
-          {!isSatker && (
+          {!componentAOnly && (
             <span className={styles.heroNext}>
               {nextLabel ? `Menuju predikat ${nextLabel}` : 'Predikat tertinggi tercapai'}
             </span>
@@ -212,9 +221,14 @@ export function ItkpGauge({ satker }: { satker: string }) {
         </div>
       </div>
 
-      {!matchedUnit && satker && (
+      {!matchedUnit && satker && !forceComponentA && (
         <p className={styles.note}>
           <Info size={12} /> Skor ITKP dihitung per unit penilaian; Satker terpilih tidak terpetakan ke unit ITKP, jadi ditampilkan total Kementerian.
+        </p>
+      )}
+      {!matchedUnit && forceComponentA && (
+        <p className={styles.note}>
+          <Info size={12} /> ITKP dihitung per satuan kerja, bukan per PPK — skor Komponen A berikut adalah pendekatan tingkat Kementerian.
         </p>
       )}
     </div>

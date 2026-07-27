@@ -238,3 +238,11 @@
 @media (max-width: 960px) {
   .twoCol { grid-template-columns: 1fr; }
 }
+
+/* Baris 7 (mode filter) — ITKP + Kurasi + tabel awareness, stack penuh 1 kolom */
+.stackedFull {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}

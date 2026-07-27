@@ -27,6 +27,7 @@ import { KurasiAkurasi } from './KurasiAkurasi';
 import { AnomaliPanel } from '@/components/paket/AnomaliPanel';
 import { AnomaliTable } from './AnomaliTable';
 import { SatkerDetailModal } from './SatkerDetailModal';
+import { KurasiTidakAkuratTable } from './KurasiTidakAkuratTable';
 import styles from './RingkasanView.module.css';
 
 const container: Variants = {
@@ -187,6 +188,10 @@ export function RingkasanView() {
     return '';
   }, [applied, rows]);
 
+  // Filter Satker/PPK aktif -> sembunyikan Pemeringkatan Satker (tidak relevan
+  // untuk satu satker/ppk) dan pecah ITKP+Kurasi jadi stack penuh + tabel awareness.
+  const isFiltered = !!applied.satker || !!applied.ppk;
+
   return (
     <motion.div variants={container} initial="hidden" animate="show">
       {/* Baris 1 — Header */}
@@ -287,120 +292,130 @@ export function RingkasanView() {
         </div>
       </motion.div>
 
-      {/* Baris 5 — Pemeringkatan Satuan Kerja */}
-      <motion.div variants={item}>
-        <SectionHeader
-          title="Pemeringkatan Satuan Kerja"
-          caption="Peringkat satker berdasarkan realisasi, % capaian, atau sisa anggaran"
-        />
-        <div className={styles.panel}>
-          <SatkerRankingChart satker={agg.satker} selectedSatker={applied.satker} />
-        </div>
+      {/* Baris 5 — Pemeringkatan Satuan Kerja (disembunyikan saat filter Satker/PPK aktif) */}
+      {!isFiltered && (
+        <motion.div variants={item}>
+          <SectionHeader
+            title="Pemeringkatan Satuan Kerja"
+            caption="Peringkat satker berdasarkan realisasi, % capaian, atau sisa anggaran"
+          />
+          <div className={styles.panel}>
+            <SatkerRankingChart satker={agg.satker} selectedSatker={applied.satker} />
+          </div>
 
-        <div className={`${styles.panel} ${styles.tablePanel}`}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center' }}>
-            <input 
-              type="text" 
-              placeholder="Cari nama satuan kerja..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                maxWidth: '320px',
-                padding: '8px 14px',
-                borderRadius: '6px',
-                border: '1px solid var(--border-strong)',
-                background: 'var(--surface-2)',
-                color: 'var(--text-primary)',
-                fontSize: '13px',
-                outline: 'none'
-              }}
-            />
-          </div>
-          <div className={styles.tableScroll}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th onClick={() => handleSort('peringkat')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }} className={styles.colPeringkat}>
-                    Peringkat <SortIcon col="peringkat" />
-                  </th>
-                  <th onClick={() => handleSort('satker')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }} className={styles.colSatker}>
-                    Satker <SortIcon col="satker" />
-                  </th>
-                  <th className={styles.num} onClick={() => handleSort('jumlahPaket')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    Jumlah Paket <SortIcon col="jumlahPaket" />
-                  </th>
-                  <th className={styles.num} onClick={() => handleSort('pagu')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    Pagu <SortIcon col="pagu" />
-                  </th>
-                  <th className={styles.num} onClick={() => handleSort('realisasi')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    Realisasi <SortIcon col="realisasi" />
-                  </th>
-                  <th className={styles.num} onClick={() => handleSort('pctRealisasi')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    % Capaian <SortIcon col="pctRealisasi" />
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedSatker.map((s) => (
-                  <tr 
-                    key={s.satker} 
-                    className={`${styles.interactiveRow} ${s.satker === applied.satker ? styles.rowHighlight : ''}`}
-                    onClick={() => setSelectedSatkerForDetail(s.satker)}
-                    style={{ cursor: 'pointer' }}
-                    title="Klik untuk melihat detail satuan kerja"
-                  >
-                    <td className={`${styles.num} ${styles.colPeringkat}`}>{s.baseRank}</td>
-                    <td className={styles.colSatker}>{s.satker}</td>
-                    <td className={styles.num}>{fmtInt(s.jumlahPaket)}</td>
-                    <td className={styles.num}>{fmtRupiah(s.pagu)}</td>
-                    <td className={styles.num}>{fmtRupiah(s.realisasi)}</td>
-                    <td className={styles.num}>
-                      <span className={`${styles.badge} ${getCapaianBadgeClass(s.pctRealisasi)}`}>
-                        {fmtPct(s.pctRealisasi)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {paginatedSatker.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className={styles.tableEmpty}>Tidak ada data untuk filter ini.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {searchedSatker.length > ITEMS_PER_PAGE && (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '24px', marginBottom: '8px' }}>
-              <button 
-                className={styles.ghostBtn} 
-                disabled={currentPage === 1} 
-                onClick={() => setCurrentPage(p => p - 1)}
-              >
-                Sebelumnya
-              </button>
-              <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>
-                Halaman {currentPage} dari {totalPages}
-              </span>
-              <button 
-                className={styles.ghostBtn} 
-                disabled={currentPage === totalPages} 
-                onClick={() => setCurrentPage(p => p + 1)}
-              >
-                Selanjutnya
-              </button>
+          <div className={`${styles.panel} ${styles.tablePanel}`}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="Cari nama satuan kerja..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  maxWidth: '320px',
+                  padding: '8px 14px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-strong)',
+                  background: 'var(--surface-2)',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                  outline: 'none'
+                }}
+              />
             </div>
-          )}
-        </div>
-      </motion.div>
+            <div className={styles.tableScroll}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th onClick={() => handleSort('peringkat')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }} className={styles.colPeringkat}>
+                      Peringkat <SortIcon col="peringkat" />
+                    </th>
+                    <th onClick={() => handleSort('satker')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }} className={styles.colSatker}>
+                      Satker <SortIcon col="satker" />
+                    </th>
+                    <th className={styles.num} onClick={() => handleSort('jumlahPaket')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      Jumlah Paket <SortIcon col="jumlahPaket" />
+                    </th>
+                    <th className={styles.num} onClick={() => handleSort('pagu')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      Pagu <SortIcon col="pagu" />
+                    </th>
+                    <th className={styles.num} onClick={() => handleSort('realisasi')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      Realisasi <SortIcon col="realisasi" />
+                    </th>
+                    <th className={styles.num} onClick={() => handleSort('pctRealisasi')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      % Capaian <SortIcon col="pctRealisasi" />
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedSatker.map((s) => (
+                    <tr
+                      key={s.satker}
+                      className={`${styles.interactiveRow} ${s.satker === applied.satker ? styles.rowHighlight : ''}`}
+                      onClick={() => setSelectedSatkerForDetail(s.satker)}
+                      style={{ cursor: 'pointer' }}
+                      title="Klik untuk melihat detail satuan kerja"
+                    >
+                      <td className={`${styles.num} ${styles.colPeringkat}`}>{s.baseRank}</td>
+                      <td className={styles.colSatker}>{s.satker}</td>
+                      <td className={styles.num}>{fmtInt(s.jumlahPaket)}</td>
+                      <td className={styles.num}>{fmtRupiah(s.pagu)}</td>
+                      <td className={styles.num}>{fmtRupiah(s.realisasi)}</td>
+                      <td className={styles.num}>
+                        <span className={`${styles.badge} ${getCapaianBadgeClass(s.pctRealisasi)}`}>
+                          {fmtPct(s.pctRealisasi)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {paginatedSatker.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className={styles.tableEmpty}>Tidak ada data untuk filter ini.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {searchedSatker.length > ITEMS_PER_PAGE && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '24px', marginBottom: '8px' }}>
+                <button
+                  className={styles.ghostBtn}
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                >
+                  Sebelumnya
+                </button>
+                <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>
+                  Halaman {currentPage} dari {totalPages}
+                </span>
+                <button
+                  className={styles.ghostBtn}
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                >
+                  Selanjutnya
+                </button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
 
-      {/* Baris 7 — ITKP & Kurasi (dua kolom) */}
+      {/* Baris 7 — ITKP & Kurasi: dua kolom normal, atau stack penuh + tabel awareness saat filter aktif */}
       <motion.div variants={item}>
         <SectionHeader title="Pemanfaatan Sistem & Kualitas Kurasi" />
-        <div className={styles.twoCol}>
-          <ItkpGauge satker={impliedSatkerForItkp} />
-          <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} />
-        </div>
+        {isFiltered ? (
+          <div className={styles.stackedFull}>
+            <ItkpGauge satker={impliedSatkerForItkp} forceComponentA />
+            <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} />
+            <KurasiTidakAkuratTable rows={agg.kurasiTidakAkurat} />
+          </div>
+        ) : (
+          <div className={styles.twoCol}>
+            <ItkpGauge satker={impliedSatkerForItkp} />
+            <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} />
+          </div>
+        )}
       </motion.div>
 
       {/* Baris 8 — Deteksi Anomali */}
