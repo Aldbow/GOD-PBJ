@@ -407,7 +407,7 @@ export function RingkasanView() {
         {isFiltered ? (
           <div className={styles.stackedFull}>
             <ItkpGauge satker={impliedSatkerForItkp} forceComponentA />
-            <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} />
+            <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} isFullWidth={true} />
             <KurasiTidakAkuratTable rows={agg.kurasiTidakAkurat} />
           </div>
         ) : (

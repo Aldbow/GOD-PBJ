@@ -313,3 +313,22 @@
   .compTrack { display: none; }
   .miniRow { grid-template-columns: 1fr 56px auto; }
 }
+
+/* Mode ComponentAOnly (Full-width split pane) */
+.cardComponentAOnly {
+  /* optional override if needed */
+}
+
+.splitLayout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .splitLayout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}

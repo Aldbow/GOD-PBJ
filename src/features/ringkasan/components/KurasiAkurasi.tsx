@@ -10,15 +10,14 @@ import styles from './KurasiAkurasi.module.css';
 const RING_R = 52;
 const RING_C = 2 * Math.PI * RING_R;
 
-export function KurasiAkurasi({
-  kurasi,
-  metode,
-  onRefresh,
-}: {
+interface Props {
   kurasi: KurasiAggregate;
   metode: MetodeAggregate[];
   onRefresh: () => void | Promise<void>;
-}) {
+  isFullWidth?: boolean;
+}
+
+export function KurasiAkurasi({ kurasi, metode, onRefresh, isFullWidth = false }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [isAutoRunning, setIsAutoRunning] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -103,65 +102,67 @@ export function KurasiAkurasi({
         </div>
       </div>
 
-      <div className={styles.body}>
-        <div className={styles.ringWrap}>
-          <svg viewBox="0 0 130 130" className={styles.ring} role="img" aria-label={`Akurasi ${fmtPct(pctAkurasi)}`}>
-            <defs>
-              <linearGradient id="kurasiRingGrad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#1FA89A" />
-                <stop offset="100%" stopColor="#27B6D6" />
-              </linearGradient>
-            </defs>
-            <circle cx="65" cy="65" r={RING_R} className={styles.ringTrack} />
-            <circle
-              cx="65"
-              cy="65"
-              r={RING_R}
-              className={styles.ringValue}
-              style={{ strokeDasharray: RING_C, strokeDashoffset: RING_C * (1 - pctAkurasi / 100) }}
-              transform="rotate(-90 65 65)"
-            />
-          </svg>
-          <div className={styles.ringCenter}>
-            <span className={styles.ringPct}>{fmtPct(pctAkurasi, 1)}</span>
-            <span className={styles.ringLabel}>Akurasi</span>
+      <div className={`${styles.mainLayout} ${isFullWidth ? styles.mainLayoutFullWidth : ''}`}>
+        <div className={styles.body}>
+          <div className={styles.ringWrap}>
+            <svg viewBox="0 0 130 130" className={styles.ring} role="img" aria-label={`Akurasi ${fmtPct(pctAkurasi)}`}>
+              <defs>
+                <linearGradient id="kurasiRingGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#1FA89A" />
+                  <stop offset="100%" stopColor="#27B6D6" />
+                </linearGradient>
+              </defs>
+              <circle cx="65" cy="65" r={RING_R} className={styles.ringTrack} />
+              <circle
+                cx="65"
+                cy="65"
+                r={RING_R}
+                className={styles.ringValue}
+                style={{ strokeDasharray: RING_C, strokeDashoffset: RING_C * (1 - pctAkurasi / 100) }}
+                transform="rotate(-90 65 65)"
+              />
+            </svg>
+            <div className={styles.ringCenter}>
+              <span className={styles.ringPct}>{fmtPct(pctAkurasi, 1)}</span>
+              <span className={styles.ringLabel}>Akurasi</span>
+            </div>
+          </div>
+
+          <div className={styles.statsCol}>
+            <div className={styles.stackBar} role="img" aria-label="Distribusi status kurasi">
+              <span className={styles.segAkurat} style={{ width: `${wAkurat}%` }} title={`Akurat: ${fmtInt(akurat)}`} />
+              <span className={styles.segKoreksi} style={{ width: `${wKoreksi}%` }} title={`Perlu koreksi: ${fmtInt(perluKoreksi)}`} />
+              <span className={styles.segBelum} style={{ width: `${wBelum}%` }} title={`Belum dikurasi: ${fmtInt(belumDikurasi)}`} />
+            </div>
+            <p className={styles.progressNote}>{fmtPct(pctSelesai, 1)} paket telah dievaluasi AI</p>
+
+            <div className={styles.numGrid}>
+              <div className={styles.numCard} title="Jumlah paket yang sudah punya keputusan Akurat atau Tidak Akurat">
+                <span className={styles.numVal}>{fmtInt(kurasi.totalDikurasi)}</span>
+                <span className={styles.numLabel}>Total Dikurasi</span>
+              </div>
+              <div className={`${styles.numCard} ${styles.nGood}`} title="Metode pemilihan sesuai batas nilai & jenis pengadaan (Perpres 12/2021)">
+                <span className={styles.numVal}><CheckCircle2 size={13} /> {fmtInt(akurat)}</span>
+                <span className={styles.numLabel}>Akurat</span>
+              </div>
+              <div className={`${styles.numCard} ${styles.nBad}`} title="Metode melanggar batas nilai untuk jenis pengadaannya">
+                <span className={styles.numVal}><AlertTriangle size={13} /> {fmtInt(perluKoreksi)}</span>
+                <span className={styles.numLabel}>Perlu Koreksi</span>
+              </div>
+              <div className={`${styles.numCard} ${styles.nWait}`} title="Belum dievaluasi atau data tidak cukup untuk dinilai">
+                <span className={styles.numVal}><Clock size={13} /> {fmtInt(belumDikurasi)}</span>
+                <span className={styles.numLabel}>Belum Dikurasi</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className={styles.statsCol}>
-          <div className={styles.stackBar} role="img" aria-label="Distribusi status kurasi">
-            <span className={styles.segAkurat} style={{ width: `${wAkurat}%` }} title={`Akurat: ${fmtInt(akurat)}`} />
-            <span className={styles.segKoreksi} style={{ width: `${wKoreksi}%` }} title={`Perlu koreksi: ${fmtInt(perluKoreksi)}`} />
-            <span className={styles.segBelum} style={{ width: `${wBelum}%` }} title={`Belum dikurasi: ${fmtInt(belumDikurasi)}`} />
+        <div className={styles.breakdownSection}>
+          <div className={styles.breakdownHead}>
+            <BarChart3 size={14} /> Breakdown Akurasi per Metode Pengadaan
           </div>
-          <p className={styles.progressNote}>{fmtPct(pctSelesai, 1)} paket telah dievaluasi AI</p>
-
-          <div className={styles.numGrid}>
-            <div className={styles.numCard} title="Jumlah paket yang sudah punya keputusan Akurat atau Tidak Akurat">
-              <span className={styles.numVal}>{fmtInt(kurasi.totalDikurasi)}</span>
-              <span className={styles.numLabel}>Total Dikurasi</span>
-            </div>
-            <div className={`${styles.numCard} ${styles.nGood}`} title="Metode pemilihan sesuai batas nilai & jenis pengadaan (Perpres 12/2021)">
-              <span className={styles.numVal}><CheckCircle2 size={13} /> {fmtInt(akurat)}</span>
-              <span className={styles.numLabel}>Akurat</span>
-            </div>
-            <div className={`${styles.numCard} ${styles.nBad}`} title="Metode melanggar batas nilai untuk jenis pengadaannya">
-              <span className={styles.numVal}><AlertTriangle size={13} /> {fmtInt(perluKoreksi)}</span>
-              <span className={styles.numLabel}>Perlu Koreksi</span>
-            </div>
-            <div className={`${styles.numCard} ${styles.nWait}`} title="Belum dievaluasi atau data tidak cukup untuk dinilai">
-              <span className={styles.numVal}><Clock size={13} /> {fmtInt(belumDikurasi)}</span>
-              <span className={styles.numLabel}>Belum Dikurasi</span>
-            </div>
-          </div>
+          <KurasiMetodeChart metode={metode} />
         </div>
-      </div>
-
-      <div className={styles.breakdownSection}>
-        <div className={styles.breakdownHead}>
-          <BarChart3 size={14} /> Breakdown Akurasi per Metode Pengadaan
-        </div>
-        <KurasiMetodeChart metode={metode} />
       </div>
 
       {message && <div className={styles.msg}>{message}</div>}

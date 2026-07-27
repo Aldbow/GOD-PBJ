@@ -107,7 +107,7 @@ export function ItkpGauge({ satker, forceComponentA = false }: { satker: string;
   ];
 
   return (
-    <div className={styles.card}>
+    <div className={`${styles.card} ${componentAOnly ? styles.cardComponentAOnly : ''}`}>
       <div className={styles.head}>
         <div>
           <h3 className={styles.title}>
@@ -126,98 +126,106 @@ export function ItkpGauge({ satker, forceComponentA = false }: { satker: string;
         )}
       </div>
 
-      {/* Hero */}
-      <div className={styles.hero}>
-        <div className={styles.gaugeWrap}>
-          <svg viewBox="0 0 200 110" className={styles.gauge} role="img" aria-label={`Skor total ${fmtDec(displayTotal)} dari ${fmtDec(displayMax)}`}>
-            <defs>
-              <linearGradient id="itkpGaugeGrad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#163B63" />
-                <stop offset="55%" stopColor="#1A5D91" />
-                <stop offset="100%" stopColor="#27B6D6" />
-              </linearGradient>
-            </defs>
-            <path d={ARC_PATH} className={styles.gaugeTrack} strokeLinecap="round" />
-            <path
-              d={ARC_PATH}
-              className={styles.gaugeValue}
-              strokeLinecap="round"
-              style={{ strokeDasharray: ARC_LEN, strokeDashoffset: ARC_LEN * (1 - ratio) }}
-            />
-          </svg>
-          <div className={styles.gaugeCenter}>
-            <span className={styles.gaugeScore}>{fmtDec(displayTotal, displayTotal % 1 === 0 ? 0 : 1)}</span>
-            <span className={styles.gaugeMax}>/ {fmtDec(displayMax, displayMax % 1 === 0 ? 0 : 1)}</span>
+      <div className={componentAOnly ? styles.splitLayout : ''}>
+        <div className={componentAOnly ? styles.splitLeft : ''}>
+          {/* Hero */}
+          <div className={styles.hero}>
+            <div className={styles.gaugeWrap}>
+              <svg viewBox="0 0 200 110" className={styles.gauge} role="img" aria-label={`Skor total ${fmtDec(displayTotal)} dari ${fmtDec(displayMax)}`}>
+                <defs>
+                  <linearGradient id="itkpGaugeGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#163B63" />
+                    <stop offset="55%" stopColor="#1A5D91" />
+                    <stop offset="100%" stopColor="#27B6D6" />
+                  </linearGradient>
+                </defs>
+                <path d={ARC_PATH} className={styles.gaugeTrack} strokeLinecap="round" />
+                <path
+                  d={ARC_PATH}
+                  className={styles.gaugeValue}
+                  strokeLinecap="round"
+                  style={{ strokeDasharray: ARC_LEN, strokeDashoffset: ARC_LEN * (1 - ratio) }}
+                />
+              </svg>
+              <div className={styles.gaugeCenter}>
+                <span className={styles.gaugeScore}>{fmtDec(displayTotal, displayTotal % 1 === 0 ? 0 : 1)}</span>
+                <span className={styles.gaugeMax}>/ {fmtDec(displayMax, displayMax % 1 === 0 ? 0 : 1)}</span>
+              </div>
+            </div>
+
+            <div className={styles.heroMeta}>
+              <span className={styles.heroLabel}>{componentAOnly ? 'Skor Pemanfaatan Sistem' : 'Total Skor ITKP'}</span>
+              {!componentAOnly && (
+                <>
+                  <span className={styles.heroCategory}>{band.kode} · {band.label}</span>
+                  <span className={styles.heroRange}>Rentang predikat {band.rangeLabel}</span>
+                </>
+              )}
+              <div className={styles.heroDivider} />
+              <div className={styles.heroKpi}>
+                <span className={styles.heroKpiLabel}>Capaian</span>
+                <span className={styles.heroKpiVal}>{fmtPct(ratio * 100)}</span>
+              </div>
+              {!componentAOnly && (
+                <span className={styles.heroNext}>
+                  {nextLabel ? `Menuju predikat ${nextLabel}` : 'Predikat tertinggi tercapai'}
+                </span>
+              )}
+            </div>
           </div>
+
+          {/* 4 komponen penilaian (hanya jika tidak componentAOnly) */}
+          {!componentAOnly && (
+            <div className={styles.section}>
+              <span className={styles.sectionHead}>
+                <LayoutGrid size={13} /> Komponen Penilaian
+              </span>
+              <div className={styles.compList}>
+                {komponen.map((k) => {
+                  const r = k.max > 0 ? Math.max(0, Math.min(k.score / k.max, 1)) : 0;
+                  return (
+                    <div key={k.key} className={styles.compRow}>
+                      <span className={styles.compLabel} title={k.label}>{k.label}</span>
+                      <span className={styles.compTrack}>
+                        <span className={styles.compFill} style={{ width: `${r * 100}%`, background: k.color }} />
+                      </span>
+                      <span className={styles.compScore}>
+                        {fmtDec(k.score)}<span className={styles.compMax}>/{k.max}</span>
+                      </span>
+                      <span className={styles.compBobot}>{k.bobot}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className={styles.heroMeta}>
-          <span className={styles.heroLabel}>{componentAOnly ? 'Skor Pemanfaatan Sistem' : 'Total Skor ITKP'}</span>
-          {!componentAOnly && (
-            <>
-              <span className={styles.heroCategory}>{band.kode} · {band.label}</span>
-              <span className={styles.heroRange}>Rentang predikat {band.rangeLabel}</span>
-            </>
-          )}
-          <div className={styles.heroDivider} />
-          <div className={styles.heroKpi}>
-            <span className={styles.heroKpiLabel}>Capaian</span>
-            <span className={styles.heroKpiVal}>{fmtPct(ratio * 100)}</span>
-          </div>
-          {!componentAOnly && (
-            <span className={styles.heroNext}>
-              {nextLabel ? `Menuju predikat ${nextLabel}` : 'Predikat tertinggi tercapai'}
+        <div className={componentAOnly ? styles.splitRight : ''}>
+          {/* 7 indikator Pemanfaatan Sistem (A1–A7) */}
+          <div className={styles.section} style={{ marginTop: componentAOnly ? 0 : 18, paddingTop: componentAOnly ? 0 : 16, borderTop: componentAOnly ? 'none' : '1px solid var(--border)' }}>
+            <span className={styles.sectionHead}>
+              <Gauge size={13} /> Pemanfaatan Sistem (A) — 7 Indikator
             </span>
-          )}
-        </div>
-      </div>
-
-      {/* 4 komponen penilaian */}
-      <div className={styles.section}>
-        <span className={styles.sectionHead}>
-          <LayoutGrid size={13} /> Komponen Penilaian
-        </span>
-        <div className={styles.compList}>
-          {komponen.map((k) => {
-            const r = k.max > 0 ? Math.max(0, Math.min(k.score / k.max, 1)) : 0;
-            return (
-              <div key={k.key} className={styles.compRow}>
-                <span className={styles.compLabel} title={k.label}>{k.label}</span>
-                <span className={styles.compTrack}>
-                  <span className={styles.compFill} style={{ width: `${r * 100}%`, background: k.color }} />
-                </span>
-                <span className={styles.compScore}>
-                  {fmtDec(k.score)}<span className={styles.compMax}>/{k.max}</span>
-                </span>
-                <span className={styles.compBobot}>{k.bobot}%</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 7 indikator Pemanfaatan Sistem (A1–A7) */}
-      <div className={styles.section}>
-        <span className={styles.sectionHead}>
-          <Gauge size={13} /> Pemanfaatan Sistem (A) — 7 Indikator
-        </span>
-        <div className={styles.miniList}>
-          {resultA.rows.map((row, i) => {
-            const r = row.skorMax > 0 && row.applicable ? Math.max(0, Math.min(row.skor / row.skorMax, 1)) : 0;
-            return (
-              <div key={row.key} className={styles.miniRow}>
-                <span className={styles.miniLabel} title={row.label}>
-                  <b>A{i + 1}</b> {row.label}
-                </span>
-                <span className={styles.miniTrack}>
-                  <span className={styles.miniFill} style={{ width: `${r * 100}%` }} />
-                </span>
-                <span className={styles.miniVal}>
-                  {row.applicable ? `${fmtDec(row.skor)}/${fmtDec(row.skorMax, row.skorMax % 1 === 0 ? 0 : 1)}` : '—'}
-                </span>
-              </div>
-            );
-          })}
+            <div className={styles.miniList}>
+              {resultA.rows.map((row, i) => {
+                const r = row.skorMax > 0 && row.applicable ? Math.max(0, Math.min(row.skor / row.skorMax, 1)) : 0;
+                return (
+                  <div key={row.key} className={styles.miniRow}>
+                    <span className={styles.miniLabel} title={row.label}>
+                      <b>A{i + 1}</b> {row.label}
+                    </span>
+                    <span className={styles.miniTrack}>
+                      <span className={styles.miniFill} style={{ width: `${r * 100}%` }} />
+                    </span>
+                    <span className={styles.miniVal}>
+                      {row.applicable ? `${fmtDec(row.skor)}/${fmtDec(row.skorMax, row.skorMax % 1 === 0 ? 0 : 1)}` : '—'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
