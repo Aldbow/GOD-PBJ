@@ -20,6 +20,7 @@ import { RingkasanFilter } from './RingkasanFilter';
 import { KpiCards } from './KpiCards';
 import { MetodeDonutChart } from './charts/MetodeDonutChart';
 import { MetodeBarChart } from './charts/MetodeBarChart';
+import { SatkerRankingChart } from './charts/SatkerRankingChart';
 import { metodeColor, useIsDark } from './charts/chartTheme';
 import { ItkpGauge } from './ItkpGauge';
 import { KurasiAkurasi } from './KurasiAkurasi';
@@ -211,6 +212,51 @@ export function RingkasanView() {
                   </tr>
                 </tfoot>
               )}
+            </table>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Baris 5 — Pemeringkatan Satuan Kerja */}
+      <motion.div variants={item}>
+        <SectionHeader
+          title="Pemeringkatan Satuan Kerja"
+          caption="Peringkat satker berdasarkan realisasi, % capaian, atau sisa anggaran"
+        />
+        <div className={styles.panel}>
+          <SatkerRankingChart satker={agg.satker} selectedSatker={applied.satker} />
+        </div>
+
+        <div className={`${styles.panel} ${styles.tablePanel}`}>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Peringkat</th>
+                  <th>Satker</th>
+                  <th className={styles.num}>Jumlah Paket</th>
+                  <th className={styles.num}>Pagu</th>
+                  <th className={styles.num}>Realisasi</th>
+                  <th className={styles.num}>% Capaian</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agg.satker.map((s, i) => (
+                  <tr key={s.satker} className={s.satker === applied.satker ? styles.rowHighlight : undefined}>
+                    <td className={styles.num}>{i + 1}</td>
+                    <td>{s.satker}</td>
+                    <td className={styles.num}>{fmtInt(s.jumlahPaket)}</td>
+                    <td className={styles.num}>{fmtRupiah(s.pagu)}</td>
+                    <td className={styles.num}>{fmtRupiah(s.realisasi)}</td>
+                    <td className={styles.num}>{fmtPct(s.pctRealisasi)}</td>
+                  </tr>
+                ))}
+                {agg.satker.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className={styles.tableEmpty}>Tidak ada data untuk filter ini.</td>
+                  </tr>
+                )}
+              </tbody>
             </table>
           </div>
         </div>

@@ -74,6 +74,20 @@ export function seriesColor(key: keyof typeof SERIES, isDark: boolean): string {
   return pick(SERIES[key], isDark);
 }
 
+// Warna untuk chart pemeringkatan (mis. ranking satker): batang biasa, batang
+// yang di-highlight (satker sedang difilter), dan bucket "Lainnya". Memakai
+// pasangan hex yang sama dengan SLOT.blue/orange/OTHER di atas — sudah lolos
+// gate CVD karena dipakai berdampingan di chart metode.
+const RANK_BASE = SLOT.blue;
+const RANK_HIGHLIGHT = SLOT.orange;
+const RANK_OTHER = OTHER;
+
+export function rankColor(kind: 'base' | 'highlight' | 'other', isDark: boolean): string {
+  if (kind === 'highlight') return pick(RANK_HIGHLIGHT, isDark);
+  if (kind === 'other') return pick(RANK_OTHER, isDark);
+  return pick(RANK_BASE, isDark);
+}
+
 // Ink/grid untuk sumbu & tooltip mengikuti tema.
 export function chartInk(isDark: boolean) {
   return {

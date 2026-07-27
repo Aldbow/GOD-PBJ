@@ -32,6 +32,15 @@ export interface MetodeAggregate {
   belumDikurasi: number; // null / "Belum Dikurasi"
 }
 
+export interface SatkerAggregate {
+  satker: string;
+  jumlahPaket: number;
+  pagu: number;
+  realisasi: number;
+  belum: number;
+  pctRealisasi: number;
+}
+
 export interface KurasiAggregate {
   totalDikurasi: number; // Akurat + Tidak Akurat (punya keputusan)
   akurat: number;
@@ -66,6 +75,7 @@ export interface AnomaliDetail {
 export interface RingkasanAggregate {
   kpi: RingkasanKpi;
   metode: MetodeAggregate[];
+  satker: SatkerAggregate[];
   kurasi: KurasiAggregate;
   anomali: AnomaliSummary;
   anomaliRows: AnomaliDetail[];
@@ -139,12 +149,14 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
   let perluKoreksi = 0;
 
   const metodeMap = new Map<string, MetodeAggregate>();
+  const satkerMap = new Map<string, SatkerAggregate>();
 
   for (const r of data) {
     const pagu = num(r.pagu);
     const realisasi = num(r.total);
     const sudah = realisasi > 0;
     const metode = (r.metode_pengadaan && r.metode_pengadaan.trim()) || 'Lainnya';
+    const satkerName = (r.satker && r.satker.trim()) || 'Tidak Diketahui';
 
     totalPagu += pagu;
     totalRealisasi += realisasi;
@@ -165,6 +177,15 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
     else m.paketBelum += 1;
     if (r.status_kurasi === 'Akurat') m.akurat += 1;
     else if (r.status_kurasi === 'Tidak Akurat') m.perluKoreksi += 1;
+
+    let s = satkerMap.get(satkerName);
+    if (!s) {
+      s = { satker: satkerName, jumlahPaket: 0, pagu: 0, realisasi: 0, belum: 0, pctRealisasi: 0 };
+      satkerMap.set(satkerName, s);
+    }
+    s.jumlahPaket += 1;
+    s.pagu += pagu;
+    s.realisasi += realisasi;
   }
 
   const metode = Array.from(metodeMap.values())
@@ -175,6 +196,14 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
       belumDikurasi: Math.max(m.jumlahPaket - m.akurat - m.perluKoreksi, 0),
     }))
     .sort((a, b) => b.jumlahPaket - a.jumlahPaket);
+
+  const satker = Array.from(satkerMap.values())
+    .map((s) => ({
+      ...s,
+      belum: Math.max(s.pagu - s.realisasi, 0),
+      pctRealisasi: s.pagu > 0 ? (s.realisasi / s.pagu) * 100 : 0,
+    }))
+    .sort((a, b) => b.realisasi - a.realisasi);
 
   const totalPaket = data.length;
   const paketBelum = totalPaket - paketSudah;
@@ -192,6 +221,7 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
       pctRealisasi: totalPagu > 0 ? (totalRealisasi / totalPagu) * 100 : 0,
     },
     metode,
+    satker,
     kurasi: {
       totalDikurasi,
       akurat,

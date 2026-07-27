@@ -144,6 +144,11 @@
   vertical-align: middle;
 }
 
+.rowHighlight td {
+  background: var(--info-50, rgba(42, 120, 214, 0.08));
+  font-weight: 600;
+}
+
 .tableEmpty {
   text-align: center;
   color: var(--text-secondary);
