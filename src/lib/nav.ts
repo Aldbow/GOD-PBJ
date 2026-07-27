@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap, ListChecks } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap, ListChecks, Star, Database } from 'lucide-react';
 
 export type NavLink = { name: string; href: string; icon: React.ReactNode };
 export type NavGroup = { id: string; label: string | null; links: NavLink[] };
@@ -41,6 +41,14 @@ export const NAV_GROUPS: NavGroup[] = [
     links: [
       { name: 'Dashboard Penilaian ITKP', href: '/itkp', icon: React.createElement(GraduationCap, { size: 18 }) },
       { name: 'ITKP Pemanfaatan Sistem', href: '/itkp/pemanfaatan-sistem', icon: React.createElement(ListChecks, { size: 18 }) },
+    ],
+  },
+  {
+    id: 'prioritas-nasional',
+    label: 'Program Prioritas Nasional',
+    links: [
+      { name: 'Prioritas Nasional', href: '/prioritas-nasional', icon: React.createElement(Star, { size: 18 }) },
+      { name: 'Master Data PN', href: '/program-prioritas', icon: React.createElement(Database, { size: 18 }) },
     ],
   },
 ];
