@@ -16,6 +16,13 @@
   box-shadow: var(--shadow-md);
 }
 
+/* Lift dekoratif untuk kartu non-klik (stat/KPI) — tanpa cursor:pointer agar
+   tidak menyiratkan afordansi klik yang tidak ada. */
+.elevateOnHover:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  box-shadow: var(--shadow-md);
+}
+
 /* Semantic variants — subtle tint + colored left rail */
 .danger {
   background: var(--red-100);

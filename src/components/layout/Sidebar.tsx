@@ -108,7 +108,13 @@ export function Sidebar() {
                         >
                           <span className={styles.navIcon}>{link.icon}</span>
                           {!collapsed && <span className={styles.navLabel}>{link.name}</span>}
-                          {isActive && <span className={styles.activeIndicator} />}
+                          {isActive && (
+                            <motion.span
+                              layoutId="sidebarActiveIndicator"
+                              className={styles.activeIndicator}
+                              transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                            />
+                          )}
                         </Link>
                       );
                     })}

@@ -58,7 +58,7 @@ export function PPKView() {
   const needsAction = pkgs.find(p => p.risiko !== 'rendah' || !p.sirup);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>
       <div className={styles.identity}>
         <motion.div
           key={ppkData?.ppk?.name}

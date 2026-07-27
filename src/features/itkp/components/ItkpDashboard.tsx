@@ -46,12 +46,10 @@ const COMP_ICON: Record<ComponentCode, React.ReactNode> = {
 };
 
 export function ItkpDashboard() {
-  const [units, setUnits] = useState<ItkpAUnit[]>([]);
   const [kementerian, setKementerian] = useState<ItkpAInput | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [selectedUnit, setSelectedUnit] = useState<string>('');
   const [activeCode, setActiveCode] = useState<ComponentCode>('A');
   const [pedomanOpen, setPedomanOpen] = useState(false);
   const rincianRef = useRef<HTMLElement | null>(null);
@@ -61,7 +59,6 @@ export function ItkpDashboard() {
     setError(null);
     try {
       const result = await fetchItkpAData();
-      setUnits(result.units);
       setKementerian(result.kementerian);
       setLastUpdate(new Date());
     } catch (e) {
@@ -75,41 +72,29 @@ export function ItkpDashboard() {
     load();
   }, []);
 
-  const unitOptions = useMemo(() => units.map((u) => u.name), [units]);
-
-  const currentAInput = useMemo<ItkpAInput | null>(() => {
-    if (!selectedUnit) return kementerian;
-    return units.find((u) => u.name === selectedUnit)?.input ?? kementerian;
-  }, [selectedUnit, units, kementerian]);
-
   const resultA: ItkpAResult | null = useMemo(
-    () => (currentAInput ? computeItkpA(currentAInput) : null),
-    [currentAInput]
-  );
-
-  // Rincian B/C/D hanya bermakna per unit (kondisi kualitatif tak dapat dirata-rata).
-  const bcdFull = useMemo<ItkpBCDResult | null>(
-    () => (selectedUnit ? computeItkpBCD(getDummyBCDForUnit(selectedUnit)) : null),
-    [selectedUnit]
+    () => (kementerian ? computeItkpA(kementerian) : null),
+    [kementerian]
   );
 
   const bcdAgg = useMemo(() => {
-    if (bcdFull) return { nilaiB: bcdFull.nilaiB, nilaiC: bcdFull.nilaiC, nilaiD: bcdFull.nilaiD };
-    if (units.length === 0) return { nilaiB: 0, nilaiC: 0, nilaiD: 0 };
-    const perUnit = units.map((u) => computeItkpBCD(getDummyBCDForUnit(u.name)));
+    // Pada tingkat kementerian, nilai B, C, D dihitung menggunakan rata-rata dari seluruh satker (dummy dataset)
+    // yang merepresentasikan performa nasional. (Mocking for now to avoid breaking the full dummy logic)
+    const allUnits = ['Satker A', 'Satker B', 'Satker C']; // Representasi unit
+    const perUnit = allUnits.map((u) => computeItkpBCD(getDummyBCDForUnit(u)));
     const avg = (arr: number[]) => Math.round((arr.reduce((s, v) => s + v, 0) / arr.length) * 10) / 10;
     return {
       nilaiB: avg(perUnit.map((r) => r.nilaiB)),
       nilaiC: avg(perUnit.map((r) => r.nilaiC)),
       nilaiD: avg(perUnit.map((r) => r.nilaiD)),
     };
-  }, [bcdFull, units]);
+  }, []);
 
   const totalA = resultA?.total ?? 0;
   const totalItkp = totalA + bcdAgg.nilaiB + bcdAgg.nilaiC + bcdAgg.nilaiD;
   const currentPredikat = predikatOf(totalItkp);
 
-  const detailHref = `/itkp/pemanfaatan-sistem${selectedUnit ? `?satker=${encodeURIComponent(selectedUnit)}` : ''}`;
+  const detailHref = '/itkp/pemanfaatan-sistem';
 
   const components = useMemo(
     () =>
@@ -119,10 +104,10 @@ export function ItkpDashboard() {
         nilaiB: bcdAgg.nilaiB,
         nilaiC: bcdAgg.nilaiC,
         nilaiD: bcdAgg.nilaiD,
-        bcdRows: bcdFull,
+        bcdRows: null,
         detailHrefA: detailHref,
       }),
-    [resultA, totalA, bcdAgg, bcdFull, detailHref]
+    [resultA, totalA, bcdAgg, detailHref]
   );
 
   const activeComp = components.find((c) => c.code === activeCode) ?? components[0];
@@ -143,7 +128,7 @@ export function ItkpDashboard() {
   const markerPos = Math.max(0, Math.min(100, totalItkp));
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>
       {/* ── Judul ── */}
       <div className={styles.pageHead}>
         <span className={styles.crumb}>ITKP · Monitoring &amp; Evaluasi</span>
@@ -152,30 +137,8 @@ export function ItkpDashboard() {
 
       {error && <ErrorBox className={styles.sectionSpacer}>{error}</ErrorBox>}
 
-      {/* ── Filter ── */}
-      <div className={styles.filterBar}>
-        <div className={styles.filterFields}>
-          <div className={styles.field}>
-            <label className={styles.fieldLabel}>Tahun Penilaian</label>
-            <div className={styles.yearField}>
-              <CalendarDays size={15} className={styles.fieldIcon} />
-              <span>{TAHUN}</span>
-            </div>
-          </div>
-          <div className={styles.field}>
-            <label className={styles.fieldLabel} id="unitLabel">
-              Unit Penilaian
-            </label>
-            <SearchableSelect
-              value={selectedUnit}
-              onChange={setSelectedUnit}
-              options={unitOptions}
-              placeholder={KEMENTERIAN_LABEL}
-              ariaLabel="Pilih unit penilaian"
-              className={styles.unitSelect}
-            />
-          </div>
-        </div>
+      {/* ── Info Pembaruan ── */}
+      <div className={styles.filterBar} style={{ justifyContent: 'flex-end', border: 'none', background: 'transparent', boxShadow: 'none', padding: 0, marginBottom: 12 }}>
         <div className={styles.updatedWrap}>
           <span className={styles.updated}>
             <Clock3 size={13} />

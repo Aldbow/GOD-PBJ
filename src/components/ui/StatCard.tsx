@@ -11,6 +11,8 @@ interface StatCardProps {
   hint?: React.ReactNode;
   tone?: StatTone;
   className?: string;
+  /** Set false untuk menonaktifkan lift hover dekoratif (default: aktif). */
+  elevateOnHover?: boolean;
 }
 
 const hintClass: Record<StatTone, string> = {
@@ -20,10 +22,11 @@ const hintClass: Record<StatTone, string> = {
   danger: styles.hintDanger,
 };
 
-export function StatCard({ label, value, unit, hint, tone = 'default', className }: StatCardProps) {
+export function StatCard({ label, value, unit, hint, tone = 'default', className, elevateOnHover = true }: StatCardProps) {
   return (
     <Card
       variant={tone === 'danger' ? 'danger' : 'default'}
+      elevateOnHover={elevateOnHover}
       className={`${styles.card} ${styles[tone]} ${className || ''}`}
     >
       <p className={styles.label}>{label}</p>

@@ -99,6 +99,29 @@
   margin-bottom: auto;
   overflow-y: auto;
   overflow-x: hidden;
+  
+  /* Custom thin scrollbar for Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* Custom thin scrollbar for Webkit/Blink browsers */
+.nav::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-pill);
+}
+
+.nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .group {
