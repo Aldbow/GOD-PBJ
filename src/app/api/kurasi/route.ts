@@ -150,40 +150,75 @@ export async function POST() {
       });
     }
 
-    // 2. Panggil Gemini API
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [
-        { role: 'user', parts: [{ text: `Berikut adalah ${paketList.length} baris data JSON pengadaan (sumber: ${source}) yang harus Anda audit:\n${JSON.stringify(paketList)}` }] }
-      ],
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.1, // Rendah agar konsisten dengan aturan
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "OBJECT",
-          properties: {
-            hasil: {
-              type: "ARRAY",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  kd_rup: { type: "STRING" },
-                  status_kurasi: { type: "STRING", enum: ["Akurat", "Tidak Akurat", "Belum Dikurasi"] },
-                  catatan_kurasi: { type: "STRING" },
-                  rekomendasi_kurasi: { type: "STRING" },
-                },
-                required: ["kd_rup", "status_kurasi", "catatan_kurasi", "rekomendasi_kurasi"]
-              }
-            }
-          },
-          required: ["hasil"]
-        },
+    // 2. Panggil Gemini API dengan mekanisme Fallback Model
+    let response;
+    let usedModel = '';
+    
+    // Daftar model prioritas fallback jika terkena rate limit
+    const fallbackModels = Array.from(new Set([
+      GEMINI_MODEL,
+      'gemini-2.5-flash',
+      'gemini-3.0-flash',
+      'gemini-3.5-flash-lite',
+      'gemini-3.1-flash-lite'
+    ]));
+
+    let lastError: unknown;
+    for (const model of fallbackModels) {
+      try {
+        usedModel = model;
+        response = await ai.models.generateContent({
+          model: model,
+          contents: [
+            { role: 'user', parts: [{ text: `Berikut adalah ${paketList.length} baris data JSON pengadaan (sumber: ${source}) yang harus Anda audit:\n${JSON.stringify(paketList)}` }] }
+          ],
+          config: {
+            systemInstruction: SYSTEM_INSTRUCTION,
+            temperature: 0.1, // Rendah agar konsisten dengan aturan
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                hasil: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      kd_rup: { type: "STRING" },
+                      status_kurasi: { type: "STRING", enum: ["Akurat", "Tidak Akurat", "Belum Dikurasi"] },
+                      catatan_kurasi: { type: "STRING" },
+                      rekomendasi_kurasi: { type: "STRING" },
+                    },
+                    required: ["kd_rup", "status_kurasi", "catatan_kurasi", "rekomendasi_kurasi"]
+                  }
+                }
+              },
+              required: ["hasil"]
+            },
+          }
+        });
+        
+        // Berhasil, keluar dari loop pencarian model fallback
+        break;
+      } catch (error) {
+        lastError = error;
+        if (isRateLimitError(error)) {
+          console.warn(`[Kurasi] Model ${model} terkena limit. Mencoba model fallback...`);
+          continue;
+        } else {
+          // Jika error bukan rate limit, langsung lemparkan
+          throw error;
+        }
       }
-    });
+    }
+
+    if (!response) {
+      // Jika semua model gagal (karena limit), lempar error terakhir yang tertangkap
+      throw lastError;
+    }
 
     if (!response.text) {
-      throw new Error('Gemini API mengembalikan respons kosong.');
+      throw new Error(`Gemini API mengembalikan respons kosong (model: ${usedModel}).`);
     }
 
     // 3. Parse hasil JSON dari Gemini dengan penanganan error khusus (mis. respons terpotong).
@@ -232,7 +267,7 @@ export async function POST() {
     }
 
     return NextResponse.json({
-      message: `Berhasil mengurasi ${successCount} data (sumber: ${source}).`,
+      message: `Berhasil mengurasi ${successCount} data (sumber: ${source}) menggunakan model ${usedModel}.`,
       source,
       errors: errors.length > 0 ? errors : undefined,
       total_processed: aiResult.hasil.length,

@@ -129,8 +129,14 @@
 
 .table tbody td { color: var(--text-primary); }
 
-.table tbody tr { transition: background 0.15s ease; }
+.table tbody tr { transition: all 0.15s ease; }
 .table tbody tr:hover { background: var(--surface-hover); }
+
+/* Interactive Row (Clickable) */
+.table tbody tr.interactiveRow:hover {
+  background: var(--surface-2);
+  box-shadow: inset 4px 0 0 var(--info-500, #3b82f6);
+}
 
 .table .num {
   text-align: right;
@@ -146,6 +152,21 @@
   white-space: normal !important;
   min-width: 250px;
   line-height: 1.4;
+}
+
+.interactiveRow .colSatker {
+  color: var(--info-600, #2563eb);
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+:global([data-theme='dark']) .interactiveRow .colSatker {
+  color: var(--info-400, #60a5fa);
+}
+
+.interactiveRow:hover .colSatker {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .table tfoot td {

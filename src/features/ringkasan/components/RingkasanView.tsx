@@ -50,6 +50,7 @@ export function RingkasanView() {
   const [sortCol, setSortCol] = useState<'peringkat' | 'satker' | 'jumlahPaket' | 'pagu' | 'realisasi' | 'pctRealisasi'>('pctRealisasi');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedSatkerForDetail, setSelectedSatkerForDetail] = useState<string | null>(null);
   const isDark = useIsDark();
 
@@ -155,9 +156,19 @@ export function RingkasanView() {
     });
   }, [agg.satker, sortCol, sortDir]);
 
+  const searchedSatker = useMemo(() => {
+    if (!searchQuery) return sortedSatker;
+    const q = searchQuery.toLowerCase();
+    return sortedSatker.filter((s) => s.satker.toLowerCase().includes(q));
+  }, [sortedSatker, searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
   const ITEMS_PER_PAGE = 10;
-  const totalPages = Math.max(1, Math.ceil(sortedSatker.length / ITEMS_PER_PAGE));
-  const paginatedSatker = sortedSatker.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(searchedSatker.length / ITEMS_PER_PAGE));
+  const paginatedSatker = searchedSatker.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const getCapaianBadgeClass = (pct: number) => {
     if (pct < 25) return styles.badgeRed;
@@ -277,6 +288,25 @@ export function RingkasanView() {
         </div>
 
         <div className={`${styles.panel} ${styles.tablePanel}`}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center' }}>
+            <input 
+              type="text" 
+              placeholder="Cari nama satuan kerja..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                maxWidth: '320px',
+                padding: '8px 14px',
+                borderRadius: '6px',
+                border: '1px solid var(--border-strong)',
+                background: 'var(--surface-2)',
+                color: 'var(--text-primary)',
+                fontSize: '13px',
+                outline: 'none'
+              }}
+            />
+          </div>
           <div className={styles.tableScroll}>
             <table className={styles.table}>
               <thead>
@@ -305,7 +335,7 @@ export function RingkasanView() {
                 {paginatedSatker.map((s) => (
                   <tr 
                     key={s.satker} 
-                    className={s.satker === applied.satker ? styles.rowHighlight : undefined}
+                    className={`${styles.interactiveRow} ${s.satker === applied.satker ? styles.rowHighlight : ''}`}
                     onClick={() => setSelectedSatkerForDetail(s.satker)}
                     style={{ cursor: 'pointer' }}
                     title="Klik untuk melihat detail satuan kerja"
@@ -330,7 +360,7 @@ export function RingkasanView() {
               </tbody>
             </table>
           </div>
-          {agg.satker.length > ITEMS_PER_PAGE && (
+          {searchedSatker.length > ITEMS_PER_PAGE && (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '24px', marginBottom: '8px' }}>
               <button 
                 className={styles.ghostBtn} 
