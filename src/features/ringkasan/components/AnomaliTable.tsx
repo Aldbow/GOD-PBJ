@@ -14,15 +14,18 @@ const jenisClass: Record<AnomaliJenis, string> = {
   lebih_pagu: styles.jLebihPagu,
 };
 
-export function AnomaliTable({ rows }: { rows: AnomaliDetail[] }) {
+export function AnomaliTable({ rows, printMode = false }: { rows: AnomaliDetail[]; printMode?: boolean }) {
   const [page, setPage] = useState(1);
 
   if (rows.length === 0) return null;
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / PER_PAGE));
+  // Saat ekspor PDF, tampilkan seluruh baris tanpa paginasi supaya laporan
+  // yang dicetak memuat semua paket anomali, bukan cuma halaman yang sedang aktif.
+  const perPage = printMode ? rows.length : PER_PAGE;
+  const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
   const safePage = Math.min(page, totalPages);
-  const start = (safePage - 1) * PER_PAGE;
-  const pageRows = rows.slice(start, start + PER_PAGE);
+  const start = (safePage - 1) * perPage;
+  const pageRows = rows.slice(start, start + perPage);
 
   return (
     <div className={styles.card}>
@@ -77,29 +80,31 @@ export function AnomaliTable({ rows }: { rows: AnomaliDetail[] }) {
         <span className={styles.range}>
           Menampilkan {fmtInt(start + 1)}–{fmtInt(start + pageRows.length)} dari {fmtInt(rows.length)}
         </span>
-        <div className={styles.pager}>
-          <button
-            type="button"
-            className={styles.pageBtn}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={safePage <= 1}
-            aria-label="Halaman sebelumnya"
-          >
-            <ChevronLeft size={15} />
-          </button>
-          <span className={styles.pageInfo}>
-            {safePage} / {totalPages}
-          </span>
-          <button
-            type="button"
-            className={styles.pageBtn}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={safePage >= totalPages}
-            aria-label="Halaman berikutnya"
-          >
-            <ChevronRight size={15} />
-          </button>
-        </div>
+        {!printMode && (
+          <div className={styles.pager} data-exclude-print="true">
+            <button
+              type="button"
+              className={styles.pageBtn}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              aria-label="Halaman sebelumnya"
+            >
+              <ChevronLeft size={15} />
+            </button>
+            <span className={styles.pageInfo}>
+              {safePage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              className={styles.pageBtn}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              aria-label="Halaman berikutnya"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

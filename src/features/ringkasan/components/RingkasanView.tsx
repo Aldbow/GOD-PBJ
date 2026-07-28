@@ -66,6 +66,7 @@ export function RingkasanView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSatkerForDetail, setSelectedSatkerForDetail] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [isPrintExporting, setIsPrintExporting] = useState(false);
   const [barChartMode, setBarChartMode] = useState<'keuangan' | 'paket'>('keuangan');
   const [jenisChartMode, setJenisChartMode] = useState<'keuangan' | 'paket'>('keuangan');
   const [sumberChartMode, setSumberChartMode] = useState<'keuangan' | 'paket'>('keuangan');
@@ -75,27 +76,68 @@ export function RingkasanView() {
     const el = document.getElementById('report-snapshot');
     if (!el) return;
     setDownloadingPdf(true);
+    setIsPrintExporting(true);
+    // Tunggu React commit ulang tabel anomali dalam mode "semua baris" (tanpa
+    // paginasi) sebelum di-capture, supaya PDF memuat seluruh paket anomali.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     try {
-      const imgData = await htmlToImage.toPng(el, {
+      // Render ke <canvas>, bukan langsung ke PNG tunggal: konten laporan bisa
+      // sangat tinggi (banyak seksi + tabel anomali di paling bawah), dan
+      // menjejalkannya jadi satu halaman PDF raksasa berisiko kena batas ukuran
+      // canvas/halaman browser & jsPDF sehingga seksi paling bawah terpotong.
+      const canvas = await htmlToImage.toCanvas(el, {
         pixelRatio: 2, // 2x for better resolution
         backgroundColor: isDark ? '#0f172a' : '#f8fafc', // slate-900 / slate-50
+        width: el.scrollWidth,
+        height: el.scrollHeight,
+        style: {
+          transform: 'none',
+        },
+        filter: (node) => {
+          // Abaikan elemen yang memiliki atribut data-exclude-print
+          if (node.nodeType === 1) {
+            const element = node as HTMLElement;
+            if (element.dataset?.excludePrint === 'true') {
+              return false;
+            }
+          }
+          return true;
+        },
       });
-      
-      const img = new Image();
-      img.src = imgData;
-      await new Promise((resolve) => { img.onload = resolve; });
 
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'px',
-        format: [img.width, img.height]
-      });
-      pdf.addImage(imgData, 'PNG', 0, 0, img.width, img.height);
+      // Potong canvas jadi beberapa halaman A4 agar seluruh konten (termasuk
+      // tabel anomali di bagian paling bawah) selalu tercetak utuh.
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pageWidthPt = pdf.internal.pageSize.getWidth();
+      const pageHeightPt = pdf.internal.pageSize.getHeight();
+      const pxToPt = pageWidthPt / canvas.width;
+      const pageHeightPx = Math.floor(pageHeightPt / pxToPt);
+
+      let renderedPx = 0;
+      let pageIndex = 0;
+      while (renderedPx < canvas.height) {
+        const sliceHeightPx = Math.min(pageHeightPx, canvas.height - renderedPx);
+
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceHeightPx;
+        const ctx = sliceCanvas.getContext('2d');
+        if (!ctx) break;
+        ctx.drawImage(canvas, 0, renderedPx, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
+
+        if (pageIndex > 0) pdf.addPage();
+        pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidthPt, sliceHeightPx * pxToPt);
+
+        renderedPx += sliceHeightPx;
+        pageIndex += 1;
+      }
+
       const filename = `Laporan_Ringkasan_Pengadaan_${new Date().toISOString().split('T')[0]}.pdf`;
       pdf.save(filename);
     } catch (err) {
       console.error('Failed to generate PDF', err);
     } finally {
+      setIsPrintExporting(false);
       setDownloadingPdf(false);
     }
   };
@@ -243,19 +285,19 @@ export function RingkasanView() {
   const isFiltered = !!applied.satker || !!applied.ppk;
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show">
+    <motion.div variants={container} initial="hidden" animate="show" id="report-snapshot" style={{ padding: '4px' }}>
       {/* Baris 1 — Header */}
       <motion.div variants={item} className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>
-            Ringkasan Pengadaan {applied.satker || 'Kementerian Ketenagakerjaan'}
+            {applied.satker || 'Kementerian Ketenagakerjaan'}
           </h1>
           <p className={styles.pageSub}>
             Gambaran umum pelaksanaan pengadaan, realisasi anggaran, pemanfaatan sistem, dan hasil kurasi paket.
           </p>
           <p className={styles.pagePeriod}>Data terakhir diperbarui {updatedLabel}</p>
         </div>
-        <div className={styles.headerActions}>
+        <div className={styles.headerActions} data-exclude-print="true">
           <button className={styles.ghostBtn} onClick={handleDownloadPdf} disabled={loading || downloadingPdf}>
             {downloadingPdf ? <RefreshCw size={15} className={styles.spin} /> : <Printer size={15} />} Cetak Laporan
           </button>
@@ -270,7 +312,6 @@ export function RingkasanView() {
 
       {error && <ErrorBox className={styles.spacer}>{error}</ErrorBox>}
 
-      <div id="report-snapshot" style={{ padding: '4px' }}>
       {/* Baris 2 — Filter */}
       <motion.div variants={item}>
         <RingkasanFilter
@@ -630,29 +671,23 @@ export function RingkasanView() {
         </motion.div>
       )}
 
-      {/* Baris 7 — ITKP & Kurasi: dua kolom normal, atau stack penuh + tabel awareness saat filter aktif */}
+      {/* Baris 7 — ITKP & Kurasi: selalu stack penuh 1 kolom (skor → detail akurasi →
+          tabel paket perlu koreksi), konsisten dengan pola summary-lalu-detail di
+          Baris 8 (AnomaliPanel -> AnomaliTable). */}
       <motion.div variants={item} className={styles.sectionGroup}>
         <SectionHeader title={<span className={styles.sectionEyebrow}><Gauge size={16} /> Pemanfaatan Sistem & Kualitas Kurasi</span>} />
-        {isFiltered ? (
-          <div className={styles.stackedFull}>
-            <ItkpGauge satker={impliedSatkerForItkp} forceComponentA />
-            <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} isFullWidth={true} />
-            <KurasiTidakAkuratTable rows={agg.kurasiTidakAkurat} />
-          </div>
-        ) : (
-          <div className={styles.twoCol}>
-            <ItkpGauge satker={impliedSatkerForItkp} />
-            <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} />
-          </div>
-        )}
+        <div className={styles.stackedFull}>
+          <ItkpGauge satker={impliedSatkerForItkp} forceComponentA={isFiltered} />
+          <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} isFullWidth />
+          <KurasiTidakAkuratTable rows={agg.kurasiTidakAkurat} />
+        </div>
       </motion.div>
 
       {/* Baris 8 — Deteksi Anomali */}
       <motion.div variants={item} className={styles.sectionGroup}>
         <AnomaliPanel summary={agg.anomali} />
-        <AnomaliTable rows={agg.anomaliRows} />
+        <AnomaliTable rows={agg.anomaliRows} printMode={isPrintExporting} />
       </motion.div>
-      </div>
       
       <ExportDataModal
         isOpen={isExportOpen}

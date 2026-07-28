@@ -126,8 +126,8 @@ export function ItkpGauge({ satker, forceComponentA = false }: { satker: string;
         )}
       </div>
 
-      <div className={componentAOnly ? styles.splitLayout : ''}>
-        <div className={componentAOnly ? styles.splitLeft : ''}>
+      <div className={styles.splitLayout}>
+        <div className={styles.splitLeft}>
           {/* Hero */}
           <div className={styles.hero}>
             <div className={styles.gaugeWrap}>
@@ -176,59 +176,86 @@ export function ItkpGauge({ satker, forceComponentA = false }: { satker: string;
               )}
             </div>
           </div>
+        </div>
 
-          {/* 4 komponen penilaian (hanya jika tidak componentAOnly) */}
-          {!componentAOnly && (
+        <div className={styles.splitRight}>
+          {componentAOnly ? (
+            /* Mode filter: hanya daftar 7 indikator Pemanfaatan Sistem (A1–A7) */
             <div className={styles.section}>
               <span className={styles.sectionHead}>
-                <LayoutGrid size={13} /> Komponen Penilaian
+                <Gauge size={13} /> Pemanfaatan Sistem (A) — 7 Indikator
               </span>
-              <div className={styles.compList}>
-                {komponen.map((k) => {
-                  const r = k.max > 0 ? Math.max(0, Math.min(k.score / k.max, 1)) : 0;
+              <div className={styles.miniList}>
+                {resultA.rows.map((row, i) => {
+                  const r = row.skorMax > 0 && row.applicable ? Math.max(0, Math.min(row.skor / row.skorMax, 1)) : 0;
                   return (
-                    <div key={k.key} className={styles.compRow}>
-                      <span className={styles.compLabel} title={k.label}>{k.label}</span>
-                      <span className={styles.compTrack}>
-                        <span className={styles.compFill} style={{ width: `${r * 100}%`, background: k.color }} />
+                    <div key={row.key} className={styles.miniRow}>
+                      <span className={styles.miniLabel} title={row.label}>
+                        <b>A{i + 1}</b> {row.label}
                       </span>
-                      <span className={styles.compScore}>
-                        {fmtDec(k.score)}<span className={styles.compMax}>/{k.max}</span>
+                      <span className={styles.miniTrack}>
+                        <span className={styles.miniFill} style={{ width: `${r * 100}%` }} />
                       </span>
-                      <span className={styles.compBobot}>{k.bobot}%</span>
+                      <span className={styles.miniVal}>
+                        {row.applicable ? `${fmtDec(row.skor)}/${fmtDec(row.skorMax, row.skorMax % 1 === 0 ? 0 : 1)}` : '—'}
+                      </span>
                     </div>
                   );
                 })}
               </div>
             </div>
-          )}
-        </div>
+          ) : (
+            /* Mode total: Komponen A–D dan 7 indikator berdampingan, bukan ditumpuk,
+               supaya kartu tetap ringkas walau ditampilkan selebar kolom laporan. */
+            <div className={styles.detailGrid}>
+              <div className={styles.section}>
+                <span className={styles.sectionHead}>
+                  <LayoutGrid size={13} /> Komponen Penilaian
+                </span>
+                <div className={styles.compList}>
+                  {komponen.map((k) => {
+                    const r = k.max > 0 ? Math.max(0, Math.min(k.score / k.max, 1)) : 0;
+                    return (
+                      <div key={k.key} className={styles.compRow}>
+                        <span className={styles.compLabel} title={k.label}>{k.label}</span>
+                        <span className={styles.compTrack}>
+                          <span className={styles.compFill} style={{ width: `${r * 100}%`, background: k.color }} />
+                        </span>
+                        <span className={styles.compScore}>
+                          {fmtDec(k.score)}<span className={styles.compMax}>/{k.max}</span>
+                        </span>
+                        <span className={styles.compBobot}>{k.bobot}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-        <div className={componentAOnly ? styles.splitRight : ''}>
-          {/* 7 indikator Pemanfaatan Sistem (A1–A7) */}
-          <div className={styles.section} style={{ marginTop: componentAOnly ? 0 : 18, paddingTop: componentAOnly ? 0 : 16, borderTop: componentAOnly ? 'none' : '1px solid var(--border)' }}>
-            <span className={styles.sectionHead}>
-              <Gauge size={13} /> Pemanfaatan Sistem (A) — 7 Indikator
-            </span>
-            <div className={styles.miniList}>
-              {resultA.rows.map((row, i) => {
-                const r = row.skorMax > 0 && row.applicable ? Math.max(0, Math.min(row.skor / row.skorMax, 1)) : 0;
-                return (
-                  <div key={row.key} className={styles.miniRow}>
-                    <span className={styles.miniLabel} title={row.label}>
-                      <b>A{i + 1}</b> {row.label}
-                    </span>
-                    <span className={styles.miniTrack}>
-                      <span className={styles.miniFill} style={{ width: `${r * 100}%` }} />
-                    </span>
-                    <span className={styles.miniVal}>
-                      {row.applicable ? `${fmtDec(row.skor)}/${fmtDec(row.skorMax, row.skorMax % 1 === 0 ? 0 : 1)}` : '—'}
-                    </span>
-                  </div>
-                );
-              })}
+              <div className={`${styles.section} ${styles.detailGridDivider}`}>
+                <span className={styles.sectionHead}>
+                  <Gauge size={13} /> Pemanfaatan Sistem (A) — 7 Indikator
+                </span>
+                <div className={styles.miniList}>
+                  {resultA.rows.map((row, i) => {
+                    const r = row.skorMax > 0 && row.applicable ? Math.max(0, Math.min(row.skor / row.skorMax, 1)) : 0;
+                    return (
+                      <div key={row.key} className={styles.miniRow}>
+                        <span className={styles.miniLabel} title={row.label}>
+                          <b>A{i + 1}</b> {row.label}
+                        </span>
+                        <span className={styles.miniTrack}>
+                          <span className={styles.miniFill} style={{ width: `${r * 100}%` }} />
+                        </span>
+                        <span className={styles.miniVal}>
+                          {row.applicable ? `${fmtDec(row.skor)}/${fmtDec(row.skorMax, row.skorMax % 1 === 0 ? 0 : 1)}` : '—'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

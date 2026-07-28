@@ -161,11 +161,13 @@
   margin-top: 4px;
 }
 
-/* Section umum */
+/* Section umum — selalu jadi elemen pertama di kolomnya sendiri (splitRight),
+   jadi tanpa jarak/garis atas; pemisah antar-section pakai border kiri (lihat
+   .detailGridDivider), bukan border atas. */
 .section {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .sectionHead {
@@ -326,9 +328,39 @@
   align-items: center;
 }
 
+.splitLeft { min-width: 0; }
+.splitRight { min-width: 0; }
+
 @media (max-width: 768px) {
   .splitLayout {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+}
+
+/* Mode total: Komponen A–D & 7 indikator berdampingan (bukan ditumpuk) supaya
+   kartu tetap ringkas walau lebar penuh. */
+.detailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.detailGridDivider {
+  border-left: 1px solid var(--border);
+  padding-left: 28px;
+}
+
+@media (max-width: 640px) {
+  .detailGrid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .detailGridDivider {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
   }
 }
