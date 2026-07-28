@@ -241,6 +241,78 @@
   line-height: 1.4;
 }
 
+.compAlasan {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1.4;
+}
+
+.rentangToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--dur-fast, 0.15s) ease, border-color var(--dur-fast, 0.15s) ease;
+}
+
+.rentangToggle:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: var(--accent);
+}
+
+.rentangTable {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+  padding: 6px 2px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--text-tertiary) 5%, transparent);
+}
+
+.rentangRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+}
+
+.rentangLabel {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.rentangSkor {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.rentangRowActive {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.rentangRowActive .rentangLabel,
+.rentangRowActive .rentangSkor {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .compNote {
   display: flex;
   align-items: flex-start;

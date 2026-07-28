@@ -358,6 +358,8 @@ export function PemanfaatanSistemDetailView() {
 }
 
 function ComponentCard({ index, row }: { index: number; row: ItkpARowResult }) {
+  const [showRentang, setShowRentang] = useState(false);
+
   return (
     <div className={styles.compCard}>
       <div className={styles.compHeader}>
@@ -399,6 +401,33 @@ function ComponentCard({ index, row }: { index: number; row: ItkpARowResult }) {
           <span className={styles.compDetailValue}>{fmtRupiahDetail(row.denValue)}</span>
         </div>
         <div className={styles.compDetailFormulaBox}>{row.formula}</div>
+
+        {/* Kenapa skornya segitu: alasan spesifik (persentase & band yang cocok). */}
+        <p className={styles.compAlasan}>{row.alasan}</p>
+
+        <button
+          type="button"
+          className={styles.rentangToggle}
+          onClick={() => setShowRentang((v) => !v)}
+          aria-expanded={showRentang}
+        >
+          <span>Informasi Rentang Nilai</span>
+          {showRentang ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </button>
+
+        {showRentang && (
+          <div className={styles.rentangTable}>
+            {row.rentang.map((b) => {
+              const aktif = row.applicable && b.label === row.rentangAktifLabel;
+              return (
+                <div key={b.label} className={`${styles.rentangRow} ${aktif ? styles.rentangRowActive : ''}`}>
+                  <span className={styles.rentangLabel}>{b.label}</span>
+                  <span className={styles.rentangSkor}>{fmtDec(b.skor, b.skor % 1 === 0 ? 0 : 1)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
       <div className={`${styles.compNote} ${row.applicable ? styles.compNoteInfo : styles.compNoteWarn}`}>
         {row.applicable ? <Info size={16} /> : <TriangleAlert size={16} />}

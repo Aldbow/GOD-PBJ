@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Info, Gauge, LayoutGrid } from 'lucide-react';
+import Link from 'next/link';
+import { Info, Gauge, LayoutGrid, ArrowRight } from 'lucide-react';
 import { computeItkpA, type ItkpAInput } from '@/lib/itkp/calcA';
 import { computeItkpBCD } from '@/lib/itkp/calcBCD';
 import { getDummyBCDForUnit } from '@/lib/itkp/dummyBCD';
@@ -28,7 +29,12 @@ interface Komponen {
   color: string;
 }
 
-export function ItkpGauge({ satker, forceComponentA = false }: { satker: string; forceComponentA?: boolean }) {
+interface ItkpGaugeProps {
+  satker: string;
+  forceComponentA?: boolean;
+}
+
+export function ItkpGauge({ satker, forceComponentA = false }: ItkpGaugeProps) {
   const [units, setUnits] = useState<ItkpAUnit[]>([]);
   const [kementerian, setKementerian] = useState<ItkpAInput | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,6 +68,13 @@ export function ItkpGauge({ satker, forceComponentA = false }: { satker: string;
   const matchedUnit = satker ? unitByNorm.get(normSatker(satker)) : undefined;
   const input = matchedUnit?.input ?? kementerian;
   const scopeLabel = matchedUnit ? matchedUnit.name : 'Kementerian (Total)';
+  // Pakai nama unit ITKP yang sudah ter-mapping (bukan `satker` mentah dari
+  // Ringkasan) supaya query ?satker= di halaman detail pasti cocok dengan
+  // salah satu opsi di sana — kalau tidak ke-mapping, arahkan ke total
+  // Kementerian saja (persis seperti yang sedang ditampilkan di kartu ini).
+  const detailHref = matchedUnit
+    ? `/itkp/pemanfaatan-sistem?satker=${encodeURIComponent(matchedUnit.name)}`
+    : '/itkp/pemanfaatan-sistem';
 
   const resultA = useMemo(() => (input ? computeItkpA(input) : null), [input]);
   const bcd = useMemo(() => computeItkpBCD(getDummyBCDForUnit(scopeLabel)), [scopeLabel]);
@@ -119,11 +132,16 @@ export function ItkpGauge({ satker, forceComponentA = false }: { satker: string;
           </h3>
           {!componentAOnly && <p className={styles.scope}>{scopeLabel}</p>}
         </div>
-        {!componentAOnly && (
-          <span className={styles.catPill} style={{ background: band.color, color: '#fff' }}>
-            {band.kode} · {band.label}
-          </span>
-        )}
+        <div className={styles.headActions}>
+          {!componentAOnly && (
+            <span className={styles.catPill} style={{ background: band.color, color: '#fff' }}>
+              {band.kode} · {band.label}
+            </span>
+          )}
+          <Link href={detailHref} className={styles.detailBtn}>
+            Lihat Detail <ArrowRight size={13} />
+          </Link>
+        </div>
       </div>
 
       <div className={styles.splitLayout}>

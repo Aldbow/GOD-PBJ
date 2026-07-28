@@ -36,6 +36,35 @@
   border: 1px solid transparent;
 }
 
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.detailBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  text-decoration: none;
+  transition: all var(--dur-fast, 0.15s) ease;
+}
+
+.detailBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+
 .catKurang     { background: color-mix(in srgb, #d03b3b 14%, transparent); color: #c0392b; border-color: color-mix(in srgb, #d03b3b 30%, transparent); }
 .catCukup      { background: color-mix(in srgb, #eda100 16%, transparent); color: #b07a00; border-color: color-mix(in srgb, #eda100 32%, transparent); }
 .catBaik       { background: color-mix(in srgb, #2F80ED 14%, transparent); color: #1A5D91; border-color: color-mix(in srgb, #2F80ED 30%, transparent); }

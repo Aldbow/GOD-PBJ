@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge } from 'lucide-react';
+import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge, Sparkles } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ErrorBox } from '@/components/ui/ErrorBox';
@@ -680,13 +680,18 @@ export function RingkasanView() {
         </motion.div>
       )}
 
-      {/* Baris 7 — ITKP & Kurasi: selalu stack penuh 1 kolom (skor → detail akurasi →
-          tabel paket perlu koreksi), konsisten dengan pola summary-lalu-detail di
-          Baris 8 (AnomaliPanel -> AnomaliTable). */}
+      {/* Baris 7 — Pemanfaatan Sistem (ITKP), section tersendiri. */}
       <motion.div variants={item} className={styles.sectionGroup}>
-        <SectionHeader title={<span className={styles.sectionEyebrow}><Gauge size={16} /> Pemanfaatan Sistem & Kualitas Kurasi</span>} />
+        <SectionHeader title={<span className={styles.sectionEyebrow}><Gauge size={16} /> Indeks Tata Kelola Pengadaan</span>} />
+        <ItkpGauge satker={impliedSatkerForItkp} forceComponentA={isFiltered} />
+      </motion.div>
+
+      {/* Baris 7b — Kurasi Paket Pengadaan: dipisah dari ITKP karena konsepnya
+          beda (kualitas kurasi AI, bukan skor pemanfaatan sistem), konsisten
+          dengan pola summary-lalu-detail di Baris 8 (AnomaliPanel -> AnomaliTable). */}
+      <motion.div variants={item} className={styles.sectionGroup}>
+        <SectionHeader title={<span className={styles.sectionEyebrow}><Sparkles size={16} /> Kurasi Paket Pengadaan</span>} />
         <div className={styles.stackedFull}>
-          <ItkpGauge satker={impliedSatkerForItkp} forceComponentA={isFiltered} />
           <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} isFullWidth />
           <KurasiTidakAkuratTable rows={agg.kurasiTidakAkurat} />
         </div>

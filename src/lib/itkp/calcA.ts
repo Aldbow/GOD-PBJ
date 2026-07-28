@@ -16,6 +16,14 @@ export interface ItkpAInput {
   pencatatanSwakelola: number;
 }
 
+export interface ItkpABand {
+  // Ambang batas bawah persentase untuk band ini (dipakai internal oleh
+  // pickBand); UI cukup menampilkan `label` & `skor`.
+  min: number;
+  label: string;
+  skor: number;
+}
+
 export interface ItkpARowResult {
   key: string;
   label: string;
@@ -31,6 +39,11 @@ export interface ItkpARowResult {
   denLabel: string;
   numValue: number;
   denValue: number;
+  // Tabel konversi persentase -> skor lengkap (Kepka LKPP No. 74/2026), untuk
+  // ditampilkan ke user sebagai info "kenapa skornya segitu". `rentangAktifLabel`
+  // menandai baris mana yang sedang berlaku (null bila tidak dapat dihitung).
+  rentang: ItkpABand[];
+  rentangAktifLabel: string | null;
 }
 
 export interface ItkpAResult {
@@ -55,6 +68,73 @@ function rasio(num: number, den: number): string {
   return `${fmtDec(num)} / ${fmtDec(den)}`;
 }
 
+// Tabel konversi persentase -> skor didefinisikan sebagai data (bukan if-chain)
+// supaya bisa ditampilkan utuh ke user sebagai "Informasi Rentang Nilai" —
+// bukan cuma baris yang sedang aktif. Urutan array = urutan ambang batas
+// menurun (dicek dari atas ke bawah, entri pertama yang p >= min yang dipakai).
+function pickBand(p: number, table: ItkpABand[]): ItkpABand {
+  for (const b of table) {
+    if (p >= b.min) return b;
+  }
+  return table[table.length - 1];
+}
+
+const BAND_PENGUMUMAN_RUP: ItkpABand[] = [
+  { min: 150, label: '≥150%', skor: 0 },
+  { min: 110, label: '110%–<150%', skor: 4 },
+  { min: 90, label: '90%–<110%', skor: 5 },
+  { min: 80, label: '80%–<90%', skor: 4 },
+  { min: 70, label: '70%–<80%', skor: 3 },
+  { min: 60, label: '60%–<70%', skor: 2 },
+  { min: 50, label: '50%–<60%', skor: 1 },
+  { min: -Infinity, label: '<50%', skor: 0 },
+];
+
+const BAND_RUP_PENYEDIA: ItkpABand[] = [
+  { min: 80, label: '≥80%', skor: 2.5 },
+  { min: 70, label: '70%–<80%', skor: 2 },
+  { min: 60, label: '60%–<70%', skor: 1.5 },
+  { min: 50, label: '50%–<60%', skor: 1 },
+  { min: 40, label: '40%–<50%', skor: 0.5 },
+  { min: -Infinity, label: '<40%', skor: 0 },
+];
+
+const BAND_RUP_TENDER_PURCHASING: ItkpABand[] = [
+  { min: 60, label: '≥60%', skor: 2.5 },
+  { min: 50, label: '50%–<60%', skor: 2 },
+  { min: 40, label: '40%–<50%', skor: 1.5 },
+  { min: 30, label: '30%–<40%', skor: 1 },
+  { min: 20, label: '20%–<30%', skor: 0.5 },
+  { min: -Infinity, label: '<20%', skor: 0 },
+];
+
+const BAND_REALISASI_TENDER_PURCHASING: ItkpABand[] = [
+  { min: 60, label: '≥60%', skor: 10 },
+  { min: 50, label: '50%–<60%', skor: 8 },
+  { min: 40, label: '40%–<50%', skor: 6 },
+  { min: 30, label: '30%–<40%', skor: 4 },
+  { min: 20, label: '20%–<30%', skor: 2 },
+  { min: -Infinity, label: '<20%', skor: 0 },
+];
+
+const BAND_REALISASI_TRANSAKSIONAL: ItkpABand[] = [
+  { min: 50, label: '≥50%', skor: 2.5 },
+  { min: 40, label: '40%–<50%', skor: 2 },
+  { min: 30, label: '30%–<40%', skor: 1.5 },
+  { min: 20, label: '20%–<30%', skor: 1 },
+  { min: 10, label: '10%–<20%', skor: 0.5 },
+  { min: -Infinity, label: '<10%', skor: 0 },
+];
+
+const BAND_DIGITALISASI: ItkpABand[] = [
+  { min: 80, label: '≥80%', skor: 5 },
+  { min: 70, label: '70%–<80%', skor: 4 },
+  { min: 60, label: '60%–<70%', skor: 3 },
+  { min: 50, label: '50%–<60%', skor: 2 },
+  { min: 40, label: '40%–<50%', skor: 1 },
+  { min: -Infinity, label: '<40%', skor: 0 },
+];
+
 function buildRow(args: {
   key: string;
   label: string;
@@ -64,11 +144,11 @@ function buildRow(args: {
   denLabel: string;
   formula: string;
   skorMax: number;
-  band: (p: number) => { skor: number; band: string };
+  bandTable: ItkpABand[];
   catatanOk: string;
   catatanNa: string;
 }): ItkpARowResult {
-  const { key, label, num, den, numLabel, denLabel, formula, skorMax, band, catatanOk, catatanNa } = args;
+  const { key, label, num, den, numLabel, denLabel, formula, skorMax, bandTable, catatanOk, catatanNa } = args;
   const p = pct(num, den);
   if (p === null) {
     return {
@@ -86,9 +166,11 @@ function buildRow(args: {
       denLabel,
       numValue: num,
       denValue: den,
+      rentang: bandTable,
+      rentangAktifLabel: null,
     };
   }
-  const { skor, band: bandLabel } = band(p);
+  const { skor, label: bandLabel } = pickBand(p, bandTable);
   return {
     key,
     label,
@@ -104,63 +186,9 @@ function buildRow(args: {
     denLabel,
     numValue: num,
     denValue: den,
+    rentang: bandTable,
+    rentangAktifLabel: bandLabel,
   };
-}
-
-function bandPengumumanRUP(p: number) {
-  if (p >= 150) return { skor: 0, band: '≥150%' };
-  if (p >= 110) return { skor: 4, band: '110%–<150%' };
-  if (p >= 90) return { skor: 5, band: '90%–<110%' };
-  if (p >= 80) return { skor: 4, band: '80%–<90%' };
-  if (p >= 70) return { skor: 3, band: '70%–<80%' };
-  if (p >= 60) return { skor: 2, band: '60%–<70%' };
-  if (p >= 50) return { skor: 1, band: '50%–<60%' };
-  return { skor: 0, band: '<50%' };
-}
-
-function bandRupPenyedia(p: number) {
-  if (p >= 80) return { skor: 2.5, band: '≥80%' };
-  if (p >= 70) return { skor: 2, band: '70%–<80%' };
-  if (p >= 60) return { skor: 1.5, band: '60%–<70%' };
-  if (p >= 50) return { skor: 1, band: '50%–<60%' };
-  if (p >= 40) return { skor: 0.5, band: '40%–<50%' };
-  return { skor: 0, band: '<40%' };
-}
-
-function bandRupTenderPurchasing(p: number) {
-  if (p >= 60) return { skor: 2.5, band: '≥60%' };
-  if (p >= 50) return { skor: 2, band: '50%–<60%' };
-  if (p >= 40) return { skor: 1.5, band: '40%–<50%' };
-  if (p >= 30) return { skor: 1, band: '30%–<40%' };
-  if (p >= 20) return { skor: 0.5, band: '20%–<30%' };
-  return { skor: 0, band: '<20%' };
-}
-
-function bandRealisasiTenderPurchasing(p: number) {
-  if (p >= 60) return { skor: 10, band: '≥60%' };
-  if (p >= 50) return { skor: 8, band: '50%–<60%' };
-  if (p >= 40) return { skor: 6, band: '40%–<50%' };
-  if (p >= 30) return { skor: 4, band: '30%–<40%' };
-  if (p >= 20) return { skor: 2, band: '20%–<30%' };
-  return { skor: 0, band: '<20%' };
-}
-
-function bandRealisasiTransaksional(p: number) {
-  if (p >= 50) return { skor: 2.5, band: '≥50%' };
-  if (p >= 40) return { skor: 2, band: '40%–<50%' };
-  if (p >= 30) return { skor: 1.5, band: '30%–<40%' };
-  if (p >= 20) return { skor: 1, band: '20%–<30%' };
-  if (p >= 10) return { skor: 0.5, band: '10%–<20%' };
-  return { skor: 0, band: '<10%' };
-}
-
-function bandDigitalisasi(p: number) {
-  if (p >= 80) return { skor: 5, band: '≥80%' };
-  if (p >= 70) return { skor: 4, band: '70%–<80%' };
-  if (p >= 60) return { skor: 3, band: '60%–<70%' };
-  if (p >= 50) return { skor: 2, band: '50%–<60%' };
-  if (p >= 40) return { skor: 1, band: '40%–<50%' };
-  return { skor: 0, band: '<40%' };
 }
 
 export function computeItkpA(input: ItkpAInput): ItkpAResult {
@@ -173,7 +201,7 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     denLabel: 'Total Nilai Belanja PBJ',
     formula: 'Persentase = (Total Pengumuman RUP / Total Nilai Belanja PBJ) × 100%',
     skorMax: 5,
-    band: bandPengumumanRUP,
+    bandTable: BAND_PENGUMUMAN_RUP,
     catatanOk: 'Pengumuman RUP pada SIRUP telah dilakukan secara lengkap dan tepat waktu.',
     catatanNa: 'Tidak ada data Total Nilai Belanja PBJ untuk cakupan ini.',
   });
@@ -187,7 +215,7 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     denLabel: 'Total Pengumuman RUP',
     formula: 'Persentase = (RUP Penyedia / Total Pengumuman RUP) × 100%',
     skorMax: 2.5,
-    band: bandRupPenyedia,
+    bandTable: BAND_RUP_PENYEDIA,
     catatanOk: 'Seluruh/sebagian paket RUP telah direncanakan melalui Penyedia pada sistem.',
     catatanNa: 'Tidak ada RUP yang diumumkan pada cakupan ini.',
   });
@@ -201,7 +229,7 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     denLabel: 'RUP Penyedia',
     formula: 'Persentase = (RUP e-Tendering + RUP e-Purchasing) / RUP Penyedia × 100%',
     skorMax: 2.5,
-    band: bandRupTenderPurchasing,
+    bandTable: BAND_RUP_TENDER_PURCHASING,
     catatanOk: 'Sebagian RUP Penyedia direncanakan lewat metode Tender/e-Purchasing.',
     catatanNa: 'Tidak ada RUP Penyedia pada cakupan ini, sehingga komponen ini tidak menjadi parameter.',
   });
@@ -215,7 +243,7 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     denLabel: 'RUP Penyedia',
     formula: 'Persentase = (Realisasi e-Tendering + Realisasi e-Purchasing) / RUP Penyedia × 100%',
     skorMax: 10,
-    band: bandRealisasiTenderPurchasing,
+    bandTable: BAND_REALISASI_TENDER_PURCHASING,
     catatanOk: 'Realisasi e-Tendering + e-Purchasing berdasarkan nilai transaksi.',
     catatanNa: 'Tidak ada RUP Penyedia pada cakupan ini, sehingga komponen ini tidak menjadi parameter.',
   });
@@ -229,7 +257,7 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     denLabel: 'RUP Pengadaan Langsung',
     formula: 'Persentase = Realisasi Pengadaan Langsung Transaksional / RUP Pengadaan Langsung × 100%',
     skorMax: 2.5,
-    band: bandRealisasiTransaksional,
+    bandTable: BAND_REALISASI_TRANSAKSIONAL,
     catatanOk: 'Realisasi Pengadaan Langsung Transaksional berdasarkan nilai transaksi.',
     catatanNa: 'Tidak ada pagu Pengadaan Langsung pada cakupan ini.',
   });
@@ -243,7 +271,7 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     denLabel: 'RUP Penunjukan Langsung',
     formula: 'Persentase = Realisasi Penunjukan Langsung Transaksional / RUP Penunjukan Langsung × 100%',
     skorMax: 2.5,
-    band: bandRealisasiTransaksional,
+    bandTable: BAND_REALISASI_TRANSAKSIONAL,
     catatanOk: 'Realisasi Penunjukan Langsung Transaksional berdasarkan nilai transaksi.',
     catatanNa: 'Tidak ada pagu Penunjukan Langsung pada cakupan ini.',
   });
@@ -266,7 +294,7 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
     formula:
       'Persentase = (Realisasi e-Tendering + Realisasi e-Purchasing + Realisasi e-Pengadaan Langsung + Realisasi e-Penunjukan Langsung + Pencatatan Non Tender + Pencatatan Swakelola) / Total Pengumuman RUP × 100%',
     skorMax: 5,
-    band: bandDigitalisasi,
+    bandTable: BAND_DIGITALISASI,
     catatanOk: 'Pemanfaatan fitur digitalisasi PBJ sesuai ketentuan yang berlaku.',
     catatanNa: 'Tidak ada RUP yang diumumkan pada cakupan ini, sehingga komponen ini tidak menjadi parameter.',
   });
