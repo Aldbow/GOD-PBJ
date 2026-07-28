@@ -1,0 +1,259 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.header {
+  margin-bottom: 16px;
+}
+
+.headerTitleWrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.headerIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+.compList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Identitas warna per komponen — sama skema dengan kartu Komponen A-D di
+   atas, supaya "Pedoman Lengkap" terasa jadi bagian dari sistem yang sama. */
+.compA { --c: var(--teal-600); --cTint: var(--teal-100); }
+.compB { --c: var(--amber-600); --cTint: var(--amber-100); }
+.compC { --c: var(--purple-600); --cTint: var(--purple-100); }
+.compD { --c: var(--info-600); --cTint: var(--info-100); }
+
+.compBlock {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.compToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--c) 6%, var(--surface));
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  text-align: left;
+  transition: background-color var(--dur-fast, 0.15s) ease;
+}
+
+.compToggle:hover {
+  background: color-mix(in srgb, var(--c) 12%, var(--surface));
+}
+
+.compToggleLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.compToggleIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--cTint);
+  color: var(--c);
+}
+
+.compToggleText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 13.5px;
+}
+
+.compToggleWeight {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.compBody {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.groupHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--cText, var(--text-primary));
+}
+
+.groupMax {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.indBlock {
+  background: color-mix(in srgb, var(--text-tertiary) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.indBlockHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.indBlockCode {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--c);
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+.indBlockTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.indBlockMax {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.indFormula {
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: color-mix(in srgb, var(--text-tertiary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.indTable {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.indRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11.5px;
+}
+
+.indRow:nth-child(odd) {
+  background: color-mix(in srgb, var(--text-tertiary) 5%, transparent);
+}
+
+.indRowLabel {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.indRowSkor {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.indCatatan {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.indCatatan svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--c);
+}
+
+.groupFootNote,
+.compFootNote {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  font-style: italic;
+  margin: 0;
+}
+
+.compFootNote {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}

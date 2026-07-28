@@ -32,6 +32,7 @@ import {
   type ItkpComponentModel,
   type ItkpIndicatorModel,
 } from '@/lib/itkp/itkpModel';
+import { PedomanLengkapCard } from './PedomanLengkapCard';
 import styles from './ItkpDashboard.module.css';
 
 const KEMENTERIAN_LABEL = 'Kementerian (Total)';
@@ -282,6 +283,11 @@ export function ItkpDashboard() {
           <ComponentSummaryCard comp={activeComp} />
         </div>
       </section>
+
+      {/* ── Pedoman Lengkap: referensi utuh formula & rentang nilai A-D ── */}
+      <div className={styles.pedomanSection}>
+        <PedomanLengkapCard />
+      </div>
     </motion.div>
   );
 }

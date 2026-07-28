@@ -74,26 +74,42 @@ export interface ItkpBCDResult {
   total: number;
 }
 
-function skorFormasi(pct: number | null): number {
-  if (pct === null) return 0;
-  if (pct >= 90) return 11;
-  if (pct >= 80) return 15;
-  if (pct >= 70) return 13;
-  if (pct >= 60) return 11;
-  if (pct >= 30) return 7;
-  if (pct > 0) return 3;
-  return 0;
+export interface ItkpBand {
+  // Ambang batas bawah persentase/skor SPI (dipakai internal oleh pickBand);
+  // tampilan cukup memakai `label` & `skor`.
+  min: number;
+  label: string;
+  skor: number;
 }
 
-function bandFormasi(pct: number): string {
-  if (pct >= 90) return '≥90%';
-  if (pct >= 80) return '80%–<90%';
-  if (pct >= 70) return '70%–<80%';
-  if (pct >= 60) return '60%–<70%';
-  if (pct >= 30) return '30%–<60%';
-  if (pct > 0) return '0%–<30%';
-  return '0%';
+function pickBand(p: number, table: ItkpBand[]): ItkpBand {
+  for (const b of table) {
+    if (p >= b.min) return b;
+  }
+  return table[table.length - 1];
 }
+
+// Tabel skor Kepka LKPP No. 74/2026 untuk Keterisian Formasi — diekspor
+// (bukan if-chain) supaya bisa dipakai ulang sebagai referensi tampilan
+// "Pedoman Lengkap", bukan cuma untuk kalkulasi. `min: Number.MIN_VALUE` pada
+// baris "0%–<30%" sengaja dibuat > 0 supaya pct persis 0 jatuh ke baris "0%"
+// terpisah di bawahnya (bukan ikut baris "0%–<30%"), sesuai bunyi tabel asli.
+export const BAND_FORMASI: ItkpBand[] = [
+  { min: 90, label: '≥90%', skor: 11 },
+  { min: 80, label: '80%–<90%', skor: 15 },
+  { min: 70, label: '70%–<80%', skor: 13 },
+  { min: 60, label: '60%–<70%', skor: 11 },
+  { min: 30, label: '30%–<60%', skor: 7 },
+  { min: Number.MIN_VALUE, label: '0%–<30%', skor: 3 },
+  { min: -Infinity, label: '0%', skor: 0 },
+];
+
+// Tabel skor SPI KPK untuk Integritas Pengadaan (Komponen D).
+export const BAND_INTEGRITAS: ItkpBand[] = [
+  { min: 78, label: 'Hijau / Terjaga (78–100)', skor: 10 },
+  { min: 73, label: 'Kuning / Waspada (73–77,9)', skor: 5 },
+  { min: -Infinity, label: 'Merah / Rentan (0–72,9)', skor: 0 },
+];
 
 function hitungFormasi(kebutuhan: number, terisi: number): ItkpRowResult {
   if (!kebutuhan || kebutuhan === 0) {
@@ -111,14 +127,14 @@ function hitungFormasi(kebutuhan: number, terisi: number): ItkpRowResult {
   }
 
   const pct = (terisi / kebutuhan) * 100;
-  const skor = skorFormasi(pct);
+  const { skor, label: bandLabel } = pickBand(pct, BAND_FORMASI);
   return {
     key: 'formasi',
     label: 'Keterisian Formasi JF PPBJ / Personel Lainnya',
     dataDasar: `Formasi Terisi ${fmtInt(terisi)} / Kebutuhan Formasi ${fmtInt(kebutuhan)}`,
     formula: 'Persentase = (Formasi Terisi / Kebutuhan Formasi) × 100%',
     persentaseAtauKondisi: fmtPct(pct),
-    alasan: `${fmtPct(pct)} berada pada rentang ${bandFormasi(pct)} → skor ${skor} sesuai tabel Kepka.`,
+    alasan: `${fmtPct(pct)} berada pada rentang ${bandLabel} → skor ${skor} sesuai tabel Kepka.`,
     skor,
     skorMax: 15,
     catatan: CATATAN_INKONSISTENSI_FORMASI,
@@ -169,18 +185,7 @@ function hitungKematangan(level: KematanganLevel): ItkpRowResult {
 }
 
 function hitungIntegritas(nilaiSpi: number, tahun: number): ItkpRowResult {
-  let skor: number;
-  let kategori: string;
-  if (nilaiSpi >= 78) {
-    skor = 10;
-    kategori = 'Hijau / Terjaga (78–100)';
-  } else if (nilaiSpi >= 73) {
-    skor = 5;
-    kategori = 'Kuning / Waspada (73–77,9)';
-  } else {
-    skor = 0;
-    kategori = 'Merah / Rentan (0–72,9)';
-  }
+  const { skor, label: kategori } = pickBand(nilaiSpi, BAND_INTEGRITAS);
   return {
     key: 'integritas',
     label: 'Integritas Pengadaan (SPI)',

@@ -16,6 +16,27 @@ export interface ItkpAInput {
   pencatatanSwakelola: number;
 }
 
+// Input nol — dipakai untuk mengambil metadata statis (label/formula/skorMax/
+// rentang) tiap indikator komponen A tanpa perlu data Supabase, mis. untuk
+// kartu Pedoman Lengkap yang murni referensi regulasi.
+export function emptyItkpAInput(): ItkpAInput {
+  return {
+    totalNilaiBelanjaPBJ: 0,
+    totalPengumumanRUP: 0,
+    rupPenyedia: 0,
+    rupETendering: 0,
+    rupEPurchasing: 0,
+    rupPengadaanLangsung: 0,
+    rupPenunjukanLangsung: 0,
+    realisasiETendering: 0,
+    realisasiEPurchasing: 0,
+    realisasiPLTransaksional: 0,
+    realisasiPnLTransaksional: 0,
+    pencatatanNonTender: 0,
+    pencatatanSwakelola: 0,
+  };
+}
+
 export interface ItkpABand {
   // Ambang batas bawah persentase untuk band ini (dipakai internal oleh
   // pickBand); UI cukup menampilkan `label` & `skor`.

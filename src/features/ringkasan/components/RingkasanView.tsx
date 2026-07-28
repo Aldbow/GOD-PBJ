@@ -29,6 +29,7 @@ import { CategoryBarChart } from './charts/CategoryBarChart';
 import { SatkerRankingChart } from './charts/SatkerRankingChart';
 import { metodeColor, jenisColor, sumberColor, useIsDark } from './charts/chartTheme';
 import { ItkpGauge } from './ItkpGauge';
+import { PedomanLengkapCard } from '@/features/itkp/components/PedomanLengkapCard';
 import { KurasiAkurasi } from './KurasiAkurasi';
 import { AnomaliPanel } from '@/components/paket/AnomaliPanel';
 import { AnomaliTable } from './AnomaliTable';
@@ -680,10 +681,15 @@ export function RingkasanView() {
         </motion.div>
       )}
 
-      {/* Baris 7 — Pemanfaatan Sistem (ITKP), section tersendiri. */}
+      {/* Baris 7 — Pemanfaatan Sistem (ITKP), section tersendiri. Pedoman
+          Lengkap menyatu langsung di bawah gauge (bukan section terpisah)
+          supaya konteks skor & rujukan regulasinya tetap satu blok. */}
       <motion.div variants={item} className={styles.sectionGroup}>
         <SectionHeader title={<span className={styles.sectionEyebrow}><Gauge size={16} /> Indeks Tata Kelola Pengadaan</span>} />
-        <ItkpGauge satker={impliedSatkerForItkp} forceComponentA={isFiltered} />
+        <div className={styles.stackedFull}>
+          <ItkpGauge satker={impliedSatkerForItkp} forceComponentA={isFiltered} />
+          <PedomanLengkapCard />
+        </div>
       </motion.div>
 
       {/* Baris 7b — Kurasi Paket Pengadaan: dipisah dari ITKP karena konsepnya
