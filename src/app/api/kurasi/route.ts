@@ -120,8 +120,9 @@ ATURAN BATAS NILAI (Perpres No. 46 Tahun 2025):
 - Seleksi — Jasa Konsultansi: pagu di atas Rp100.000.000.
 - Tender Cepat: tidak dibatasi nilai (untuk spesifikasi standar, penyedia terkualifikasi).
 - Penunjukan Langsung: tidak dibatasi nilai, HANYA untuk kondisi khusus (Keadaan Kahar / Hanya 1 Penyedia yang mampu / Instruksi Presiden / sesuai Pasal 38 (5) dan Pasal 41 (5) Perpres No.46/2025). Karena info ini tidak ada di data, tandai "Belum Dikurasi" — jangan otomatis "Tidak Akurat".
-- Swakelola: tidak dinilai dari batas nilai penyedia. Tandai "Belum Dikurasi" kecuali ada indikasi pelanggaran yang jelas.
-- Swakelola dengan nama_satker_penyelenggara DAN nama_klpd_penyelenggara terisi (menandakan Swakelola Tipe III/IV yang dilaksanakan oleh instansi/satker lain): metode dianggap "Akurat" karena skema pelaksanaan sudah tercatat jelas melalui instansi penyelenggara. Tulis catatan_kurasi yang menjelaskan hal ini (boleh bervariasi kalimatnya, sebutkan nama instansi penyelenggaranya), dan isi rekomendasi_kurasi dengan "Sudah Sesuai".
+- Swakelola: tidak dinilai dari batas nilai penyedia, melainkan dari kelengkapan data instansi/satker penyelenggara sebagai acuan pelaksanaannya:
+  - JIKA nama_satker_penyelenggara DAN nama_klpd_penyelenggara terisi (menandakan Swakelola Tipe III/IV yang dilaksanakan oleh instansi/satker lain): status_kurasi = "Akurat" karena skema pelaksanaan sudah tercatat jelas melalui instansi penyelenggara. Tulis catatan_kurasi yang menjelaskan hal ini (boleh bervariasi kalimatnya, sebutkan nama instansi penyelenggaranya), dan isi rekomendasi_kurasi dengan "Sudah Sesuai".
+  - JIKA nama_satker_penyelenggara ATAU nama_klpd_penyelenggara kosong (salah satu atau keduanya): status_kurasi = "Tidak Akurat", karena paket belum memiliki satker/K-L-D penyelenggara yang menjadi acuan pelaksanaan Swakelola-nya. Tulis catatan_kurasi yang menjelaskan bahwa data penyelenggara belum ada/lengkap sehingga skema pelaksanaan Swakelola tidak bisa divalidasi (boleh bervariasi kalimatnya), dan isi rekomendasi_kurasi dengan saran konkret & masuk akal (mis. "Lengkapi data Satker dan K/L/D Penyelenggara pada RUP agar skema pelaksanaan Swakelola dapat divalidasi").
 - Jika status_dikecualikan bernilai true: perlakukan sebagai pengadaan yang dikecualikan; umumnya "Akurat" selama pagu wajar.
 
 TUGAS TAMBAHAN (SPSE Transaksional): 
@@ -259,13 +260,17 @@ export async function POST() {
     const paketByKdRup = new Map(paketList.map((p) => [p.kd_rup, p]));
 
     await Promise.all(aiResult.hasil.map(async (item) => {
-      const forceAkurat = isSwakelolaDenganPenyelenggara(paketByKdRup.get(item.kd_rup));
+      const input = paketByKdRup.get(item.kd_rup);
+      const forceAkurat = isSwakelolaDenganPenyelenggara(input);
+      // Setiap paket Swakelola SELALU diputuskan lewat kelengkapan data
+      // penyelenggara — bukan lagi diserahkan ke AI sebagai "Belum Dikurasi".
+      const isSwakelola = input?.metode_pengadaan === 'Swakelola';
 
       const { error } = await supabase
         .from('ai_kurasi_paket')
         .upsert({
           kd_rup: item.kd_rup,
-          status_kurasi: forceAkurat ? 'Akurat' : item.status_kurasi,
+          status_kurasi: forceAkurat ? 'Akurat' : isSwakelola ? 'Tidak Akurat' : item.status_kurasi,
           catatan_kurasi: item.catatan_kurasi,
           rekomendasi_kurasi: forceAkurat ? 'Sudah Sesuai' : item.rekomendasi_kurasi,
           updated_at: new Date().toISOString()
@@ -324,8 +329,11 @@ export async function POST() {
   }
 }
 
-// Aturan bisnis deterministik: Swakelola dengan penyelenggara (satker & K/L/D)
-// terisi selalu "Akurat" & "Sudah Sesuai", terlepas dari keputusan AI.
+// Aturan bisnis deterministik untuk Swakelola: kelengkapan data penyelenggara
+// (satker & K/L/D) menentukan status_kurasi, terlepas dari keputusan AI —
+// terisi keduanya -> "Akurat" & "Sudah Sesuai"; salah satu/kedua kosong ->
+// "Tidak Akurat" (lihat pemakaian `isSwakelola` di POST()). catatan_kurasi &
+// rekomendasi_kurasi untuk kasus "Tidak Akurat" tetap ditulis AI.
 function isSwakelolaDenganPenyelenggara(input: KurasiInput | undefined): boolean {
   return (
     input?.metode_pengadaan === 'Swakelola' &&
