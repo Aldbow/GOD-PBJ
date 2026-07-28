@@ -55,7 +55,7 @@ export function ItkpDashboard() {
   const [activeCode, setActiveCode] = useState<ComponentCode>('A');
   const [pedomanOpen, setPedomanOpen] = useState(false);
   const [modalData, setModalData] = useState<{ type: 'formasi' | 'penugasan' | 'renaksi' | 'spi'; data: any } | null>(null);
-  const [spiTab, setSpiTab] = useState<'Internal' | 'Eksternal' | 'Eksper' | 'Faktor Koreksi'>('Internal');
+  const [spiTab, setSpiTab] = useState<'Internal' | 'Eksternal' | 'Eksper' | 'Faktor Koreksi' | 'Perhitungan'>('Internal');
   const rincianRef = useRef<HTMLElement | null>(null);
 
   const handleIndicatorDetailClick = (ind: ItkpIndicatorModel) => {
@@ -517,8 +517,8 @@ export function ItkpDashboard() {
               </div>
               
               {/* Tabs */}
-              <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                {Object.keys(modalData.data.categories).map(cat => {
+              <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', overflowX: 'auto' }}>
+                {[...Object.keys(modalData.data.categories), 'Perhitungan'].map(cat => {
                   const isActive = spiTab === cat;
                   const catData = modalData.data.categories[cat];
                   return (
@@ -529,11 +529,11 @@ export function ItkpDashboard() {
                         flex: 1, padding: '12px 8px', border: 'none', background: isActive ? '#fff' : 'transparent',
                         borderBottom: isActive ? '2px solid #ef4444' : '2px solid transparent',
                         cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                        color: isActive ? '#b91c1c' : '#475569', transition: 'all 0.2s'
+                        color: isActive ? '#b91c1c' : '#475569', transition: 'all 0.2s', minWidth: 100
                       }}
                     >
                       <span style={{ fontSize: 13, fontWeight: 600 }}>{cat}</span>
-                      {catData.score !== null && (
+                      {catData && catData.score !== null && (
                         <span style={{ fontSize: 14, fontWeight: 700 }}>{catData.score}</span>
                       )}
                     </button>
@@ -541,17 +541,66 @@ export function ItkpDashboard() {
                 })}
               </div>
 
-              {/* List */}
+              {/* List / Content */}
               <div style={{ padding: 0, background: '#fff' }}>
-                {modalData.data.categories[spiTab].dimensions.map((dim: any, i: number) => (
-                  <div key={i} style={{ 
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                    padding: '12px 24px', borderBottom: '1px solid #f1f5f9'
-                  }}>
-                    <span style={{ fontSize: 14, color: '#334155' }}>{dim.name}</span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{dim.value}</span>
+                {spiTab !== 'Perhitungan' ? (
+                  modalData.data.categories[spiTab].dimensions.map((dim: any, i: number) => (
+                    <div key={i} style={{ 
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                      padding: '12px 24px', borderBottom: '1px solid #f1f5f9'
+                    }}>
+                      <span style={{ fontSize: 14, color: '#334155' }}>{dim.name}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{dim.value}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ padding: '20px 24px', fontSize: 14, color: '#334155', lineHeight: 1.6 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 12 }}>Perhitungannya:</div>
+                    <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: 8, fontFamily: 'monospace', fontSize: 13, marginBottom: 20 }}>
+                      (76,59 &times; 0,305) + (88,10 &times; 0,328) + (58,37 &times; 0,367) = 73,67854
+                    </div>
+                    
+                    <div style={{ fontWeight: 600, marginBottom: 12 }}>Kemudian dikurangi faktor koreksi:</div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 20, fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
+                          <th style={{ padding: '8px 0', textAlign: 'left', color: '#0f172a' }}>Faktor koreksi</th>
+                          <th style={{ padding: '8px 0', textAlign: 'right', color: '#0f172a' }}>Pengurangan</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '8px 0' }}>Pelaksanaan SPI</td>
+                          <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>4,49</td>
+                        </tr>
+                        <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
+                          <td style={{ padding: '8px 0' }}>Fakta Korupsi</td>
+                          <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>sekitar 3,07</td>
+                        </tr>
+                        <tr>
+                          <td style={{ padding: '12px 0', fontWeight: 700, color: '#0f172a' }}>Total faktor koreksi</td>
+                          <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>7,56</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <div style={{ marginBottom: 20, fontSize: 13, color: '#475569' }}>
+                      Angka <strong>Fakta Korupsi sekitar 3,07</strong> merupakan hasil rekonstruksi karena bagian tersebut belum terlihat pada tangkapan layar:
+                      <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: 8, fontFamily: 'monospace', marginTop: 8, textAlign: 'center' }}>
+                        73,68 - 66,12 = 7,56<br/>
+                        7,56 - 4,49 = 3,07
+                      </div>
+                    </div>
+
+                    <div style={{ fontWeight: 600, marginBottom: 12 }}>Sehingga nilai akhirnya:</div>
+                    <div style={{ 
+                      padding: '12px 20px', border: '1px solid #0f172a', display: 'inline-block', 
+                      borderRadius: 4, fontFamily: 'monospace', fontWeight: 600, fontSize: 15, color: '#0f172a' 
+                    }}>
+                      73,68 - 4,49 - 3,07 = 66,12
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>

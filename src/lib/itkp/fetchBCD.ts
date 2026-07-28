@@ -145,9 +145,19 @@ export async function fetchItkpBCDData(): Promise<ItkpBCDInput> {
         score: null,
         dimensions: [
           { name: 'Pelaksanaan SPI', value: 4.49 },
-          { name: 'Fakta Korupsi', value: 3.06 },
+          { name: 'Fakta Korupsi', value: 3.07 },
         ],
       },
+    },
+    formula: {
+      weights: {
+        Internal: 0.305,
+        Eksternal: 0.328,
+        Eksper: 0.367
+      },
+      rawScore: 73.68,
+      totalKoreksi: 7.56,
+      finalScore: 66.12
     }
   };
 
