@@ -40,6 +40,9 @@ type KurasiInput = {
   tipe: string | null;
   nama_ppk: string | null;
   satker: string | null;
+  // Khusus Swakelola — kosong untuk sumber penyedia.
+  nama_satker_penyelenggara?: string | null;
+  nama_klpd_penyelenggara?: string | null;
 };
 
 // Ambil satu batch paket yang belum dikurasi dari sumber penyedia.
@@ -71,7 +74,7 @@ async function fetchPenyediaBatch(limit: number): Promise<KurasiInput[]> {
 async function fetchSwakelolaBatch(limit: number): Promise<KurasiInput[]> {
   const { data, error } = await supabase
     .from('view_paket_swakelola_master_data')
-    .select('kd_rup, rup_name:nama_paket, pagu, tipe_swakelola, nama_ppk, satker:"SATUAN KERJA"')
+    .select('kd_rup, rup_name:nama_paket, pagu, tipe_swakelola, nama_ppk, satker:"SATUAN KERJA", nama_satker_penyelenggara, nama_klpd_penyelenggara')
     .is('status_kurasi', null)
     .limit(limit);
 
@@ -88,12 +91,14 @@ async function fetchSwakelolaBatch(limit: number): Promise<KurasiInput[]> {
     tipe: row.tipe_swakelola ? String(row.tipe_swakelola) : null,
     nama_ppk: (row.nama_ppk as string | null) ?? null,
     satker: (row.satker as string | null) ?? null,
+    nama_satker_penyelenggara: (row.nama_satker_penyelenggara as string | null) ?? null,
+    nama_klpd_penyelenggara: (row.nama_klpd_penyelenggara as string | null) ?? null,
   }));
 }
 
 const SYSTEM_INSTRUCTION = `Anda adalah AI Auditor Pengadaan yang memvalidasi akurasi METODE PEMILIHAN pada Rencana Umum Pengadaan (RUP).
 
-DATA YANG TERSEDIA untuk tiap paket: kd_rup, rup_name (nama paket), pagu (nilai anggaran dalam Rupiah), metode_pengadaan, jenis_pengadaan (Barang / Pekerjaan Konstruksi / Jasa Konsultansi / Jasa Lainnya / Swakelola), status_dikecualikan, dan tipe.
+DATA YANG TERSEDIA untuk tiap paket: kd_rup, rup_name (nama paket), pagu (nilai anggaran dalam Rupiah), metode_pengadaan, jenis_pengadaan (Barang / Pekerjaan Konstruksi / Jasa Konsultansi / Jasa Lainnya / Swakelola), status_dikecualikan, dan tipe. Khusus paket Swakelola, tersedia juga nama_satker_penyelenggara dan nama_klpd_penyelenggara (bisa kosong).
 
 PENTING — BATASAN DATA:
 - Data KODE AKUN / mata anggaran TIDAK tersedia. JANGAN menilai kesesuaian kode akun.
@@ -116,6 +121,7 @@ ATURAN BATAS NILAI (Perpres No. 46 Tahun 2025):
 - Tender Cepat: tidak dibatasi nilai (untuk spesifikasi standar, penyedia terkualifikasi).
 - Penunjukan Langsung: tidak dibatasi nilai, HANYA untuk kondisi khusus (Keadaan Kahar / Hanya 1 Penyedia yang mampu / Instruksi Presiden / sesuai Pasal 38 (5) dan Pasal 41 (5) Perpres No.46/2025). Karena info ini tidak ada di data, tandai "Belum Dikurasi" — jangan otomatis "Tidak Akurat".
 - Swakelola: tidak dinilai dari batas nilai penyedia. Tandai "Belum Dikurasi" kecuali ada indikasi pelanggaran yang jelas.
+- Swakelola dengan nama_satker_penyelenggara DAN nama_klpd_penyelenggara terisi (menandakan Swakelola Tipe III/IV yang dilaksanakan oleh instansi/satker lain): metode dianggap "Akurat" karena skema pelaksanaan sudah tercatat jelas melalui instansi penyelenggara. Tulis catatan_kurasi yang menjelaskan hal ini (boleh bervariasi kalimatnya, sebutkan nama instansi penyelenggaranya), dan isi rekomendasi_kurasi dengan "Sudah Sesuai".
 - Jika status_dikecualikan bernilai true: perlakukan sebagai pengadaan yang dikecualikan; umumnya "Akurat" selama pagu wajar.
 
 TUGAS TAMBAHAN (SPSE Transaksional): 
@@ -248,14 +254,20 @@ export async function POST() {
     let successCount = 0;
     const errors: { kd_rup: string; error: string }[] = [];
 
+    // Lookup input asli per kd_rup untuk override deterministik di bawah — urutan
+    // aiResult.hasil dari AI tidak dijamin sama posisinya dengan paketList.
+    const paketByKdRup = new Map(paketList.map((p) => [p.kd_rup, p]));
+
     await Promise.all(aiResult.hasil.map(async (item) => {
+      const forceAkurat = isSwakelolaDenganPenyelenggara(paketByKdRup.get(item.kd_rup));
+
       const { error } = await supabase
         .from('ai_kurasi_paket')
         .upsert({
           kd_rup: item.kd_rup,
-          status_kurasi: item.status_kurasi,
+          status_kurasi: forceAkurat ? 'Akurat' : item.status_kurasi,
           catatan_kurasi: item.catatan_kurasi,
-          rekomendasi_kurasi: item.rekomendasi_kurasi,
+          rekomendasi_kurasi: forceAkurat ? 'Sudah Sesuai' : item.rekomendasi_kurasi,
           updated_at: new Date().toISOString()
         }, { onConflict: 'kd_rup' });
 
@@ -310,6 +322,16 @@ export async function POST() {
       { status: 500 }
     );
   }
+}
+
+// Aturan bisnis deterministik: Swakelola dengan penyelenggara (satker & K/L/D)
+// terisi selalu "Akurat" & "Sudah Sesuai", terlepas dari keputusan AI.
+function isSwakelolaDenganPenyelenggara(input: KurasiInput | undefined): boolean {
+  return (
+    input?.metode_pengadaan === 'Swakelola' &&
+    !!input.nama_satker_penyelenggara?.trim() &&
+    !!input.nama_klpd_penyelenggara?.trim()
+  );
 }
 
 // Cek apakah error dari Gemini adalah 429 (Rate Limit) atau 404/400 (Model Not Found/Invalid/Deprecated).
