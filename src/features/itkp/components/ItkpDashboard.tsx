@@ -19,9 +19,10 @@ import {
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorBox } from '@/components/ui/ErrorBox';
+import { Modal } from '@/components/ui/Modal';
 import { computeItkpA, type ItkpAInput, type ItkpAResult } from '@/lib/itkp/calcA';
 import { computeItkpBCD, type ItkpBCDResult } from '@/lib/itkp/calcBCD';
-import { getDummyBCDForUnit } from '@/lib/itkp/dummyBCD';
+import { fetchItkpBCDData } from '@/lib/itkp/fetchBCD';
 import { fetchItkpAData } from '@/lib/itkp/fetchA';
 import { fmtDec, fmtPct } from '@/lib/format';
 import {
@@ -47,19 +48,39 @@ const COMP_ICON: Record<ComponentCode, React.ReactNode> = {
 
 export function ItkpDashboard() {
   const [kementerian, setKementerian] = useState<ItkpAInput | null>(null);
+  const [bcdResult, setBcdResult] = useState<ItkpBCDResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [activeCode, setActiveCode] = useState<ComponentCode>('A');
   const [pedomanOpen, setPedomanOpen] = useState(false);
+  const [modalData, setModalData] = useState<{ type: 'formasi' | 'penugasan' | 'renaksi' | 'spi'; data: any } | null>(null);
+  const [spiTab, setSpiTab] = useState<'Internal' | 'Eksternal' | 'Eksper' | 'Faktor Koreksi'>('Internal');
   const rincianRef = useRef<HTMLElement | null>(null);
+
+  const handleIndicatorDetailClick = (ind: ItkpIndicatorModel) => {
+    if (ind.code === 'B1' && ind.rawData) {
+      setModalData({ type: 'formasi', data: ind.rawData });
+    } else if (ind.code === 'B2' && ind.rawData) {
+      setModalData({ type: 'penugasan', data: ind.rawData });
+    } else if (ind.code === 'B3' && ind.rawData) {
+      setModalData({ type: 'renaksi', data: ind.rawData });
+    } else if (ind.code === 'D1' && ind.rawData) {
+      setModalData({ type: 'spi', data: ind.rawData });
+      setSpiTab('Internal');
+    }
+  };
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchItkpAData();
-      setKementerian(result.kementerian);
+      const [resultA, bcdInput] = await Promise.all([
+        fetchItkpAData(),
+        fetchItkpBCDData(),
+      ]);
+      setKementerian(resultA.kementerian);
+      setBcdResult(computeItkpBCD(bcdInput));
       setLastUpdate(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal memuat data ITKP dari Supabase.');
@@ -78,17 +99,14 @@ export function ItkpDashboard() {
   );
 
   const bcdAgg = useMemo(() => {
-    // Pada tingkat kementerian, nilai B, C, D dihitung menggunakan rata-rata dari seluruh satker (dummy dataset)
-    // yang merepresentasikan performa nasional. (Mocking for now to avoid breaking the full dummy logic)
-    const allUnits = ['Satker A', 'Satker B', 'Satker C']; // Representasi unit
-    const perUnit = allUnits.map((u) => computeItkpBCD(getDummyBCDForUnit(u)));
-    const avg = (arr: number[]) => Math.round((arr.reduce((s, v) => s + v, 0) / arr.length) * 10) / 10;
+    if (!bcdResult) return { nilaiB: 0, nilaiC: 0, nilaiD: 0, result: null };
     return {
-      nilaiB: avg(perUnit.map((r) => r.nilaiB)),
-      nilaiC: avg(perUnit.map((r) => r.nilaiC)),
-      nilaiD: avg(perUnit.map((r) => r.nilaiD)),
+      nilaiB: bcdResult.nilaiB,
+      nilaiC: bcdResult.nilaiC,
+      nilaiD: bcdResult.nilaiD,
+      result: bcdResult,
     };
-  }, []);
+  }, [bcdResult]);
 
   const totalA = resultA?.total ?? 0;
   const totalItkp = totalA + bcdAgg.nilaiB + bcdAgg.nilaiC + bcdAgg.nilaiD;
@@ -104,7 +122,7 @@ export function ItkpDashboard() {
         nilaiB: bcdAgg.nilaiB,
         nilaiC: bcdAgg.nilaiC,
         nilaiD: bcdAgg.nilaiD,
-        bcdRows: null,
+        bcdRows: bcdAgg.result,
         detailHrefA: detailHref,
       }),
     [resultA, totalA, bcdAgg, detailHref]
@@ -269,7 +287,7 @@ export function ItkpDashboard() {
 
         <div className={styles.indGrid}>
           {activeComp.indicators.map((ind) => (
-            <IndicatorCard key={ind.code} ind={ind} />
+            <IndicatorCard key={ind.code} ind={ind} onDetailClick={handleIndicatorDetailClick} />
           ))}
           {activeComp.indicators.length === 0 && (
             <div className={styles.indEmpty}>
@@ -288,6 +306,257 @@ export function ItkpDashboard() {
       <div className={styles.pedomanSection}>
         <PedomanLengkapCard />
       </div>
+      {/* ── Modal Detail ── */}
+      <Modal 
+        isOpen={!!modalData} 
+        onClose={() => setModalData(null)}
+        title={
+          modalData?.type === 'formasi' ? 'Rincian Keterisian Formasi' : 
+          modalData?.type === 'penugasan' ? 'Daftar Penugasan JF PBJ' : 
+          modalData?.type === 'renaksi' ? 'Data Pendukung Renaksi' : 
+          'Rincian Survei Penilaian Integritas (SPI)'
+        }
+      >
+        {modalData?.type === 'formasi' && (
+          <div style={{ overflowX: 'auto', marginTop: 16 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+                  <th style={{ padding: '8px 12px' }}>Jenjang</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right' }}>Kebutuhan</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right' }}>Eksisting</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right' }}>Kekurangan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {modalData.data.map((row: any, i: number) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '8px 12px' }}>{row['Jenjang']}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{row['Formasi Kebutuhan']}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{row['Formasi Terpenuhi']}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{row['Kekurangan']}</td>
+                  </tr>
+                ))}
+                <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
+                  <td style={{ padding: '8px 12px' }}>Total</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right' }}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Formasi Kebutuhan']) || 0), 0)}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right' }}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Formasi Terpenuhi']) || 0), 0)}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right' }}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Kekurangan']) || 0), 0)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {modalData?.type === 'penugasan' && (
+          <div style={{ overflowX: 'auto', marginTop: 16 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+                  <th style={{ padding: '8px 12px' }}>Nama / NIP</th>
+                  <th style={{ padding: '8px 12px' }}>Unit Kerja</th>
+                  <th style={{ padding: '8px 12px' }}>Jenjang</th>
+                  <th style={{ padding: '8px 12px' }}>Penugasan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {modalData.data.map((row: any, i: number) => {
+                  const p = String(row['Penugasan'] || '').toUpperCase();
+                  let bg = '#f1f5f9';
+                  let color = '#475569';
+                  
+                  if (p.includes('POKJA')) {
+                    bg = '#dbeafe'; // blue-100
+                    color = '#1e40af'; // blue-800
+                  } else if (p.includes('PEJABAT PENGADAAN')) {
+                    bg = '#ffedd5'; // orange-100
+                    color = '#9a3412'; // orange-800
+                  } else if (p.includes('PPK')) {
+                    bg = '#dcfce7'; // green-100
+                    color = '#166534'; // green-800
+                  } else if (p.trim() !== '') {
+                    bg = '#f3e8ff'; // purple-100
+                    color = '#6b21a8'; // purple-800
+                  }
+
+                  return (
+                    <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '8px 12px' }}>
+                        <div style={{ fontWeight: 500 }}>{row['Nama']}</div>
+                        <div style={{ fontSize: 11, color: '#64748b' }}>{row['NIP']}</div>
+                      </td>
+                      <td style={{ padding: '8px 12px' }}>{row['Unit Kerja']}</td>
+                      <td style={{ padding: '8px 12px' }}>{row['Jenjang']}</td>
+                      <td style={{ padding: '8px 12px' }}>
+                        <span style={{ 
+                          padding: '4px 8px', 
+                          borderRadius: 12, 
+                          fontSize: 11,
+                          fontWeight: 500,
+                          background: bg,
+                          color: color
+                        }}>
+                          {row['Penugasan'] || 'Belum ditugaskan'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {modalData?.type === 'renaksi' && (
+          <div style={{ overflowX: 'auto', marginTop: 16 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+                  <th style={{ padding: '8px 12px' }}>Tahun</th>
+                  <th style={{ padding: '8px 12px' }}>Pelaku Pengadaan</th>
+                  <th style={{ padding: '8px 12px' }}>Renaksi</th>
+                  <th style={{ padding: '8px 12px' }}>Status Validasi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {modalData.data.map((row: any, i: number) => {
+                  const pelaku = String(row['Pelaku Pengadaan'] || '').toUpperCase();
+                  const renaksiVal = String(row['Renaksi'] || '').toUpperCase();
+                  
+                  let ukLevel = 0;
+                  const match = renaksiVal.match(/UK\s*(\d+)/);
+                  if (match) ukLevel = parseInt(match[1], 10);
+                  
+                  let isValid = false;
+                  let reason = 'Belum ada UK / Invalid';
+                  
+                  if (ukLevel > 0) {
+                    if (pelaku.includes('PPK')) {
+                      if (ukLevel >= 2) {
+                        isValid = true;
+                        reason = 'Lulus (Memenuhi min. UK 2)';
+                      } else {
+                        reason = 'Gagal (Butuh min. UK 2)';
+                      }
+                    } else if (pelaku.includes('JF PPBJ') || pelaku.includes('PERSONEL LAINNYA')) {
+                      const isJF = pelaku.includes('JF PPBJ');
+                      const isLainnya = pelaku.includes('PERSONEL LAINNYA');
+                      
+                      if (isJF && ukLevel >= 4) {
+                        isValid = true;
+                        reason = 'Lulus (Memenuhi min. UK 4)';
+                      } else if (!isJF && isLainnya && ukLevel >= 2) {
+                        isValid = true;
+                        reason = 'Lulus (Memenuhi min. UK 2)';
+                      } else if (isJF && ukLevel < 4) {
+                        reason = 'Gagal (JF butuh min. UK 4)';
+                      } else if (isLainnya && ukLevel < 2) {
+                        reason = 'Gagal (Non-JF butuh min. UK 2)';
+                      }
+                    }
+                  }
+
+                  return (
+                    <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '8px 12px' }}>{row['Tahun']}</td>
+                      <td style={{ padding: '8px 12px', fontWeight: 500 }}>{row['Pelaku Pengadaan']}</td>
+                      <td style={{ padding: '8px 12px' }}>
+                        <span style={{ 
+                          padding: '4px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600,
+                          background: '#e0e7ff', color: '#3730a3' 
+                        }}>
+                          {row['Renaksi'] || 'Kosong'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 12px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <span style={{ 
+                            width: 'fit-content', padding: '4px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600,
+                            background: isValid ? '#dcfce7' : '#fee2e2', color: isValid ? '#166534' : '#991b1b'
+                          }}>
+                            {isValid ? '✅ Memenuhi Syarat' : '❌ Tidak Memenuhi'}
+                          </span>
+                          <span style={{ fontSize: 11, color: '#64748b' }}>{reason}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {modalData?.type === 'spi' && modalData.data && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 16 }}>
+            {/* Header / Gauge Section */}
+            <div style={{ display: 'flex', gap: 24, alignItems: 'center', background: '#f8fafc', padding: 20, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+              <div style={{ 
+                position: 'relative', width: 140, height: 110, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', flexShrink: 0
+              }}>
+                <svg viewBox="0 0 100 50" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
+                  <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e2e8f0" strokeWidth="12" strokeLinecap="round" />
+                  <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#ef4444" strokeWidth="12" strokeLinecap="round" strokeDasharray="125.6" strokeDashoffset={125.6 * (1 - (modalData.data.indeks / 100))} />
+                </svg>
+                <div style={{ fontSize: 28, fontWeight: 700, color: '#0f172a', marginBottom: -10 }}>{modalData.data.indeks}</div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: 16, color: '#0f172a' }}>Indeks Kementerian Ketenagakerjaan</h3>
+                <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+                  Merupakan rerata Indeks Integritas dari Kementerian Ketenagakerjaan di Indonesia.<br/>
+                  Indeks Integritas Pemerintah Daerah {modalData.data.instansiPemerintahDaerah} dari total {modalData.data.totalInstansiPemerintahDaerah} instansi.<br/>
+                  Indeks Integritas Kementerian dan Lembaga {modalData.data.instansiKL} dari total {modalData.data.totalInstansiKL} instansi.
+                </p>
+              </div>
+            </div>
+
+            {/* Detail Section */}
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', background: '#fff', borderBottom: '1px solid #e2e8f0' }}>
+                <h3 style={{ margin: 0, fontSize: 15, color: '#0f172a' }}>Detail Skor Hasil Survei Penilaian Integritas - Tahun {modalData.data.tahun}</h3>
+              </div>
+              
+              {/* Tabs */}
+              <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                {Object.keys(modalData.data.categories).map(cat => {
+                  const isActive = spiTab === cat;
+                  const catData = modalData.data.categories[cat];
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setSpiTab(cat as any)}
+                      style={{
+                        flex: 1, padding: '12px 8px', border: 'none', background: isActive ? '#fff' : 'transparent',
+                        borderBottom: isActive ? '2px solid #ef4444' : '2px solid transparent',
+                        cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                        color: isActive ? '#b91c1c' : '#475569', transition: 'all 0.2s'
+                      }}
+                    >
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{cat}</span>
+                      {catData.score !== null && (
+                        <span style={{ fontSize: 14, fontWeight: 700 }}>{catData.score}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* List */}
+              <div style={{ padding: 0, background: '#fff' }}>
+                {modalData.data.categories[spiTab].dimensions.map((dim: any, i: number) => (
+                  <div key={i} style={{ 
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                    padding: '12px 24px', borderBottom: '1px solid #f1f5f9'
+                  }}>
+                    <span style={{ fontSize: 14, color: '#334155' }}>{dim.name}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{dim.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </motion.div>
   );
 }
@@ -343,7 +612,7 @@ function ComponentCard({
 }
 
 // ── Kartu Indikator ──
-function IndicatorCard({ ind }: { ind: ItkpIndicatorModel }) {
+function IndicatorCard({ ind, onDetailClick }: { ind: ItkpIndicatorModel; onDetailClick?: (ind: ItkpIndicatorModel) => void }) {
   const barPct = ind.applicable ? Math.max(0, Math.min(ind.attainment, 100)) : 0;
   return (
     <div className={styles.indCard}>
@@ -381,6 +650,29 @@ function IndicatorCard({ ind }: { ind: ItkpIndicatorModel }) {
         {ind.applicable ? <Info size={11} /> : <TriangleAlert size={11} />}
         <span>{ind.description}</span>
       </div>
+      
+      {onDetailClick && ind.rawData && (Array.isArray(ind.rawData) ? ind.rawData.length > 0 : true) && (
+        <button 
+          type="button" 
+          onClick={() => onDetailClick(ind)} 
+          style={{ 
+            marginTop: 12, 
+            padding: '6px 12px', 
+            fontSize: 12, 
+            borderRadius: 6, 
+            border: '1px solid #e2e8f0', 
+            background: '#f8fafc', 
+            color: '#334155',
+            cursor: 'pointer',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4
+          }}
+        >
+          Lihat Detail Data
+        </button>
+      )}
     </div>
   );
 }

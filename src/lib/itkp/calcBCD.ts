@@ -19,14 +19,18 @@ export interface ItkpBCDInput {
   kematangan: KematanganLevel;
   nilaiSpi: number;
   tahunPenilaianSpi: number;
+  rawFormasi?: any[];
+  rawPenugasan?: any[];
+  rawRenaksi?: any[];
+  rawSpi?: any;
 }
 
 export const PENUGASAN_OPTIONS: { value: PenugasanKondisi; label: string; skor: number }[] = [
-  { value: 'a', label: 'Seluruh JF/Personel Lainnya ditugaskan sebagai Pokja Pemilihan, Pejabat Pengadaan, dan PPK', skor: 9 },
+  { value: 'a', label: 'Seluruh JF/Personel Lainnya ditugaskan sebagai Pokja Pemilihan ATAU Pejabat Pengadaan ATAU PPK', skor: 9 },
   { value: 'b', label: 'Seluruh JF/Personel Lainnya ditugaskan sebagai Pokja Pemilihan, dan Pejabat Pengadaan atau PPK', skor: 8 },
   { value: 'c', label: 'Seluruh JF/Personel Lainnya ditugaskan sebagai Pokja Pemilihan', skor: 6 },
-  { value: 'd', label: 'Sebagian JF/Personel Lainnya ditugaskan sebagai Pokja Pemilihan', skor: 4 },
-  { value: 'e', label: 'Belum ada JF PPBJ yang ditugaskan sebagai Pokja Pemilihan', skor: 0 },
+  { value: 'd', label: 'Sebagian JF/Personel Lainnya ditugaskan sebagai Pokja Pemilihan ATAU Pejabat Pengadaan ATAU PPK', skor: 4 },
+  { value: 'e', label: 'Belum ada JF PPBJ yang ditugaskan sebagai Pokja Pemilihan, Pejabat Pengadaan, maupun PPK', skor: 0 },
 ];
 
 export const RENAKSI_OPTIONS: { value: RenaksiKondisi; label: string; skor: number }[] = [
@@ -59,6 +63,7 @@ export interface ItkpRowResult {
   skor: number;
   skorMax: number;
   catatan?: string;
+  rawData?: any[];
 }
 
 export interface ItkpBCDResult {
@@ -111,7 +116,7 @@ export const BAND_INTEGRITAS: ItkpBand[] = [
   { min: -Infinity, label: 'Merah / Rentan (0–72,9)', skor: 0 },
 ];
 
-function hitungFormasi(kebutuhan: number, terisi: number): ItkpRowResult {
+function hitungFormasi(kebutuhan: number, terisi: number, rawData?: any[]): ItkpRowResult {
   if (!kebutuhan || kebutuhan === 0) {
     return {
       key: 'formasi',
@@ -123,6 +128,7 @@ function hitungFormasi(kebutuhan: number, terisi: number): ItkpRowResult {
       skor: 0,
       skorMax: 15,
       catatan: CATATAN_INKONSISTENSI_FORMASI,
+      rawData,
     };
   }
 
@@ -138,10 +144,11 @@ function hitungFormasi(kebutuhan: number, terisi: number): ItkpRowResult {
     skor,
     skorMax: 15,
     catatan: CATATAN_INKONSISTENSI_FORMASI,
+    rawData,
   };
 }
 
-function hitungPenugasan(kondisi: PenugasanKondisi): ItkpRowResult {
+function hitungPenugasan(kondisi: PenugasanKondisi, rawData?: any[]): ItkpRowResult {
   const opt = PENUGASAN_OPTIONS.find((o) => o.value === kondisi)!;
   const letter = kondisi;
   return {
@@ -153,10 +160,11 @@ function hitungPenugasan(kondisi: PenugasanKondisi): ItkpRowResult {
     alasan: `Kondisi (${letter}) sesuai tabel Kepka → skor ${opt.skor}${opt.skor === 9 ? ' (maksimal)' : ''}.`,
     skor: opt.skor,
     skorMax: 9,
+    rawData,
   };
 }
 
-function hitungRenaksi(kondisi: RenaksiKondisi): ItkpRowResult {
+function hitungRenaksi(kondisi: RenaksiKondisi, rawData?: any[]): ItkpRowResult {
   const opt = RENAKSI_OPTIONS.find((o) => o.value === kondisi)!;
   return {
     key: 'renaksi',
@@ -167,6 +175,7 @@ function hitungRenaksi(kondisi: RenaksiKondisi): ItkpRowResult {
     alasan: `Status Renaksi terpilih sesuai tabel Kepka → skor ${opt.skor}${opt.skor === 6 ? ' (maksimal)' : ''}.`,
     skor: opt.skor,
     skorMax: 6,
+    rawData,
   };
 }
 
@@ -184,7 +193,7 @@ function hitungKematangan(level: KematanganLevel): ItkpRowResult {
   };
 }
 
-function hitungIntegritas(nilaiSpi: number, tahun: number): ItkpRowResult {
+function hitungIntegritas(nilaiSpi: number, tahun: number, rawData?: any): ItkpRowResult {
   const { skor, label: kategori } = pickBand(nilaiSpi, BAND_INTEGRITAS);
   return {
     key: 'integritas',
@@ -195,15 +204,16 @@ function hitungIntegritas(nilaiSpi: number, tahun: number): ItkpRowResult {
     alasan: `Nilai SPI ${fmtDec(nilaiSpi)} masuk kategori ${kategori} → skor ${skor}${skor === 10 ? ' (maksimal)' : ''}.`,
     skor,
     skorMax: 10,
+    rawData,
   };
 }
 
 export function computeItkpBCD(input: ItkpBCDInput): ItkpBCDResult {
-  const formasi = hitungFormasi(input.kebutuhanFormasi, input.formasiTerisi);
-  const penugasan = hitungPenugasan(input.penugasan);
-  const renaksi = hitungRenaksi(input.renaksi);
+  const formasi = hitungFormasi(input.kebutuhanFormasi, input.formasiTerisi, input.rawFormasi);
+  const penugasan = hitungPenugasan(input.penugasan, input.rawPenugasan);
+  const renaksi = hitungRenaksi(input.renaksi, input.rawRenaksi);
   const kematangan = hitungKematangan(input.kematangan);
-  const integritas = hitungIntegritas(input.nilaiSpi, input.tahunPenilaianSpi);
+  const integritas = hitungIntegritas(input.nilaiSpi, input.tahunPenilaianSpi, input.rawSpi);
 
   const nilaiB = formasi.skor + penugasan.skor + renaksi.skor;
   const nilaiC = kematangan.skor;

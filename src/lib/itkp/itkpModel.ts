@@ -77,6 +77,7 @@ export interface ItkpIndicatorModel {
   applicable: boolean;
   status: StatusInfo;
   formula: string;
+  rawData?: any[];
 }
 
 export interface ItkpComponentModel {
@@ -145,6 +146,7 @@ function bcdIndicator(
     applicable: true,
     status: statusForRatio(attainment / 100, true),
     formula: row.formula,
+    rawData: (row as any).rawData,
   };
 }
 
