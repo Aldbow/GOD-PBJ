@@ -120,9 +120,10 @@ ATURAN BATAS NILAI (Perpres No. 46 Tahun 2025):
 - Seleksi — Jasa Konsultansi: pagu di atas Rp100.000.000.
 - Tender Cepat: tidak dibatasi nilai (untuk spesifikasi standar, penyedia terkualifikasi).
 - Penunjukan Langsung: tidak dibatasi nilai, HANYA untuk kondisi khusus (Keadaan Kahar / Hanya 1 Penyedia yang mampu / Instruksi Presiden / sesuai Pasal 38 (5) dan Pasal 41 (5) Perpres No.46/2025). Karena info ini tidak ada di data, tandai "Belum Dikurasi" — jangan otomatis "Tidak Akurat".
-- Swakelola: tidak dinilai dari batas nilai penyedia, melainkan dari kelengkapan data instansi/satker penyelenggara sebagai acuan pelaksanaannya:
-  - JIKA nama_satker_penyelenggara DAN nama_klpd_penyelenggara terisi (menandakan Swakelola Tipe III/IV yang dilaksanakan oleh instansi/satker lain): status_kurasi = "Akurat" karena skema pelaksanaan sudah tercatat jelas melalui instansi penyelenggara. Tulis catatan_kurasi yang menjelaskan hal ini (boleh bervariasi kalimatnya, sebutkan nama instansi penyelenggaranya), dan isi rekomendasi_kurasi dengan "Sudah Sesuai".
-  - JIKA nama_satker_penyelenggara ATAU nama_klpd_penyelenggara kosong (salah satu atau keduanya): status_kurasi = "Tidak Akurat", karena paket belum memiliki satker/K-L-D penyelenggara yang menjadi acuan pelaksanaan Swakelola-nya. Tulis catatan_kurasi yang menjelaskan bahwa data penyelenggara belum ada/lengkap sehingga skema pelaksanaan Swakelola tidak bisa divalidasi (boleh bervariasi kalimatnya), dan isi rekomendasi_kurasi dengan saran konkret & masuk akal (mis. "Lengkapi data Satker dan K/L/D Penyelenggara pada RUP agar skema pelaksanaan Swakelola dapat divalidasi").
+- Swakelola: tidak dinilai dari batas nilai penyedia, melainkan dari kesesuaian objek paket dan kelengkapan data instansi/satker penyelenggara sebagai acuan pelaksanaannya. Cek urutan berikut:
+  - JIKA rup_name (nama paket) mengandung kata "Honor" atau "Uang Saku" (termasuk variasinya, mis. "Honorarium", "Uang Saku Peserta") — ATURAN INI BERLAKU LEBIH DULU, SEKALIPUN data penyelenggara sudah lengkap: status_kurasi = "Tidak Akurat", karena Honorarium/Uang Saku adalah komponen belanja pegawai/kompensasi personal, BUKAN objek Pengadaan Barang/Jasa (Barang, Pekerjaan Konstruksi, Jasa Konsultansi, atau Jasa Lainnya) sebagaimana ruang lingkup PBJ menurut Perpres No. 46 Tahun 2025, sehingga tidak tepat dicatat sebagai paket Swakelola. Tulis catatan_kurasi yang menjelaskan dasar ini secara spesifik dan sesuai regulasi (boleh bervariasi kalimatnya), dan isi rekomendasi_kurasi dengan saran yang tepat (mis. "Honorarium/Uang Saku sebaiknya dibayarkan melalui mekanisme belanja pegawai, bukan dicatat sebagai paket Swakelola pada RUP").
+  - SELAIN itu (nama paket tidak mengandung Honor/Uang Saku), JIKA nama_satker_penyelenggara DAN nama_klpd_penyelenggara terisi (menandakan Swakelola Tipe III/IV yang dilaksanakan oleh instansi/satker lain): status_kurasi = "Akurat" karena skema pelaksanaan sudah tercatat jelas melalui instansi penyelenggara. Tulis catatan_kurasi yang menjelaskan hal ini (boleh bervariasi kalimatnya, sebutkan nama instansi penyelenggaranya), dan isi rekomendasi_kurasi dengan "Sudah Sesuai".
+  - SELAIN itu, JIKA nama_satker_penyelenggara ATAU nama_klpd_penyelenggara kosong (salah satu atau keduanya): status_kurasi = "Tidak Akurat", karena paket belum memiliki satker/K-L-D penyelenggara yang menjadi acuan pelaksanaan Swakelola-nya. Tulis catatan_kurasi yang menjelaskan bahwa data penyelenggara belum ada/lengkap sehingga skema pelaksanaan Swakelola tidak bisa divalidasi (boleh bervariasi kalimatnya), dan isi rekomendasi_kurasi dengan saran konkret & masuk akal (mis. "Lengkapi data Satker dan K/L/D Penyelenggara pada RUP agar skema pelaksanaan Swakelola dapat divalidasi").
 - Jika status_dikecualikan bernilai true: perlakukan sebagai pengadaan yang dikecualikan; umumnya "Akurat" selama pagu wajar.
 
 TUGAS TAMBAHAN (SPSE Transaksional): 
@@ -261,10 +262,13 @@ export async function POST() {
 
     await Promise.all(aiResult.hasil.map(async (item) => {
       const input = paketByKdRup.get(item.kd_rup);
-      const forceAkurat = isSwakelolaDenganPenyelenggara(input);
-      // Setiap paket Swakelola SELALU diputuskan lewat kelengkapan data
-      // penyelenggara — bukan lagi diserahkan ke AI sebagai "Belum Dikurasi".
+      // Setiap paket Swakelola SELALU diputuskan lewat aturan deterministik di
+      // bawah — bukan lagi diserahkan ke AI sebagai "Belum Dikurasi".
       const isSwakelola = input?.metode_pengadaan === 'Swakelola';
+      // Honor/Uang Saku bukan objek PBJ yang sah untuk Swakelola — berlaku
+      // lebih dulu, mengalahkan kelengkapan data penyelenggara.
+      const isHonorAtauUangSaku = isSwakelola && containsHonorAtauUangSaku(input?.rup_name);
+      const forceAkurat = !isHonorAtauUangSaku && isSwakelolaDenganPenyelenggara(input);
 
       const { error } = await supabase
         .from('ai_kurasi_paket')
@@ -340,6 +344,16 @@ function isSwakelolaDenganPenyelenggara(input: KurasiInput | undefined): boolean
     !!input.nama_satker_penyelenggara?.trim() &&
     !!input.nama_klpd_penyelenggara?.trim()
   );
+}
+
+// Honorarium/Uang Saku adalah komponen belanja pegawai/kompensasi personal,
+// bukan objek Pengadaan Barang/Jasa (Perpres No. 46/2025) — paket Swakelola
+// dengan nama mengandung kata ini selalu "Tidak Akurat", mengalahkan aturan
+// kelengkapan penyelenggara di atas.
+function containsHonorAtauUangSaku(rupName: string | null | undefined): boolean {
+  if (!rupName) return false;
+  const lower = rupName.toLowerCase();
+  return lower.includes('honor') || lower.includes('uang saku');
 }
 
 // Cek apakah error dari Gemini adalah 429 (Rate Limit) atau 404/400 (Model Not Found/Invalid/Deprecated).
