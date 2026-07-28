@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package } from 'lucide-react';
+import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ErrorBox } from '@/components/ui/ErrorBox';
@@ -18,15 +18,16 @@ import {
   filterRows,
   type GabunganRow,
   type RingkasanFilterValue,
+  type MetodeAggregate,
+  type JenisAggregate,
+  type SumberAggregate,
 } from '../lib/ringkasanData';
 import { RingkasanFilter } from './RingkasanFilter';
 import { KpiCards } from './KpiCards';
-import { MetodeDonutChart } from './charts/MetodeDonutChart';
-import { MetodeBarChart } from './charts/MetodeBarChart';
-import { JenisDonutChart } from './charts/JenisDonutChart';
-import { JenisBarChart } from './charts/JenisBarChart';
+import { CategoryDonutChart } from './charts/CategoryDonutChart';
+import { CategoryBarChart } from './charts/CategoryBarChart';
 import { SatkerRankingChart } from './charts/SatkerRankingChart';
-import { metodeColor, jenisColor, useIsDark } from './charts/chartTheme';
+import { metodeColor, jenisColor, sumberColor, useIsDark } from './charts/chartTheme';
 import { ItkpGauge } from './ItkpGauge';
 import { KurasiAkurasi } from './KurasiAkurasi';
 import { AnomaliPanel } from '@/components/paket/AnomaliPanel';
@@ -46,6 +47,12 @@ const item: Variants = {
 
 const EMPTY_FILTER: RingkasanFilterValue = { satker: '', ppk: '' };
 
+// Getter label stabil (identitas referensi tetap sama antar-render) supaya
+// CategoryDonutChart/CategoryBarChart tidak recompute chart data tiap render.
+const getMetodeLabel = (m: MetodeAggregate) => m.metode;
+const getJenisLabel = (j: JenisAggregate) => j.jenis;
+const getSumberLabel = (s: SumberAggregate) => s.kategori;
+
 export function RingkasanView() {
   const [rows, setRows] = useState<GabunganRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +68,7 @@ export function RingkasanView() {
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [barChartMode, setBarChartMode] = useState<'keuangan' | 'paket'>('keuangan');
   const [jenisChartMode, setJenisChartMode] = useState<'keuangan' | 'paket'>('keuangan');
+  const [sumberChartMode, setSumberChartMode] = useState<'keuangan' | 'paket'>('keuangan');
   const isDark = useIsDark();
 
   const handleDownloadPdf = async () => {
@@ -280,13 +288,90 @@ export function RingkasanView() {
         <KpiCards kpi={agg.kpi} loading={loading} />
       </motion.div>
 
-      {/* Baris 4 — Ringkasan Metode Pengadaan */}
-      <motion.div variants={item}>
-        <SectionHeader title="Ringkasan Metode Pengadaan" caption="Distribusi paket, pagu & realisasi per metode" />
+      {/* Baris 3b — Ringkasan Sumber Pengadaan (dari RUP, bukan dari realisasi) */}
+      <motion.div variants={item} className={styles.sectionGroup}>
+        <SectionHeader
+          title={<span className={styles.sectionEyebrow}><Building2 size={16} /> Ringkasan Sumber Pengadaan</span>}
+          caption="Proporsi paket Penyedia vs Swakelola dari RUP terumumkan (bukan dari realisasi)"
+        />
         <div className={styles.methodGrid}>
           <div className={styles.panel}>
             <div className={styles.panelTitle}><PieChart size={15} /> Proporsi Jumlah Paket</div>
-            <MetodeDonutChart metode={agg.metode} totalPaket={totalPaketSemua} />
+            <CategoryDonutChart data={agg.sumber} getLabel={getSumberLabel} getColor={sumberColor} totalPaket={agg.sumber.reduce((s, x) => s + x.jumlahPaket, 0)} />
+          </div>
+          <div className={styles.panel}>
+            <div className={styles.panelHeaderRow}>
+              <div className={styles.panelTitle}><BarChart3 size={15} /> Realisasi per Sumber</div>
+              <div className={styles.segmentedControl}>
+                <div className={styles.segmentedBg} style={{ transform: sumberChartMode === 'paket' ? 'translateX(100%)' : 'translateX(0)' }} />
+                <button
+                  type="button"
+                  className={`${styles.segmentedBtn} ${sumberChartMode === 'keuangan' ? styles.active : ''}`}
+                  onClick={() => setSumberChartMode('keuangan')}
+                >
+                  <Percent size={13} />
+                  Persentase Realisasi
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.segmentedBtn} ${sumberChartMode === 'paket' ? styles.active : ''}`}
+                  onClick={() => setSumberChartMode('paket')}
+                >
+                  <Package size={13} />
+                  Jumlah Paket
+                </button>
+              </div>
+            </div>
+            <CategoryBarChart data={agg.sumber} getLabel={getSumberLabel} getColor={sumberColor} mode={sumberChartMode} />
+          </div>
+        </div>
+
+        <div className={`${styles.panel} ${styles.tablePanel}`}>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Sumber</th>
+                  <th className={styles.num}>Jumlah Paket</th>
+                  <th className={styles.num}>Pagu</th>
+                  <th className={styles.num}>Realisasi</th>
+                  <th className={styles.num}>% Realisasi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agg.sumber.map((s) => (
+                  <tr key={s.kategori}>
+                    <td>
+                      <span className={styles.swatch} style={{ background: sumberColor(s.kategori, isDark) }} />
+                      {s.kategori}
+                    </td>
+                    <td className={styles.num}>{fmtInt(s.jumlahPaket)}</td>
+                    <td className={styles.num}>{fmtRupiah(s.pagu)}</td>
+                    <td className={styles.num}>{fmtRupiah(s.realisasi)}</td>
+                    <td className={styles.num}>{fmtPct(s.pctRealisasi)}</td>
+                  </tr>
+                ))}
+                {agg.sumber.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className={styles.tableEmpty}>Tidak ada data untuk filter ini.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Baris 4 — Ringkasan Metode Pengadaan */}
+      <motion.div variants={item} className={styles.sectionGroup}>
+        <SectionHeader
+          title={<span className={styles.sectionEyebrow}><Route size={16} /> Ringkasan Metode Pengadaan</span>}
+          caption="Distribusi paket, pagu & realisasi per metode"
+        />
+        <div className={styles.methodGrid}>
+          <div className={styles.panel}>
+            <div className={styles.panelTitle}><PieChart size={15} /> Proporsi Jumlah Paket</div>
+            <CategoryDonutChart data={agg.metode} getLabel={getMetodeLabel} getColor={metodeColor} totalPaket={totalPaketSemua} />
           </div>
           <div className={styles.panel}>
             <div className={styles.panelHeaderRow}>
@@ -311,7 +396,7 @@ export function RingkasanView() {
                 </button>
               </div>
             </div>
-            <MetodeBarChart metode={agg.metode} mode={barChartMode} />
+            <CategoryBarChart data={agg.metode} getLabel={getMetodeLabel} getColor={metodeColor} mode={barChartMode} />
           </div>
         </div>
 
@@ -363,15 +448,15 @@ export function RingkasanView() {
       </motion.div>
 
       {/* Baris 4b — Ringkasan Jenis Pengadaan */}
-      <motion.div variants={item}>
+      <motion.div variants={item} className={styles.sectionGroup}>
         <SectionHeader
-          title="Ringkasan Jenis Pengadaan"
+          title={<span className={styles.sectionEyebrow}><Tags size={16} /> Ringkasan Jenis Pengadaan</span>}
           caption="Distribusi paket, pagu & realisasi per jenis (Barang, Jasa, Konstruksi, Swakelola)"
         />
         <div className={styles.methodGrid}>
           <div className={styles.panel}>
             <div className={styles.panelTitle}><PieChart size={15} /> Proporsi Jumlah Paket</div>
-            <JenisDonutChart jenis={agg.jenis} totalPaket={totalPaketSemua} />
+            <CategoryDonutChart data={agg.jenis} getLabel={getJenisLabel} getColor={jenisColor} totalPaket={totalPaketSemua} />
           </div>
           <div className={styles.panel}>
             <div className={styles.panelHeaderRow}>
@@ -396,7 +481,7 @@ export function RingkasanView() {
                 </button>
               </div>
             </div>
-            <JenisBarChart jenis={agg.jenis} mode={jenisChartMode} />
+            <CategoryBarChart data={agg.jenis} getLabel={getJenisLabel} getColor={jenisColor} mode={jenisChartMode} />
           </div>
         </div>
 
@@ -438,9 +523,9 @@ export function RingkasanView() {
 
       {/* Baris 5 — Pemeringkatan Satuan Kerja (disembunyikan saat filter Satker/PPK aktif) */}
       {!isFiltered && (
-        <motion.div variants={item}>
+        <motion.div variants={item} className={styles.sectionGroup}>
           <SectionHeader
-            title="Pemeringkatan Satuan Kerja"
+            title={<span className={styles.sectionEyebrow}><Trophy size={16} /> Pemeringkatan Satuan Kerja</span>}
             caption="Peringkat satker berdasarkan realisasi, % capaian, atau sisa anggaran"
           />
           <div className={styles.panel}>
@@ -546,8 +631,8 @@ export function RingkasanView() {
       )}
 
       {/* Baris 7 — ITKP & Kurasi: dua kolom normal, atau stack penuh + tabel awareness saat filter aktif */}
-      <motion.div variants={item}>
-        <SectionHeader title="Pemanfaatan Sistem & Kualitas Kurasi" />
+      <motion.div variants={item} className={styles.sectionGroup}>
+        <SectionHeader title={<span className={styles.sectionEyebrow}><Gauge size={16} /> Pemanfaatan Sistem & Kualitas Kurasi</span>} />
         {isFiltered ? (
           <div className={styles.stackedFull}>
             <ItkpGauge satker={impliedSatkerForItkp} forceComponentA />
@@ -563,7 +648,7 @@ export function RingkasanView() {
       </motion.div>
 
       {/* Baris 8 — Deteksi Anomali */}
-      <motion.div variants={item}>
+      <motion.div variants={item} className={styles.sectionGroup}>
         <AnomaliPanel summary={agg.anomali} />
         <AnomaliTable rows={agg.anomaliRows} />
       </motion.div>

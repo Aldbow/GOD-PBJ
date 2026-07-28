@@ -84,6 +84,18 @@ export function jenisPalette(jenisList: string[], isDark: boolean): string[] {
   return jenisList.map((j) => jenisColor(j, isDark));
 }
 
+// Palet sumber pengadaan (Paket Penyedia vs Paket Swakelola, dihitung dari RUP).
+// 2 warna, divalidasi lolos gate CVD di kedua mode (dataviz/scripts/validate_palette.js).
+// 'Paket Swakelola' disamakan dengan METODE_SLOT/JENIS_SLOT.Swakelola (magenta).
+const SUMBER_SLOT: Record<string, ColorPair> = {
+  'Paket Penyedia': SLOT.blue,
+  'Paket Swakelola': SLOT.magenta,
+};
+
+export function sumberColor(kategori: string, isDark: boolean): string {
+  return pick(SUMBER_SLOT[kategori] ?? OTHER, isDark);
+}
+
 // Warna seri semantik (bukan kategori metode).
 export const SERIES = {
   pagu: { light: '#94a3b8', dark: '#5b6472' } as ColorPair, // netral (konteks)

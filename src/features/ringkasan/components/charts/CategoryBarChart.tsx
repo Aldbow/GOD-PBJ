@@ -12,12 +12,28 @@ import {
   type ScriptableContext,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import type { JenisAggregate } from '../../lib/ringkasanData';
-import { useIsDark, jenisPalette, chartInk, fmtCompactRp } from './chartTheme';
+import { useIsDark, chartInk, fmtCompactRp } from './chartTheme';
 import { fmtInt } from '@/lib/format';
 import styles from './charts.module.css';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
+
+export interface CategoryBarDatum {
+  jumlahPaket: number;
+  pagu: number;
+  realisasi: number;
+  belum: number;
+  pctRealisasi: number;
+  paketSudah: number;
+  paketBelum: number;
+}
+
+interface Props<T extends CategoryBarDatum> {
+  data: T[];
+  getLabel: (item: T) => string;
+  getColor: (label: string, isDark: boolean) => string;
+  mode?: 'keuangan' | 'paket';
+}
 
 function adjustHex(hex: string, amount: number): string {
   if (!hex.startsWith('#')) return hex;
@@ -42,16 +58,18 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function JenisBarChart({ jenis, mode = 'keuangan' }: { jenis: JenisAggregate[], mode?: 'keuangan' | 'paket' }) {
+export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, getColor, mode = 'keuangan' }: Props<T>) {
   const isDark = useIsDark();
   const ink = chartInk(isDark);
 
-  const jenisRef = React.useRef(jenis);
+  const dataRef = React.useRef(data);
+  const getLabelRef = React.useRef(getLabel);
   const modeRef = React.useRef(mode);
   React.useEffect(() => {
-    jenisRef.current = jenis;
+    dataRef.current = data;
+    getLabelRef.current = getLabel;
     modeRef.current = mode;
-  }, [jenis, mode]);
+  }, [data, getLabel, mode]);
 
   const endLabelPlugin = useMemo<Plugin<'bar'>>(
     () => ({
@@ -65,39 +83,33 @@ export function JenisBarChart({ jenis, mode = 'keuangan' }: { jenis: JenisAggreg
         ctx.textBaseline = 'middle';
 
         meta1.data.forEach((bar1, i) => {
-          const j = jenisRef.current[i];
+          const d = dataRef.current[i];
           const currentMode = modeRef.current;
-          if (!j) return;
+          if (!d) return;
 
           let pct = 0;
           let valText = '';
 
           if (currentMode === 'keuangan') {
-            pct = j.pctRealisasi;
-            valText = fmtCompactRp(j.realisasi);
+            pct = d.pctRealisasi;
+            valText = fmtCompactRp(d.realisasi);
           } else {
-            pct = j.jumlahPaket > 0 ? (j.paketSudah / j.jumlahPaket) * 100 : 0;
-            valText = fmtInt(j.paketSudah) + ' pkt';
+            pct = d.jumlahPaket > 0 ? (d.paketSudah / d.jumlahPaket) * 100 : 0;
+            valText = fmtInt(d.paketSudah) + ' pkt';
           }
 
           const pctText = pct.toFixed(1).replace('.', ',') + '%';
 
-          // Draw percentage at the end of the full bar
           ctx.textAlign = 'left';
           ctx.fillStyle = ink.tick;
           ctx.fillText(pctText, bar1.x + 6, bar1.y);
 
-          // Draw realized value at the end of the realization part
           const bar0 = meta0.data[i];
           if (pct > 85) {
             ctx.textAlign = 'right';
-            ctx.fillStyle = '#ffffff'; // White text inside solid colored bar
+            ctx.fillStyle = '#ffffff';
             ctx.fillText(valText, bar0.x - 6, bar0.y);
-          } else if (pct > 0) {
-            ctx.textAlign = 'left';
-            ctx.fillStyle = ink.tick;
-            ctx.fillText(valText, bar0.x + 6, bar0.y);
-          } else if (pct === 0) {
+          } else if (pct >= 0) {
             ctx.textAlign = 'left';
             ctx.fillStyle = ink.tick;
             ctx.fillText(valText, bar0.x + 6, bar0.y);
@@ -109,19 +121,19 @@ export function JenisBarChart({ jenis, mode = 'keuangan' }: { jenis: JenisAggreg
     [ink.tick, isDark]
   );
 
-  const { data, options } = useMemo(() => {
-    const labels = jenis.map((j) => j.jenis);
-    const colors = jenisPalette(labels, isDark);
+  const { chartData, options } = useMemo(() => {
+    const labels = data.map(getLabel);
+    const colors = labels.map((l) => getColor(l, isDark));
 
     let dataSudah: number[] = [];
     let dataBelum: number[] = [];
 
     if (mode === 'keuangan') {
-      dataSudah = jenis.map((j) => j.pctRealisasi);
-      dataBelum = jenis.map((j) => Math.max(0, 100 - j.pctRealisasi));
+      dataSudah = data.map((d) => d.pctRealisasi);
+      dataBelum = data.map((d) => Math.max(0, 100 - d.pctRealisasi));
     } else {
-      dataSudah = jenis.map((j) => j.jumlahPaket > 0 ? (j.paketSudah / j.jumlahPaket) * 100 : 0);
-      dataBelum = jenis.map((j) => Math.max(0, 100 - (j.jumlahPaket > 0 ? (j.paketSudah / j.jumlahPaket) * 100 : 0)));
+      dataSudah = data.map((d) => d.jumlahPaket > 0 ? (d.paketSudah / d.jumlahPaket) * 100 : 0);
+      dataBelum = data.map((d) => Math.max(0, 100 - (d.jumlahPaket > 0 ? (d.paketSudah / d.jumlahPaket) * 100 : 0)));
     }
 
     const bgRealisasi = (ctx: ScriptableContext<'bar'>) => {
@@ -145,7 +157,7 @@ export function JenisBarChart({ jenis, mode = 'keuangan' }: { jenis: JenisAggreg
     };
 
     return {
-      data: {
+      chartData: {
         labels,
         datasets: [
           {
@@ -182,26 +194,26 @@ export function JenisBarChart({ jenis, mode = 'keuangan' }: { jenis: JenisAggreg
             padding: 10,
             callbacks: {
               label: (ctx: TooltipItem<'bar'>) => {
-                const j = jenis[ctx.dataIndex];
+                const d = data[ctx.dataIndex];
                 const isRealized = ctx.datasetIndex === 0;
 
                 if (mode === 'keuangan') {
                   return [
                     isRealized
-                      ? `Realisasi: ${fmtCompactRp(j.realisasi)} (${j.pctRealisasi.toFixed(1).replace('.', ',')}%)`
-                      : `Sisa Pagu: ${fmtCompactRp(j.belum)}`,
-                    `Total Pagu: ${fmtCompactRp(j.pagu)}`,
-                    `${fmtInt(j.jumlahPaket)} paket`
+                      ? `Realisasi: ${fmtCompactRp(d.realisasi)} (${d.pctRealisasi.toFixed(1).replace('.', ',')}%)`
+                      : `Sisa Pagu: ${fmtCompactRp(d.belum)}`,
+                    `Total Pagu: ${fmtCompactRp(d.pagu)}`,
+                    `${fmtInt(d.jumlahPaket)} paket`
                   ];
                 } else {
-                  const count = isRealized ? j.paketSudah : j.paketBelum;
+                  const count = isRealized ? d.paketSudah : d.paketBelum;
                   const pct = isRealized
-                    ? (j.jumlahPaket > 0 ? (j.paketSudah / j.jumlahPaket * 100) : 0)
-                    : (j.jumlahPaket > 0 ? (j.paketBelum / j.jumlahPaket * 100) : 0);
+                    ? (d.jumlahPaket > 0 ? (d.paketSudah / d.jumlahPaket * 100) : 0)
+                    : (d.jumlahPaket > 0 ? (d.paketBelum / d.jumlahPaket * 100) : 0);
                   const labelName = isRealized ? 'Sudah Terealisasi' : 'Belum Terealisasi';
                   return [
                     `${labelName}: ${fmtInt(count)} paket (${pct.toFixed(1).replace('.', ',')}%)`,
-                    isRealized ? `Realisasi: ${fmtCompactRp(j.realisasi)}` : `Pagu Tersisa: ${fmtCompactRp(j.belum)}`
+                    isRealized ? `Realisasi: ${fmtCompactRp(d.realisasi)}` : `Pagu Tersisa: ${fmtCompactRp(d.belum)}`
                   ];
                 }
               },
@@ -230,15 +242,15 @@ export function JenisBarChart({ jenis, mode = 'keuangan' }: { jenis: JenisAggreg
         },
       },
     };
-  }, [jenis, mode, isDark, ink.tick, ink.grid, ink.tooltipBg]);
+  }, [data, getLabel, getColor, mode, isDark, ink.tick, ink.grid, ink.tooltipBg]);
 
-  if (jenis.length === 0) {
+  if (data.length === 0) {
     return <div className={styles.empty}>Tidak ada data untuk filter ini.</div>;
   }
 
   return (
     <div className={`${styles.wrap} ${styles.h300}`}>
-      <Bar data={data} options={options} plugins={[endLabelPlugin]} />
+      <Bar data={chartData} options={options} plugins={[endLabelPlugin]} />
     </div>
   );
 }

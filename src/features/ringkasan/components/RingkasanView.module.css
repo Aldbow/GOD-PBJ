@@ -58,6 +58,29 @@
 
 .spacer { margin-bottom: 20px; }
 
+/* Pemisah antar-section Sumber/Metode/Jenis Pengadaan — garis + jarak lebih
+   lega supaya tiap section terasa sebagai blok tersendiri, bukan menyambung. */
+.sectionGroup {
+  margin-top: 44px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+
+/* Judul section yang dipertegas: ikon + teks lebih besar & warna primary,
+   dipakai sebagai title prop SectionHeader (menggantikan teks polos default). */
+.sectionEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.sectionEyebrow svg { color: var(--info-600); flex-shrink: 0; }
+
 /* Panel generik untuk chart */
 .panel {
   background: var(--surface);

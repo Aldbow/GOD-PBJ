@@ -51,6 +51,20 @@ export interface JenisAggregate {
   paketBelum: number;
 }
 
+// Proporsi Paket Penyedia vs Paket Swakelola DARI RUP (bukan dari realisasi) —
+// hanya menghitung paket yang benar-benar terumumkan di SIRUP (is_from_sirup =
+// true), tidak termasuk paket "anomali" (realisasi tanpa RUP terumumkan).
+export interface SumberAggregate {
+  kategori: 'Paket Penyedia' | 'Paket Swakelola';
+  jumlahPaket: number;
+  pagu: number;
+  realisasi: number;
+  belum: number;
+  pctRealisasi: number;
+  paketSudah: number;
+  paketBelum: number;
+}
+
 export interface SatkerAggregate {
   satker: string;
   jumlahPaket: number;
@@ -107,6 +121,7 @@ export interface RingkasanAggregate {
   kpi: RingkasanKpi;
   metode: MetodeAggregate[];
   jenis: JenisAggregate[];
+  sumber: SumberAggregate[];
   satker: SatkerAggregate[];
   kurasi: KurasiAggregate;
   anomali: AnomaliSummary;
@@ -188,6 +203,7 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
 
   const metodeMap = new Map<string, MetodeAggregate>();
   const jenisMap = new Map<string, JenisAggregate>();
+  const sumberMap = new Map<SumberAggregate['kategori'], SumberAggregate>();
   const satkerMap = new Map<string, SatkerAggregate>();
 
   for (const r of data) {
@@ -233,6 +249,22 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
     if (sudah) j.paketSudah += 1;
     else j.paketBelum += 1;
 
+    // Sumber (Penyedia/Swakelola) DARI RUP saja — anomali (is_from_sirup=false)
+    // dikecualikan karena itu bukan paket yang benar-benar terumumkan di SIRUP.
+    if (r.is_from_sirup === true) {
+      const kategori: SumberAggregate['kategori'] = metode === 'Swakelola' ? 'Paket Swakelola' : 'Paket Penyedia';
+      let sm = sumberMap.get(kategori);
+      if (!sm) {
+        sm = { kategori, jumlahPaket: 0, pagu: 0, realisasi: 0, belum: 0, pctRealisasi: 0, paketSudah: 0, paketBelum: 0 };
+        sumberMap.set(kategori, sm);
+      }
+      sm.jumlahPaket += 1;
+      sm.pagu += pagu;
+      sm.realisasi += realisasi;
+      if (sudah) sm.paketSudah += 1;
+      else sm.paketBelum += 1;
+    }
+
     let s = satkerMap.get(satkerName);
     if (!s) {
       s = { satker: satkerName, jumlahPaket: 0, pagu: 0, realisasi: 0, belum: 0, pctRealisasi: 0 };
@@ -266,6 +298,14 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
       return b.jumlahPaket - a.jumlahPaket;
     });
 
+  const sumber = Array.from(sumberMap.values())
+    .map((sm) => ({
+      ...sm,
+      belum: Math.max(sm.pagu - sm.realisasi, 0),
+      pctRealisasi: sm.pagu > 0 ? (sm.realisasi / sm.pagu) * 100 : 0,
+    }))
+    .sort((a, b) => b.jumlahPaket - a.jumlahPaket);
+
   const satker = Array.from(satkerMap.values())
     .map((s) => ({
       ...s,
@@ -291,6 +331,7 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
     },
     metode,
     jenis,
+    sumber,
     satker,
     kurasi: {
       totalDikurasi,
