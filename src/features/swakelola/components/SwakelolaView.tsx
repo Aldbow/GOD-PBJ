@@ -523,8 +523,8 @@ export function SwakelolaView() {
               <h4 className={styles.modalInfoBoxTitle}>Informasi Instansi &amp; Satker</h4>
               <p className={styles.modalText}>KLPD Utama: {selectedItem.nama_klpd || selectedItem.kode_klpd || '-'}</p>
               <p className={styles.modalText}>Satuan Kerja: {selectedItem.satker || '-'}</p>
-              {selectedItem.nama_klpd_penyelenggara && <p className={styles.modalText}>KLPD Pny.: {selectedItem.nama_klpd_penyelenggara}</p>}
-              {selectedItem.nama_satker_penyelenggara && <p className={styles.modalText}>Satker Pny.: {selectedItem.nama_satker_penyelenggara}</p>}
+              <p className={styles.modalText}>KLPD Penyelenggara: {selectedItem.nama_klpd_penyelenggara || '-'}</p>
+              <p className={styles.modalText}>Satker Penyelenggara: {selectedItem.nama_satker_penyelenggara || '-'}</p>
               <p className={styles.modalText}>Nama PPK: {selectedItem.nama_ppk || '-'}</p>
             </div>
 

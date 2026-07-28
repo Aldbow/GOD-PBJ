@@ -42,6 +42,7 @@ untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak d
 | 50 | 50_view_afirmasi_eselon1.sql | view_dashboard_keterisian_sirup_eselon1 | |
 | 60 | 60_index_realisasi_dashboard.sql | index exact-match | |
 | 61 | 61_index_ltrim_satker.sql | functional index LTRIM | wajib utk join LTRIM |
+| 62 | 62_view_swakelola_penyelenggara.sql | swakelola(final) | tambah kd/nama_klpd_penyelenggara + nama_satker_penyelenggara |
 
 ## Kenapa view realisasi (40–44) dijalankan berlapis?
 

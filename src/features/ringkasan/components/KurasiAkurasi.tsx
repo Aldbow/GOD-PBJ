@@ -86,7 +86,7 @@ export function KurasiAkurasi({ kurasi, metode, onRefresh, isFullWidth = false }
     <div className={styles.card}>
       <div className={styles.head}>
         <div>
-          <h3 className={styles.title}>Akurasi Hasil Kurasi Paket</h3>
+          <h3 className={styles.title}>Akurasi Rencana Umum Pengadaan</h3>
           <p className={styles.sub}>Kualitas metode pemilihan terhadap pagu &amp; jenis pengadaan</p>
         </div>
         <div className={styles.actions}>

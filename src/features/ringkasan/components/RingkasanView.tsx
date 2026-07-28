@@ -85,9 +85,10 @@ export function RingkasanView() {
       // sangat tinggi (banyak seksi + tabel anomali di paling bawah), dan
       // menjejalkannya jadi satu halaman PDF raksasa berisiko kena batas ukuran
       // canvas/halaman browser & jsPDF sehingga seksi paling bawah terpotong.
+      const bgColor = isDark ? '#0f172a' : '#f8fafc'; // slate-900 / slate-50
       const canvas = await htmlToImage.toCanvas(el, {
         pixelRatio: 2, // 2x for better resolution
-        backgroundColor: isDark ? '#0f172a' : '#f8fafc', // slate-900 / slate-50
+        backgroundColor: bgColor,
         width: el.scrollWidth,
         height: el.scrollHeight,
         style: {
@@ -106,12 +107,16 @@ export function RingkasanView() {
       });
 
       // Potong canvas jadi beberapa halaman A4 agar seluruh konten (termasuk
-      // tabel anomali di bagian paling bawah) selalu tercetak utuh.
+      // tabel anomali di bagian paling bawah) selalu tercetak utuh, dengan
+      // margin di semua sisi supaya konten tidak mepet ke tepi kertas.
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       const pageWidthPt = pdf.internal.pageSize.getWidth();
       const pageHeightPt = pdf.internal.pageSize.getHeight();
-      const pxToPt = pageWidthPt / canvas.width;
-      const pageHeightPx = Math.floor(pageHeightPt / pxToPt);
+      const MARGIN_PT = 32;
+      const contentWidthPt = pageWidthPt - MARGIN_PT * 2;
+      const contentHeightPt = pageHeightPt - MARGIN_PT * 2;
+      const pxToPt = contentWidthPt / canvas.width;
+      const pageHeightPx = Math.floor(contentHeightPt / pxToPt);
 
       let renderedPx = 0;
       let pageIndex = 0;
@@ -126,7 +131,11 @@ export function RingkasanView() {
         ctx.drawImage(canvas, 0, renderedPx, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
 
         if (pageIndex > 0) pdf.addPage();
-        pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidthPt, sliceHeightPx * pxToPt);
+        // Isi seluruh halaman dengan warna latar laporan agar area margin
+        // menyatu dengan konten, bukan bingkai putih polos di sekitar konten gelap.
+        pdf.setFillColor(bgColor);
+        pdf.rect(0, 0, pageWidthPt, pageHeightPt, 'F');
+        pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', MARGIN_PT, MARGIN_PT, contentWidthPt, sliceHeightPx * pxToPt);
 
         renderedPx += sliceHeightPx;
         pageIndex += 1;
@@ -312,8 +321,8 @@ export function RingkasanView() {
 
       {error && <ErrorBox className={styles.spacer}>{error}</ErrorBox>}
 
-      {/* Baris 2 — Filter */}
-      <motion.div variants={item}>
+      {/* Baris 2 — Filter (disembunyikan dari hasil cetak/PDF) */}
+      <motion.div variants={item} data-exclude-print="true">
         <RingkasanFilter
           satkerOptions={satkerOptions}
           getPpkOptions={getPpkOptions}
