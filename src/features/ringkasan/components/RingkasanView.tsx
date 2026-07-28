@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer } from 'lucide-react';
+import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ErrorBox } from '@/components/ui/ErrorBox';
@@ -56,6 +56,7 @@ export function RingkasanView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSatkerForDetail, setSelectedSatkerForDetail] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [barChartMode, setBarChartMode] = useState<'keuangan' | 'paket'>('keuangan');
   const isDark = useIsDark();
 
   const handleDownloadPdf = async () => {
@@ -116,10 +117,12 @@ export function RingkasanView() {
   // Data export dari baris terfilter.
   const exportColumns = useMemo(
     () => [
+      { key: 'kd_rup', label: 'Kode RUP' },
       { key: 'satker', label: 'Satuan Kerja' },
       { key: 'nama_ppk', label: 'Nama PPK' },
       { key: 'rup_name', label: 'Nama Paket', width: 40 },
       { key: 'metode_pengadaan', label: 'Metode' },
+      { key: 'status', label: 'Status' },
       { key: 'pagu', label: 'Pagu (Rp)', type: 'currency' },
       { key: 'total', label: 'Realisasi (Rp)', type: 'currency' },
       { key: 'realisasi_pct', label: 'Realisasi (%)', type: 'number' },
@@ -136,10 +139,12 @@ export function RingkasanView() {
         const pagu = Number(r.pagu) || 0;
         const total = Number(r.total) || 0;
         return {
+          kd_rup: r.kd_rup || '-',
           satker: r.satker || 'Tidak Diketahui',
           nama_ppk: r.nama_ppk || 'Tidak Diketahui',
           rup_name: r.rup_name || 'Tidak Diketahui',
           metode_pengadaan: r.metode_pengadaan || 'Lainnya',
+          status: r.status || '-',
           pagu,
           total,
           realisasi_pct: pagu > 0 ? Math.round((total / pagu) * 100) : 0,
@@ -276,8 +281,29 @@ export function RingkasanView() {
             <MetodeDonutChart metode={agg.metode} totalPaket={totalPaketSemua} />
           </div>
           <div className={styles.panel}>
-            <div className={styles.panelTitle}><BarChart3 size={15} /> Jumlah Paket per Metode</div>
-            <MetodeBarChart metode={agg.metode} />
+            <div className={styles.panelHeaderRow}>
+              <div className={styles.panelTitle}><BarChart3 size={15} /> Realisasi per Metode</div>
+              <div className={styles.segmentedControl}>
+                <div className={styles.segmentedBg} style={{ transform: barChartMode === 'paket' ? 'translateX(100%)' : 'translateX(0)' }} />
+                <button
+                  type="button"
+                  className={`${styles.segmentedBtn} ${barChartMode === 'keuangan' ? styles.active : ''}`}
+                  onClick={() => setBarChartMode('keuangan')}
+                >
+                  <Percent size={13} />
+                  Persentase Realisasi
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.segmentedBtn} ${barChartMode === 'paket' ? styles.active : ''}`}
+                  onClick={() => setBarChartMode('paket')}
+                >
+                  <Package size={13} />
+                  Jumlah Paket
+                </button>
+              </div>
+            </div>
+            <MetodeBarChart metode={agg.metode} mode={barChartMode} />
           </div>
         </div>
 

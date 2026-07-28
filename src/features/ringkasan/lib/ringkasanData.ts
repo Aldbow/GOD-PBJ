@@ -11,6 +11,7 @@ export interface GabunganRow {
   metode_pengadaan: string | null;
   pagu: number | null;
   total: number | null;
+  status: string | null;
   status_kurasi: string | null;
   catatan_kurasi: string | null;
   rekomendasi_kurasi: string | null;
@@ -99,7 +100,7 @@ export interface RingkasanFilterValue {
   ppk: string; // '' = Semua PPK
 }
 
-const SELECT_COLS = 'kd_rup,rup_name,satker,nama_ppk,metode_pengadaan,pagu,total,status_kurasi,catatan_kurasi,rekomendasi_kurasi,is_from_sirup';
+const SELECT_COLS = 'kd_rup,rup_name,satker,nama_ppk,metode_pengadaan,pagu,total,status,status_kurasi,catatan_kurasi,rekomendasi_kurasi,is_from_sirup';
 
 // Ambil SELURUH baris view gabungan via paginasi (pola sama seperti fetchAll di
 // src/lib/itkp/fetchA.ts). View bisa >1000 baris sedangkan Supabase membatasi
