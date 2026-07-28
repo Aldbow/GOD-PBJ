@@ -14,6 +14,7 @@ import {
   aggregate,
   listSatker,
   listPpk,
+  getSatkerForPpk,
   filterRows,
   type GabunganRow,
   type RingkasanFilterValue,
@@ -22,8 +23,10 @@ import { RingkasanFilter } from './RingkasanFilter';
 import { KpiCards } from './KpiCards';
 import { MetodeDonutChart } from './charts/MetodeDonutChart';
 import { MetodeBarChart } from './charts/MetodeBarChart';
+import { JenisDonutChart } from './charts/JenisDonutChart';
+import { JenisBarChart } from './charts/JenisBarChart';
 import { SatkerRankingChart } from './charts/SatkerRankingChart';
-import { metodeColor, useIsDark } from './charts/chartTheme';
+import { metodeColor, jenisColor, useIsDark } from './charts/chartTheme';
 import { ItkpGauge } from './ItkpGauge';
 import { KurasiAkurasi } from './KurasiAkurasi';
 import { AnomaliPanel } from '@/components/paket/AnomaliPanel';
@@ -57,6 +60,7 @@ export function RingkasanView() {
   const [selectedSatkerForDetail, setSelectedSatkerForDetail] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [barChartMode, setBarChartMode] = useState<'keuangan' | 'paket'>('keuangan');
+  const [jenisChartMode, setJenisChartMode] = useState<'keuangan' | 'paket'>('keuangan');
   const isDark = useIsDark();
 
   const handleDownloadPdf = async () => {
@@ -109,6 +113,7 @@ export function RingkasanView() {
   const agg = useMemo(() => aggregate(rows, applied), [rows, applied]);
   const satkerOptions = useMemo(() => listSatker(rows), [rows]);
   const getPpkOptions = useCallback((satker: string) => listPpk(rows, satker), [rows]);
+  const getSatkerByPpk = useCallback((ppk: string) => getSatkerForPpk(rows, ppk), [rows]);
 
   const updatedLabel = lastUpdate
     ? `${lastUpdate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}, ${lastUpdate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`
@@ -234,7 +239,9 @@ export function RingkasanView() {
       {/* Baris 1 — Header */}
       <motion.div variants={item} className={styles.pageHeader}>
         <div>
-          <h1 className={styles.pageTitle}>Ringkasan Pengadaan</h1>
+          <h1 className={styles.pageTitle}>
+            Ringkasan Pengadaan {applied.satker || 'Kementerian Ketenagakerjaan'}
+          </h1>
           <p className={styles.pageSub}>
             Gambaran umum pelaksanaan pengadaan, realisasi anggaran, pemanfaatan sistem, dan hasil kurasi paket.
           </p>
@@ -261,6 +268,7 @@ export function RingkasanView() {
         <RingkasanFilter
           satkerOptions={satkerOptions}
           getPpkOptions={getPpkOptions}
+          getSatkerByPpk={getSatkerByPpk}
           applied={applied}
           onApply={setApplied}
           disabled={loading}
@@ -349,6 +357,80 @@ export function RingkasanView() {
                   </tr>
                 </tfoot>
               )}
+            </table>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Baris 4b — Ringkasan Jenis Pengadaan */}
+      <motion.div variants={item}>
+        <SectionHeader
+          title="Ringkasan Jenis Pengadaan"
+          caption="Distribusi paket, pagu & realisasi per jenis (Barang, Jasa, Konstruksi, Swakelola)"
+        />
+        <div className={styles.methodGrid}>
+          <div className={styles.panel}>
+            <div className={styles.panelTitle}><PieChart size={15} /> Proporsi Jumlah Paket</div>
+            <JenisDonutChart jenis={agg.jenis} totalPaket={totalPaketSemua} />
+          </div>
+          <div className={styles.panel}>
+            <div className={styles.panelHeaderRow}>
+              <div className={styles.panelTitle}><BarChart3 size={15} /> Realisasi per Jenis</div>
+              <div className={styles.segmentedControl}>
+                <div className={styles.segmentedBg} style={{ transform: jenisChartMode === 'paket' ? 'translateX(100%)' : 'translateX(0)' }} />
+                <button
+                  type="button"
+                  className={`${styles.segmentedBtn} ${jenisChartMode === 'keuangan' ? styles.active : ''}`}
+                  onClick={() => setJenisChartMode('keuangan')}
+                >
+                  <Percent size={13} />
+                  Persentase Realisasi
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.segmentedBtn} ${jenisChartMode === 'paket' ? styles.active : ''}`}
+                  onClick={() => setJenisChartMode('paket')}
+                >
+                  <Package size={13} />
+                  Jumlah Paket
+                </button>
+              </div>
+            </div>
+            <JenisBarChart jenis={agg.jenis} mode={jenisChartMode} />
+          </div>
+        </div>
+
+        <div className={`${styles.panel} ${styles.tablePanel}`}>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Jenis</th>
+                  <th className={styles.num}>Jumlah Paket</th>
+                  <th className={styles.num}>Pagu</th>
+                  <th className={styles.num}>Realisasi</th>
+                  <th className={styles.num}>% Realisasi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agg.jenis.map((j) => (
+                  <tr key={j.jenis}>
+                    <td>
+                      <span className={styles.swatch} style={{ background: jenisColor(j.jenis, isDark) }} />
+                      {j.jenis}
+                    </td>
+                    <td className={styles.num}>{fmtInt(j.jumlahPaket)}</td>
+                    <td className={styles.num}>{fmtRupiah(j.pagu)}</td>
+                    <td className={styles.num}>{fmtRupiah(j.realisasi)}</td>
+                    <td className={styles.num}>{fmtPct(j.pctRealisasi)}</td>
+                  </tr>
+                ))}
+                {agg.jenis.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className={styles.tableEmpty}>Tidak ada data untuk filter ini.</td>
+                  </tr>
+                )}
+              </tbody>
             </table>
           </div>
         </div>

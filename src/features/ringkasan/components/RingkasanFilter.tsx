@@ -9,12 +9,13 @@ import styles from './RingkasanFilter.module.css';
 interface Props {
   satkerOptions: string[];
   getPpkOptions: (satker: string) => string[];
+  getSatkerByPpk?: (ppk: string) => string | undefined;
   applied: RingkasanFilterValue;
   onApply: (value: RingkasanFilterValue) => void;
   disabled?: boolean;
 }
 
-export function RingkasanFilter({ satkerOptions, getPpkOptions, applied, onApply, disabled }: Props) {
+export function RingkasanFilter({ satkerOptions, getPpkOptions, getSatkerByPpk, applied, onApply, disabled }: Props) {
   const [pendingSatker, setPendingSatker] = useState(applied.satker);
   const [pendingPpk, setPendingPpk] = useState(applied.ppk);
 
@@ -64,7 +65,15 @@ export function RingkasanFilter({ satkerOptions, getPpkOptions, applied, onApply
           <label className={styles.fieldLabel}>PPK</label>
           <SearchableSelect
             value={pendingPpk}
-            onChange={setPendingPpk}
+            onChange={(v) => {
+              setPendingPpk(v);
+              if (v && !pendingSatker && getSatkerByPpk) {
+                const satker = getSatkerByPpk(v);
+                if (satker) {
+                  setPendingSatker(satker);
+                }
+              }
+            }}
             options={ppkOptions}
             placeholder="Semua PPK"
             ariaLabel="Pilih PPK"

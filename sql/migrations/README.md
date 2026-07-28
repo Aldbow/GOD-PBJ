@@ -38,6 +38,7 @@ untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak d
 | 42 | 42_views_lock_pagu.sql | PnL(final), swakelola(final), PL(antara) | |
 | 43 | 43_view_pengadaan_langsung_metode.sql | PL(final) | |
 | 44 | 44_view_epurchasing_final.sql | epurchasing(final) | alias + direct-by-kode |
+| 45 | 45_view_jenis_pengadaan.sql | tender/PL/PnL/gabungan(final) | tambah kolom jenis_pengadaan |
 | 50 | 50_view_afirmasi_eselon1.sql | view_dashboard_keterisian_sirup_eselon1 | |
 | 60 | 60_index_realisasi_dashboard.sql | index exact-match | |
 | 61 | 61_index_ltrim_satker.sql | functional index LTRIM | wajib utk join LTRIM |

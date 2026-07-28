@@ -59,6 +59,31 @@ export function metodePalette(metodes: string[], isDark: boolean): string[] {
   return metodes.map((m) => metodeColor(m, isDark));
 }
 
+// Palet jenis pengadaan — 7 kategori nyata (termasuk kombinasi & residual) dapat
+// warna sendiri masing-masing, TIDAK ada yang jatuh ke abu-abu OTHER. Urutan
+// blue→aqua→yellow→green→magenta→violet→red divalidasi lolos gate CVD adjacent
+// (termasuk wrap-around donut merah↔biru) di kedua mode via
+// dataviz/scripts/validate_palette.js — jangan diacak ulang tanpa validasi ulang.
+// 'Swakelola' sengaja disamakan dengan METODE_SLOT.Swakelola (magenta) karena
+// merujuk entitas yang sama persis di chart lain.
+const JENIS_SLOT: Record<string, ColorPair> = {
+  'Barang': SLOT.blue,
+  'Jasa Lainnya': SLOT.aqua,
+  'Pekerjaan Konstruksi': SLOT.yellow,
+  'Jasa Konsultansi': SLOT.green,
+  'Swakelola': SLOT.magenta,
+  'Barang;Jasa Lainnya': SLOT.violet,
+  'Paket Anomali': SLOT.red,
+};
+
+export function jenisColor(jenis: string, isDark: boolean): string {
+  return pick(JENIS_SLOT[jenis] ?? OTHER, isDark);
+}
+
+export function jenisPalette(jenisList: string[], isDark: boolean): string[] {
+  return jenisList.map((j) => jenisColor(j, isDark));
+}
+
 // Warna seri semantik (bukan kategori metode).
 export const SERIES = {
   pagu: { light: '#94a3b8', dark: '#5b6472' } as ColorPair, // netral (konteks)
