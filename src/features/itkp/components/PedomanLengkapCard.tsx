@@ -25,7 +25,7 @@ interface PedomanGroup {
   footNote?: string;
 }
 
-interface PedomanComponentDef {
+export interface PedomanComponentDef {
   code: 'A' | 'B' | 'C' | 'D';
   name: string;
   weight: number;
@@ -51,7 +51,7 @@ function blockForA(key: string): PedomanBlock {
   };
 }
 
-const PEDOMAN: PedomanComponentDef[] = [
+export const PEDOMAN: PedomanComponentDef[] = [
   {
     code: 'A',
     name: 'Pemanfaatan Sistem Pengadaan',
@@ -163,6 +163,58 @@ const PEDOMAN: PedomanComponentDef[] = [
   },
 ];
 
+export function PedomanComponentDetail({ comp }: { comp: PedomanComponentDef }) {
+  return (
+    <div className={styles.compBody}>
+      {comp.groups.map((group, gi) => (
+        <div key={gi} className={styles.group}>
+          {group.label && (
+            <div className={styles.groupHead}>
+              <span>{group.label}</span>
+              <span className={styles.groupMax}>Bobot Maks {fmtDec(group.maxScore, 0)}</span>
+            </div>
+          )}
+
+          <div className={styles.blocksGrid}>
+            {group.blocks.map((block) => (
+              <div key={block.code} className={styles.indBlock}>
+                <div className={styles.indBlockHead}>
+                  <span className={styles.indBlockCode}>{block.code}</span>
+                  <span className={styles.indBlockTitle}>{block.title}</span>
+                  <span className={styles.indBlockMax}>
+                    Maks {fmtDec(block.maxScore, block.maxScore % 1 === 0 ? 0 : 1)}
+                  </span>
+                </div>
+                {block.formula && <div className={styles.indFormula}>{block.formula}</div>}
+                <div className={styles.indTable}>
+                  {block.rows.map((r) => (
+                    <div key={r.label} className={styles.indRow}>
+                      <span className={styles.indRowLabel}>{r.label}</span>
+                      <span className={styles.indRowSkor}>
+                        {fmtDec(r.skor, r.skor % 1 === 0 ? 0 : 1)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {block.catatan && (
+                  <div className={styles.indCatatan}>
+                    <Info size={12} />
+                    <span>{block.catatan}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {group.footNote && <p className={styles.groupFootNote}>{group.footNote}</p>}
+        </div>
+      ))}
+
+      {comp.footNote && <p className={styles.compFootNote}>{comp.footNote}</p>}
+    </div>
+  );
+}
+
 export function PedomanLengkapCard() {
   const [openCode, setOpenCode] = useState<string | null>(null);
 
@@ -216,53 +268,7 @@ export function PedomanLengkapCard() {
 
       {activeComp && (
         <div className={`${styles.activePanel} ${styles[`comp${activeComp.code}`]}`}>
-          <div className={styles.compBody}>
-            {activeComp.groups.map((group, gi) => (
-              <div key={gi} className={styles.group}>
-                {group.label && (
-                  <div className={styles.groupHead}>
-                    <span>{group.label}</span>
-                    <span className={styles.groupMax}>Bobot Maks {fmtDec(group.maxScore, 0)}</span>
-                  </div>
-                )}
-
-                <div className={styles.blocksGrid}>
-                  {group.blocks.map((block) => (
-                    <div key={block.code} className={styles.indBlock}>
-                      <div className={styles.indBlockHead}>
-                        <span className={styles.indBlockCode}>{block.code}</span>
-                        <span className={styles.indBlockTitle}>{block.title}</span>
-                        <span className={styles.indBlockMax}>
-                          Maks {fmtDec(block.maxScore, block.maxScore % 1 === 0 ? 0 : 1)}
-                        </span>
-                      </div>
-                      {block.formula && <div className={styles.indFormula}>{block.formula}</div>}
-                      <div className={styles.indTable}>
-                        {block.rows.map((r) => (
-                          <div key={r.label} className={styles.indRow}>
-                            <span className={styles.indRowLabel}>{r.label}</span>
-                            <span className={styles.indRowSkor}>
-                              {fmtDec(r.skor, r.skor % 1 === 0 ? 0 : 1)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      {block.catatan && (
-                        <div className={styles.indCatatan}>
-                          <Info size={12} />
-                          <span>{block.catatan}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {group.footNote && <p className={styles.groupFootNote}>{group.footNote}</p>}
-              </div>
-            ))}
-
-            {activeComp.footNote && <p className={styles.compFootNote}>{activeComp.footNote}</p>}
-          </div>
+          <PedomanComponentDetail comp={activeComp} />
         </div>
       )}
     </section>

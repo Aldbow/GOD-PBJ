@@ -33,7 +33,7 @@ import {
   type ItkpComponentModel,
   type ItkpIndicatorModel,
 } from '@/lib/itkp/itkpModel';
-import { PedomanLengkapCard } from './PedomanLengkapCard';
+import { PEDOMAN, PedomanComponentDetail } from './PedomanLengkapCard';
 import styles from './ItkpDashboard.module.css';
 
 const KEMENTERIAN_LABEL = 'Kementerian (Total)';
@@ -267,21 +267,11 @@ export function ItkpDashboard() {
         </header>
 
         {pedomanOpen && (
-          <div className={styles.pedomanPanel}>
-            <p className={styles.pedomanIntro}>
-              Formula perhitungan tiap indikator Komponen {activeComp.code} (sesuai Kepka penilaian ITKP):
-            </p>
-            <ul className={styles.pedomanList}>
-              {activeComp.indicators.map((ind) => (
-                <li key={ind.code}>
-                  <span className={styles.pedomanCode}>{ind.code}</span>
-                  <span>
-                    <strong>{ind.name}.</strong> {ind.formula}
-                  </span>
-                </li>
-              ))}
-              {activeComp.indicators.length === 0 && <li>Rincian tersedia saat memilih satu Unit Penilaian.</li>}
-            </ul>
+          <div className={styles.pedomanPanel} style={{ padding: 0, overflow: 'hidden' }}>
+            {(() => {
+              const pedomanData = PEDOMAN.find((p) => p.code === activeComp.code);
+              return pedomanData ? <PedomanComponentDetail comp={pedomanData} /> : null;
+            })()}
           </div>
         )}
 
@@ -302,10 +292,7 @@ export function ItkpDashboard() {
         </div>
       </section>
 
-      {/* ── Pedoman Lengkap: referensi utuh formula & rentang nilai A-D ── */}
-      <div className={styles.pedomanSection}>
-        <PedomanLengkapCard />
-      </div>
+      {/* Pedoman Lengkap telah dipindahkan ke masing-masing rincian komponen */}
       {/* ── Modal Detail ── */}
       <Modal 
         isOpen={!!modalData} 
