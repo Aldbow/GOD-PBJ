@@ -5,6 +5,7 @@ import { Loader2, Sparkles, CheckCircle2, AlertTriangle, Clock, BarChart3 } from
 import type { KurasiAggregate, MetodeAggregate } from '../lib/ringkasanData';
 import { fmtInt, fmtPct } from '@/lib/format';
 import { KurasiMetodeChart } from './charts/KurasiMetodeChart';
+import { useSession } from '@/components/auth/SessionProvider';
 import styles from './KurasiAkurasi.module.css';
 
 const RING_R = 52;
@@ -22,6 +23,7 @@ export function KurasiAkurasi({ kurasi, metode, onRefresh, isFullWidth = false }
   const [isAutoRunning, setIsAutoRunning] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const stopRef = useRef(false);
+  const { role } = useSession();
 
   const runCuration = async () => {
     setIsLoading(true);
@@ -90,15 +92,19 @@ export function KurasiAkurasi({ kurasi, metode, onRefresh, isFullWidth = false }
           <p className={styles.sub}>Kualitas metode pemilihan terhadap pagu &amp; jenis pengadaan</p>
         </div>
         <div className={styles.actions}>
-          {isAutoRunning && (
-            <button className={`${styles.btn} ${styles.btnStop}`} onClick={stopCuration}>
-              Hentikan
-            </button>
+          {role === 'admin' && (
+            <>
+              {isAutoRunning && (
+                <button className={`${styles.btn} ${styles.btnStop}`} onClick={stopCuration}>
+                  Hentikan
+                </button>
+              )}
+              <button className={`${styles.btn} ${styles.btnRun}`} onClick={runCuration} disabled={isLoading}>
+                {isLoading ? <Loader2 size={15} className={styles.spin} /> : <Sparkles size={15} />}
+                {isLoading ? 'AI Bekerja...' : 'Jalankan Kurasi'}
+              </button>
+            </>
           )}
-          <button className={`${styles.btn} ${styles.btnRun}`} onClick={runCuration} disabled={isLoading}>
-            {isLoading ? <Loader2 size={15} className={styles.spin} /> : <Sparkles size={15} />}
-            {isLoading ? 'AI Bekerja...' : 'Jalankan Kurasi'}
-          </button>
         </div>
       </div>
 

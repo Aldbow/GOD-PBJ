@@ -705,7 +705,7 @@ function IndicatorCard({ ind, onDetailClick }: { ind: ItkpIndicatorModel; onDeta
           type="button" 
           onClick={() => onDetailClick(ind)} 
           style={{ 
-            marginTop: 12, 
+            marginTop: 'auto', 
             padding: '6px 12px', 
             fontSize: 12, 
             borderRadius: 6, 

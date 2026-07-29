@@ -42,9 +42,23 @@
 }
 
 .compList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .compList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .compList {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
 }
 
 /* Identitas warna per komponen — sama skema dengan kartu Komponen A-D di
@@ -58,6 +72,12 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  transition: all var(--dur-fast, 0.15s) ease;
+}
+
+.compBlock.activeBlock {
+  border-color: var(--c);
+  box-shadow: 0 0 0 1px var(--c);
 }
 
 .compToggle {
@@ -111,19 +131,32 @@
   color: var(--text-tertiary);
 }
 
+.activePanel {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  border-top: 4px solid var(--c);
+  overflow: hidden;
+  background: var(--surface);
+  animation: fadeInDown 0.2s ease-out forwards;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .compBody {
   padding: 16px;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
 .group {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .groupHead {
@@ -145,11 +178,22 @@
   white-space: nowrap;
 }
 
+.blocksGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
 .indBlock {
   background: color-mix(in srgb, var(--text-tertiary) 4%, transparent);
   border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   border-radius: var(--radius-sm);
-  padding: 12px;
+  padding: 10px;
+  /* Tambahkan height 100% agar semua blok dalam satu baris punya tinggi seragam jika diinginkan, atau hapus jika mau tinggi natural */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .indBlockHead {
