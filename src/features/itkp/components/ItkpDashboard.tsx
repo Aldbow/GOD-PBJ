@@ -484,6 +484,42 @@ export function ItkpDashboard() {
                 })}
               </tbody>
             </table>
+            
+            {/* Informasi Referensi UK */}
+            <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#334155', borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>
+                Referensi Ukuran Keberhasilan (UK)
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
+                  <div style={{ background: '#f1f5f9', padding: '10px 16px', fontWeight: 600, fontSize: 13, color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
+                    PPK
+                  </div>
+                  <ul style={{ padding: '12px 16px 12px 32px', margin: 0, fontSize: 12, color: '#475569', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <li><strong>UK 1:</strong> Tersusunnya Kebutuhan PPK Bersertifikat Kompetensi</li>
+                    <li><strong>UK 2:</strong> Tersusunnya Rencana Pemenuhan PPK Bersertifikat Kompetensi Tipe A/B/C</li>
+                    <li><strong>UK 3:</strong> Terlaksananya Pemenuhan PPK Bersertifikat Kompetensi Tipe A/B/C</li>
+                    <li><strong>UK 4:</strong> Tersedianya Laporan Hasil Pemenuhan PPK Bersertifikat Kompetensi</li>
+                  </ul>
+                </div>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
+                  <div style={{ background: '#f1f5f9', padding: '10px 16px', fontWeight: 600, fontSize: 13, color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
+                    Pengelola PBJ / JF
+                  </div>
+                  <ul style={{ padding: '12px 16px 12px 32px', margin: 0, fontSize: 12, color: '#475569', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <li><strong>UK 1:</strong> Tersusunnya Kebutuhan Pengelola PBJ</li>
+                    <li><strong>UK 2:</strong> Tersampaikannya Hasil Penyusunan Kebutuhan Pengelola PBJ</li>
+                    <li><strong>UK 3:</strong> Tersampaikannya Permohonan Penetapan Kebutuhan Pengelola PBJ</li>
+                    <li><strong>UK 4:</strong> Tersusunnya Rencana Pemenuhan Pengelola PBJ</li>
+                    <li><strong>UK 5:</strong> Terlaksananya Pemenuhan Pengelola PBJ melalui Pengangkatan Pertama</li>
+                    <li><strong>UK 6:</strong> Terlaksananya Pemenuhan Pengelola PBJ melalui Perpindahan dari Jabatan Lain</li>
+                    <li><strong>UK 7:</strong> Terlaksananya Pemenuhan Pengelola PBJ melalui Penyesuaian/Inpassing</li>
+                    <li><strong>UK 8:</strong> Terlaksananya Pemenuhan Pengelola PBJ melalui Penyetaraan Jabatan Administrasi ke dalam Jabatan Fungsional</li>
+                    <li><strong>UK 9:</strong> Tersedianya Laporan Hasil Pengangkatan Pengelola PBJ</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
