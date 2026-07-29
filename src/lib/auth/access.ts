@@ -12,7 +12,7 @@ import type { Role } from '@/types';
  */
 export const ROUTE_ACCESS: Record<Role, string[] | '*'> = {
   admin: '*',
-  sekjend: ['/', '/rencana-pengadaan', '/itkp'],
+  sekjend: ['/', '/rencana-pengadaan', '/itkp', '/risiko-pengadaan'],
   // PPK: halaman ringkasan PPK + semua fitur Realisasi (data ter-scope ke PPK ybs)
   ppk: [
     '/ppk',
@@ -22,6 +22,7 @@ export const ROUTE_ACCESS: Record<Role, string[] | '*'> = {
     '/penunjukan-langsung',
     '/swakelola',
     '/rencana-pengadaan',
+    '/risiko-pengadaan',
   ],
 };
 

@@ -1,0 +1,303 @@
+/* ═══════════════════════════════════════════════════════
+   Distribusi Risiko — Layout System (Total Redesign)
+   ═══════════════════════════════════════════════════════ */
+
+/* ---------- Section Header ---------- */
+.distribusiSection {
+  margin-top: 8px;
+}
+
+.sectionLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.sectionEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teal-600);
+  background: var(--teal-100, rgba(45, 212, 168, 0.1));
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+[data-theme="dark"] .sectionEyebrow {
+  color: var(--teal-400, #2DD4A8);
+  background: rgba(45, 212, 168, 0.12);
+}
+
+.sectionCaption {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Row 1: Donut (hero) + Bar charts kanan ---------- */
+.row1 {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: stretch;
+}
+
+/* ---------- 2 kolom sejajar (30% - 70%) ---------- */
+.splitGrid {
+  display: grid;
+  grid-template-columns: 30% 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+/* ---------- Row 2: Empat kartu bar chart sejajar ---------- */
+.row2 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* ---------- Row 3: Tiga kartu bar chart sejajar ---------- */
+.row3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+/* ---------- Kartu generik ---------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .card {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- Donut Hero Card ---------- */
+.donutCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+}
+
+[data-theme="dark"] .donutCard {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ---------- Right side grid (3 bar charts stacked) ---------- */
+.rightBarGrid {
+  display: grid;
+  grid-template-rows: repeat(2, 1fr);
+  gap: 16px;
+}
+
+/* ---------- Card inner ---------- */
+.cardInner {
+  padding: 20px 20px 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.cardIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--teal-100, rgba(45, 212, 168, 0.1));
+  color: var(--teal-600);
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .cardIcon {
+  background: rgba(45, 212, 168, 0.12);
+  color: var(--teal-400, #2DD4A8);
+}
+
+.cardIconAmber {
+  background: rgba(245, 158, 11, 0.1);
+  color: #B45309;
+}
+
+[data-theme="dark"] .cardIconAmber {
+  background: rgba(245, 158, 11, 0.12);
+  color: #F2B84B;
+}
+
+.cardIconBlue {
+  background: rgba(42, 120, 214, 0.1);
+  color: #1E4EAA;
+}
+
+[data-theme="dark"] .cardIconBlue {
+  background: rgba(42, 120, 214, 0.12);
+  color: #3987E5;
+}
+
+.cardIconViolet {
+  background: rgba(74, 58, 167, 0.1);
+  color: #4A3AA7;
+}
+
+[data-theme="dark"] .cardIconViolet {
+  background: rgba(74, 58, 167, 0.12);
+  color: #9085E9;
+}
+
+.cardIconRed {
+  background: rgba(220, 38, 38, 0.1);
+  color: #B91C1C;
+}
+
+[data-theme="dark"] .cardIconRed {
+  background: rgba(220, 38, 38, 0.12);
+  color: #F87171;
+}
+
+.cardTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.cardSubtitle {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.chartArea {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* ---------- Toggle Jenis Paket (kartu Kategori Risiko) ---------- */
+.donutCard > .cardHeader {
+  align-items: flex-start;
+}
+
+.donutJenisToggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-secondary, rgba(148, 163, 184, 0.12));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill, 999px);
+  flex-shrink: 0;
+}
+
+.donutJenisPill {
+  position: relative;
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--radius-pill, 999px);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.donutJenisIndicator {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  border-radius: var(--radius-pill, 999px);
+  z-index: 0;
+}
+
+.donutJenisLabel {
+  position: relative;
+  z-index: 1;
+  color: var(--text-tertiary);
+  transition: color var(--dur-fast, 0.15s) ease;
+}
+
+.donutJenisPill:hover .donutJenisLabel:not(.donutJenisLabelActive) {
+  color: var(--text-primary);
+}
+
+.donutJenisLabelActive {
+  color: #ffffff;
+}
+
+@media (max-width: 480px) {
+  .donutCard > .cardHeader {
+    flex-wrap: wrap;
+  }
+  .donutJenisToggle {
+    margin-left: 38px;
+  }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1280px) {
+  .row2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .row3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 960px) {
+  .row1 {
+    grid-template-columns: 1fr;
+  }
+  .splitGrid {
+    grid-template-columns: 1fr;
+  }
+  .rightBarGrid {
+    grid-template-rows: unset;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .row2,
+  .row3 {
+    grid-template-columns: 1fr;
+  }
+  .rightBarGrid {
+    grid-template-columns: 1fr;
+  }
+}

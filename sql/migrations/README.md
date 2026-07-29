@@ -4,7 +4,7 @@ Folder ini berisi **subset final** dari script SQL, sudah dinomori sesuai urutan
 untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak diubah**
 (tetap sebagai backup/riwayat).
 
-> Jalankan **berurutan menaik** (00 → 63). File dengan nomor sama boleh urut bebas.
+> Jalankan **berurutan menaik** (00 → 64). File dengan nomor sama boleh urut bebas.
 > Detail alasan & peta supersesi ada di [`../MIGRASI-RUNBOOK.md`](../MIGRASI-RUNBOOK.md).
 
 ## Cara jalan
@@ -44,6 +44,7 @@ untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak d
 | 61 | 61_index_ltrim_satker.sql | functional index LTRIM | wajib utk join LTRIM |
 | 62 | 62_view_swakelola_penyelenggara.sql | swakelola(final) | tambah kd/nama_klpd_penyelenggara + nama_satker_penyelenggara |
 | 63 | 63_view_epurchasing_status_filter.sql | epurchasing(final) | filter status realisasi -> hanya ON_PROCESS/ON_ADDENDUM/COMPLETED/PAYMENT_OUTSIDE_SYSTEM |
+| 64 | 64_table_risiko_pengadaan.sql | risiko_pengadaan | tabel baru — hasil agregat modul Risiko Pengadaan, diisi oleh API recalculate |
 
 ## Kenapa view realisasi (40–44) dijalankan berlapis?
 
