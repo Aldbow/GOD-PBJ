@@ -1,17 +1,18 @@
--- PRASYARAT: jalankan create_satker_kode_alias.sql lebih dulu (view ini memakai
--- tabel crosswalk satker_kode_alias untuk fallback eselon1/satker berbasis kode
--- pada paket E-Purchasing yang tidak punya RUP di master).
+-- Perbaikan filter status realisasi E-Purchasing: definisi lama hanya exclude
+-- status yang mengandung 'cancel', sehingga status transisi lain (ON_NEGOTIATION,
+-- WAITING_PPK_REVIEW, WAITING_SELLER_CONFIRMATION, dst) ikut lolos ke Total
+-- Realisasi E-Purchasing (baik di halaman E-Purchasing maupun Ringkasan via
+-- view_dashboard_gabungan_satker). Realisasi E-Purchasing seharusnya hanya
+-- menghitung baris paket_e_purchasing dengan status: ON_PROCESS, ON_ADDENDUM,
+-- COMPLETED, PAYMENT_OUTSIDE_SYSTEM.
 --
--- CATATAN: definisi ini = definisi terkini yang ter-deploy (add_is_from_sirup_flags.sql:
--- pakai mapped_e via view_rup_final, kolom is_from_sirup di akhir, exclude
--- history_kaji_ulang; DITAMBAH fallback ALIAS berbasis kode_satker; DITAMBAH kolom
--- jenis_pengadaan di akhir dari 45_view_jenis_pengadaan.sql). Kolom output
--- (nama/urutan/tipe) TIDAK berubah -> CREATE OR REPLACE tetap valid & view dependen
--- (view_dashboard_gabungan_satker) tetap sah.
---
--- STATUS FILTER (lihat sql/migrations/63_view_epurchasing_status_filter.sql):
--- hanya baris paket_e_purchasing dengan status ON_PROCESS, ON_ADDENDUM,
--- COMPLETED, atau PAYMENT_OUTSIDE_SYSTEM yang dihitung sebagai realisasi.
+-- Basis definisi = 45_view_jenis_pengadaan.sql (definisi TERKINI yang ter-deploy,
+-- sudah termasuk kolom jenis_pengadaan di akhir). Basis sebelumnya (44_view_epurchasing_final.sql)
+-- SUDAH KETINGGALAN -- tidak punya kolom jenis_pengadaan, sehingga CREATE OR REPLACE
+-- dengannya gagal dengan "cannot drop columns from view". Kolom output di sini
+-- sama persis dengan 45 (urutan & jumlah tidak berubah) -> CREATE OR REPLACE tetap
+-- valid & view dependen (view_dashboard_gabungan_satker) tetap sah. Hanya WHERE
+-- clause di subquery mapped_e yang berubah.
 CREATE OR REPLACE VIEW view_dashboard_epurchasing_v6 AS
 SELECT
     COALESCE(m.kd_rup, mapped_e.resolved_rup) as kd_rup,
@@ -20,12 +21,6 @@ SELECT
     m.tgl_pengumuman_paket,
     m.status_aktif_rup,
     COALESCE(m."MASTER_NAMA_PPK", 'Tidak Diketahui') as nama_ppk,
-    /* eselon1: (1) master via kd_rup; (2) DIRECT via kode_satker yang sah di
-       master (menutup paket E-Purchasing-only tanpa RUP, mis. kode 450938/451270);
-       (3) via crosswalk ALIAS (kode berbeda: 450922->450938, 451310->451270);
-       (4) fallback lama via nama; (5) 'Tidak Diketahui'. UNIT KERJA konstan per
-       KODE SATKER_str sehingga resolusi lewat kode aman & deterministik.
-       LTRIM('0') di kedua sisi -> tahan beda leading-zero. */
     COALESCE(m."UNIT KERJA",
         (SELECT m3."UNIT KERJA" FROM master_data m3 WHERE LTRIM(m3."KODE SATKER_str", '0') = LTRIM(mapped_e.kode_satker, '0') AND m3."UNIT KERJA" IS NOT NULL LIMIT 1),
         (SELECT m2."UNIT KERJA"
@@ -37,18 +32,10 @@ SELECT
         (SELECT v."UNIT KERJA" FROM view_paket_penyedia_master_data v WHERE UPPER(v."SATUAN KERJA") = UPPER(mapped_e.nama_satker) AND v."UNIT KERJA" IS NOT NULL LIMIT 1),
         'Tidak Diketahui'
     ) as eselon1,
-    /* satker: (1) master biro (di-gate PPK); (2) nama kanonik crosswalk alias;
-       (3) m.nama_satker = nama satker RUP dari SIRUP (UNGATED, paling spesifik)
-           -> menutup Celah 1: saat PPK tak match, "SATUAN KERJA" NULL walau kode
-           satker jelas (mis. 44 paket Balai Vokasi/BINALAVOTAS); (4) m."KPA" =
-           nama level-KPA dari master (ungated); (5) nama mentah E-Purchasing;
-           (6) 'Tidak Diketahui'. */
     COALESCE(m."SATUAN KERJA",
         (SELECT a.satuan_kerja FROM satker_kode_alias a WHERE LTRIM(a.kode_alias, '0') = LTRIM(mapped_e.kode_satker, '0') AND a.satuan_kerja IS NOT NULL LIMIT 1),
         NULLIF(m.nama_satker, ''),
         NULLIF(m."KPA", ''),
-        /* DIRECT via kode_satker sah di master: nama level-KPA utk paket
-           E-Purchasing-only tanpa RUP (mis. kode 450938 -> 'Sekretariat Jenderal') */
         (SELECT m3."KPA" FROM master_data m3 WHERE LTRIM(m3."KODE SATKER_str", '0') = LTRIM(mapped_e.kode_satker, '0') AND m3."KPA" IS NOT NULL LIMIT 1),
         mapped_e.nama_satker,
         'Tidak Diketahui'
@@ -73,7 +60,7 @@ FULL OUTER JOIN (
         COALESCE(rf.final_rup, e.rup_code::bigint) as resolved_rup,
         MAX(e.rup_name) as rup_name,
         MAX(e.nama_satker) as nama_satker,
-        MAX(e.kode_satker) as kode_satker,   -- dibutuhkan utk fallback ALIAS berbasis kode
+        MAX(e.kode_satker) as kode_satker,
         MAX(e.kode_klpd) as kode_klpd,
         MAX(e.status) as status,
         SUM(e.total) as total,

@@ -577,7 +577,7 @@ export function RingkasanView() {
         <motion.div variants={item} className={styles.sectionGroup}>
           <SectionHeader
             title={<span className={styles.sectionEyebrow}><Trophy size={16} /> Pemeringkatan Satuan Kerja</span>}
-            caption="Peringkat satker berdasarkan realisasi, % capaian, atau sisa anggaran"
+            caption="Peringkat satker berdasarkan realisasi anggaran (dari RUP terumumkan)"
           />
           <div className={styles.panel}>
             <SatkerRankingChart satker={agg.satker} selectedSatker={applied.satker} />

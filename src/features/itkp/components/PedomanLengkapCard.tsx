@@ -176,8 +176,7 @@ export function PedomanLengkapCard() {
           <div>
             <h2 className={styles.title}>Pedoman Lengkap Penilaian ITKP</h2>
             <p className={styles.subtitle}>
-              Keputusan Kepala LKPP Nomor 74 Tahun 2026 — formula & rentang nilai tiap komponen (A–D), disajikan apa
-              adanya sesuai regulasi.
+              Keputusan Kepala LKPP Nomor 74 Tahun 2026 — formula & rentang nilai tiap komponen (A–D) sesuai regulasi.
             </p>
           </div>
         </div>

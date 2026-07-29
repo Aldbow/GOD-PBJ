@@ -20,9 +20,9 @@ const item: Variants = {
 };
 
 const FEATURES = [
-  { icon: ShieldCheck, text: 'Akses berbasis peran (RBAC) yang aman' },
+  { icon: ShieldCheck, text: 'Akses yang aman sesuai peran' },
   { icon: Radar, text: 'Deteksi dini risiko paket pengadaan' },
-  { icon: LineChart, text: 'Data SIRUP & SPSE dalam satu dasbor' },
+  { icon: LineChart, text: 'Lihat realisasi pengadaan' },
 ];
 
 export default function LoginPage() {
@@ -79,7 +79,7 @@ export default function LoginPage() {
           </div>
 
           <motion.div className={styles.brandFoot} variants={item}>
-            Aksi perubahan — Kemnaker
+            Kementerian Ketenagakerjaan Republik Indonesia
           </motion.div>
         </motion.div>
       </aside>
@@ -100,10 +100,10 @@ export default function LoginPage() {
           </motion.div>
 
           <motion.h1 className={styles.heading} variants={item}>
-            Selamat datang kembali
+            Selamat datang
           </motion.h1>
           <motion.p className={styles.sub} variants={item}>
-            Masuk dengan akun yang diberikan administrator UKPBJ.
+            Masuk dengan akun yang diberikan Admin.
           </motion.p>
 
           <form action={formAction} className={styles.form}>

@@ -21,8 +21,8 @@ import { ExportDataModal } from '@/components/ui/ExportDataModal';
 import styles from '@/components/paket/paketView.module.css';
 
 const STATUS_CLUSTERS = [
-  { label: 'SUDAH REALISASI', values: ['PAYMENT_OUTSIDE_SYSTEM', 'COMPLETED'] },
-  { label: 'PROSES', values: ['ON_PROCESS', 'WAITING_PPK_REVIEW', 'ON_NEGOTIATION', 'WAITING_SELLER_CONFIRMATION'] },
+  { label: 'SUDAH REALISASI', values: ['COMPLETED', 'PAYMENT_OUTSIDE_SYSTEM'] },
+  { label: 'PROSES', values: ['ON_PROCESS', 'ON_ADDENDUM'] },
   { label: 'BELUM REALISASI', values: ['BELUM REALISASI'] },
 ];
 
