@@ -129,6 +129,7 @@ export function rankColor(kind: 'base' | 'highlight' | 'other', isDark: boolean)
 export function chartInk(isDark: boolean) {
   return {
     tick: isDark ? '#9CA3B8' : '#5B6472',
+    valueText: isDark ? '#E2E8F0' : '#1E293B', /* Warna teks value lebih tegas: putih pucat (dark), dark slate (light) */
     grid: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(100,116,139,0.14)',
     surface: isDark ? '#131924' : '#FFFFFF',
     border: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(11,11,11,0.10)',

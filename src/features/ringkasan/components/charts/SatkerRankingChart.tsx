@@ -62,7 +62,7 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
         const meta = chart.getDatasetMeta(0);
         ctx.save();
         ctx.font = '600 11px system-ui, sans-serif';
-        ctx.fillStyle = ink.tick;
+        ctx.fillStyle = ink.valueText;
         ctx.textBaseline = 'middle';
         meta.data.forEach((bar, i) => {
           const val = cfg.getValue(rows[i]);
@@ -72,7 +72,7 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
         ctx.restore();
       },
     }),
-    [rows, cfg, ink.tick]
+    [rows, cfg, ink.valueText, ink.tick]
   );
 
   const { data, options } = useMemo(() => {

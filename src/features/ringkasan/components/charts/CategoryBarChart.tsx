@@ -101,7 +101,7 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
           const pctText = pct.toFixed(1).replace('.', ',') + '%';
 
           ctx.textAlign = 'left';
-          ctx.fillStyle = ink.tick;
+          ctx.fillStyle = ink.valueText;
           ctx.fillText(pctText, bar1.x + 6, bar1.y);
 
           const bar0 = meta0.data[i];
@@ -111,14 +111,14 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
             ctx.fillText(valText, bar0.x - 6, bar0.y);
           } else if (pct >= 0) {
             ctx.textAlign = 'left';
-            ctx.fillStyle = ink.tick;
+            ctx.fillStyle = ink.valueText;
             ctx.fillText(valText, bar0.x + 6, bar0.y);
           }
         });
         ctx.restore();
       },
     }),
-    [ink.tick, isDark]
+    [ink.valueText, ink.tick, isDark]
   );
 
   const { chartData, options } = useMemo(() => {
@@ -129,10 +129,10 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
     let dataBelum: number[] = [];
 
     if (mode === 'keuangan') {
-      dataSudah = data.map((d) => d.pctRealisasi);
+      dataSudah = data.map((d) => Math.min(100, d.pctRealisasi));
       dataBelum = data.map((d) => Math.max(0, 100 - d.pctRealisasi));
     } else {
-      dataSudah = data.map((d) => d.jumlahPaket > 0 ? (d.paketSudah / d.jumlahPaket) * 100 : 0);
+      dataSudah = data.map((d) => Math.min(100, d.jumlahPaket > 0 ? (d.paketSudah / d.jumlahPaket) * 100 : 0));
       dataBelum = data.map((d) => Math.max(0, 100 - (d.jumlahPaket > 0 ? (d.paketSudah / d.jumlahPaket) * 100 : 0)));
     }
 
