@@ -85,7 +85,7 @@ export function RisikoDistribusiBarChart({ data, maxBars = 8, height = '100%', v
         },
         scales: {
           x: {
-            type: vertical ? 'linear' : 'logarithmic',
+            type: (vertical ? 'linear' : 'logarithmic') as 'linear' | 'logarithmic',
             beginAtZero: true,
             ticks: vertical
               ? {
