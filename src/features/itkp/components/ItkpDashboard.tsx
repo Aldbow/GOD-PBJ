@@ -308,7 +308,7 @@ export function ItkpDashboard() {
           <div style={{ overflowX: 'auto', marginTop: 16 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
               <thead>
-                <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+                <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '8px 12px' }}>Jenjang</th>
                   <th style={{ padding: '8px 12px', textAlign: 'right' }}>Kebutuhan</th>
                   <th style={{ padding: '8px 12px', textAlign: 'right' }}>Eksisting</th>
@@ -317,14 +317,14 @@ export function ItkpDashboard() {
               </thead>
               <tbody>
                 {modalData.data.map((row: any, i: number) => (
-                  <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '8px 12px' }}>{row['Jenjang']}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right' }}>{row['Formasi Kebutuhan']}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right' }}>{row['Formasi Terpenuhi']}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right' }}>{row['Kekurangan']}</td>
                   </tr>
                 ))}
-                <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
+                <tr style={{ background: 'var(--surface-2)', fontWeight: 'bold' }}>
                   <td style={{ padding: '8px 12px' }}>Total</td>
                   <td style={{ padding: '8px 12px', textAlign: 'right' }}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Formasi Kebutuhan']) || 0), 0)}</td>
                   <td style={{ padding: '8px 12px', textAlign: 'right' }}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Formasi Terpenuhi']) || 0), 0)}</td>
@@ -339,7 +339,7 @@ export function ItkpDashboard() {
           <div style={{ overflowX: 'auto', marginTop: 16 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
               <thead>
-                <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+                <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '8px 12px' }}>Nama / NIP</th>
                   <th style={{ padding: '8px 12px' }}>Unit Kerja</th>
                   <th style={{ padding: '8px 12px' }}>Jenjang</th>
@@ -349,28 +349,28 @@ export function ItkpDashboard() {
               <tbody>
                 {modalData.data.map((row: any, i: number) => {
                   const p = String(row['Penugasan'] || '').toUpperCase();
-                  let bg = '#f1f5f9';
-                  let color = '#475569';
+                  let bg = 'var(--surface-2)';
+                  let color = 'var(--text-secondary)';
                   
                   if (p.includes('POKJA')) {
-                    bg = '#dbeafe'; // blue-100
-                    color = '#1e40af'; // blue-800
+                    bg = 'var(--info-100)'; // blue-100
+                    color = 'var(--info-600)'; // blue-800
                   } else if (p.includes('PEJABAT PENGADAAN')) {
-                    bg = '#ffedd5'; // orange-100
-                    color = '#9a3412'; // orange-800
+                    bg = 'var(--amber-100)'; // orange-100
+                    color = 'var(--amber-600)'; // orange-800
                   } else if (p.includes('PPK')) {
-                    bg = '#dcfce7'; // green-100
-                    color = '#166534'; // green-800
+                    bg = 'var(--teal-100)'; // green-100
+                    color = 'var(--teal-600)'; // green-800
                   } else if (p.trim() !== '') {
-                    bg = '#f3e8ff'; // purple-100
-                    color = '#6b21a8'; // purple-800
+                    bg = 'var(--purple-100)'; // purple-100
+                    color = 'var(--purple-600)'; // purple-800
                   }
 
                   return (
-                    <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '8px 12px' }}>
                         <div style={{ fontWeight: 500 }}>{row['Nama']}</div>
-                        <div style={{ fontSize: 11, color: '#64748b' }}>{row['NIP']}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{row['NIP']}</div>
                       </td>
                       <td style={{ padding: '8px 12px' }}>{row['Unit Kerja']}</td>
                       <td style={{ padding: '8px 12px' }}>{row['Jenjang']}</td>
@@ -398,7 +398,7 @@ export function ItkpDashboard() {
           <div style={{ overflowX: 'auto', marginTop: 16 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
               <thead>
-                <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+                <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '8px 12px' }}>Tahun</th>
                   <th style={{ padding: '8px 12px' }}>Pelaku Pengadaan</th>
                   <th style={{ padding: '8px 12px' }}>Renaksi</th>
@@ -444,13 +444,13 @@ export function ItkpDashboard() {
                   }
 
                   return (
-                    <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '8px 12px' }}>{row['Tahun']}</td>
                       <td style={{ padding: '8px 12px', fontWeight: 500 }}>{row['Pelaku Pengadaan']}</td>
                       <td style={{ padding: '8px 12px' }}>
                         <span style={{ 
                           padding: '4px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600,
-                          background: '#e0e7ff', color: '#3730a3' 
+                          background: 'var(--purple-100)', color: 'var(--purple-600)' 
                         }}>
                           {row['Renaksi'] || 'Kosong'}
                         </span>
@@ -459,11 +459,11 @@ export function ItkpDashboard() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           <span style={{ 
                             width: 'fit-content', padding: '4px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600,
-                            background: isValid ? '#dcfce7' : '#fee2e2', color: isValid ? '#166534' : '#991b1b'
+                            background: isValid ? 'var(--teal-100)' : 'var(--red-100)', color: isValid ? 'var(--teal-600)' : 'var(--red-600)'
                           }}>
                             {isValid ? '✅ Memenuhi Syarat' : '❌ Tidak Memenuhi'}
                           </span>
-                          <span style={{ fontSize: 11, color: '#64748b' }}>{reason}</span>
+                          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{reason}</span>
                         </div>
                       </td>
                     </tr>
@@ -474,26 +474,26 @@ export function ItkpDashboard() {
             
             {/* Informasi Referensi UK */}
             <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#334155', borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
                 Referensi Ukuran Keberhasilan (UK)
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
-                  <div style={{ background: '#f1f5f9', padding: '10px 16px', fontWeight: 600, fontSize: 13, color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
+                <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+                  <div style={{ background: 'var(--surface-2)', padding: '10px 16px', fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
                     PPK
                   </div>
-                  <ul style={{ padding: '12px 16px 12px 32px', margin: 0, fontSize: 12, color: '#475569', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <ul style={{ padding: '12px 16px 12px 32px', margin: 0, fontSize: 12, color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <li><strong>UK 1:</strong> Tersusunnya Kebutuhan PPK Bersertifikat Kompetensi</li>
                     <li><strong>UK 2:</strong> Tersusunnya Rencana Pemenuhan PPK Bersertifikat Kompetensi Tipe A/B/C</li>
                     <li><strong>UK 3:</strong> Terlaksananya Pemenuhan PPK Bersertifikat Kompetensi Tipe A/B/C</li>
                     <li><strong>UK 4:</strong> Tersedianya Laporan Hasil Pemenuhan PPK Bersertifikat Kompetensi</li>
                   </ul>
                 </div>
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
-                  <div style={{ background: '#f1f5f9', padding: '10px 16px', fontWeight: 600, fontSize: 13, color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
+                <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+                  <div style={{ background: 'var(--surface-2)', padding: '10px 16px', fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
                     Pengelola PBJ / JF
                   </div>
-                  <ul style={{ padding: '12px 16px 12px 32px', margin: 0, fontSize: 12, color: '#475569', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <ul style={{ padding: '12px 16px 12px 32px', margin: 0, fontSize: 12, color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <li><strong>UK 1:</strong> Tersusunnya Kebutuhan Pengelola PBJ</li>
                     <li><strong>UK 2:</strong> Tersampaikannya Hasil Penyusunan Kebutuhan Pengelola PBJ</li>
                     <li><strong>UK 3:</strong> Tersampaikannya Permohonan Penetapan Kebutuhan Pengelola PBJ</li>
@@ -513,19 +513,19 @@ export function ItkpDashboard() {
         {modalData?.type === 'spi' && modalData.data && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 16 }}>
             {/* Header / Gauge Section */}
-            <div style={{ display: 'flex', gap: 24, alignItems: 'center', background: '#f8fafc', padding: 20, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: 24, alignItems: 'center', background: 'var(--surface-2)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
               <div style={{ 
                 position: 'relative', width: 140, height: 110, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', flexShrink: 0
               }}>
                 <svg viewBox="0 0 100 50" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
-                  <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e2e8f0" strokeWidth="12" strokeLinecap="round" />
-                  <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#ef4444" strokeWidth="12" strokeLinecap="round" strokeDasharray="125.6" strokeDashoffset={125.6 * (1 - (modalData.data.indeks / 100))} />
+                  <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="var(--border)" strokeWidth="12" strokeLinecap="round" />
+                  <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="var(--danger-500, #ef4444)" strokeWidth="12" strokeLinecap="round" strokeDasharray="125.6" strokeDashoffset={125.6 * (1 - (modalData.data.indeks / 100))} />
                 </svg>
-                <div style={{ fontSize: 28, fontWeight: 700, color: '#0f172a', marginBottom: -10 }}>{modalData.data.indeks}</div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: -10 }}>{modalData.data.indeks}</div>
               </div>
               <div style={{ flex: 1 }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: 16, color: '#0f172a' }}>Indeks Kementerian Ketenagakerjaan</h3>
-                <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: 16, color: 'var(--text-primary)' }}>Indeks Kementerian Ketenagakerjaan</h3>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                   Merupakan rerata Indeks Integritas dari Kementerian Ketenagakerjaan di Indonesia.<br/>
                   Indeks Integritas Pemerintah Daerah {modalData.data.instansiPemerintahDaerah} dari total {modalData.data.totalInstansiPemerintahDaerah} instansi.<br/>
                   Indeks Integritas Kementerian dan Lembaga {modalData.data.instansiKL} dari total {modalData.data.totalInstansiKL} instansi.
@@ -534,13 +534,13 @@ export function ItkpDashboard() {
             </div>
 
             {/* Detail Section */}
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
-              <div style={{ padding: '16px 20px', background: '#fff', borderBottom: '1px solid #e2e8f0' }}>
-                <h3 style={{ margin: 0, fontSize: 15, color: '#0f172a' }}>Detail Skor Hasil Survei Penilaian Integritas - Tahun {modalData.data.tahun}</h3>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+                <h3 style={{ margin: 0, fontSize: 15, color: 'var(--text-primary)' }}>Detail Skor Hasil Survei Penilaian Integritas - Tahun {modalData.data.tahun}</h3>
               </div>
               
               {/* Tabs */}
-              <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', overflowX: 'auto' }}>
+              <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--surface-2)', overflowX: 'auto' }}>
                 {[...Object.keys(modalData.data.categories), 'Perhitungan'].map(cat => {
                   const isActive = spiTab === cat;
                   const catData = modalData.data.categories[cat];
@@ -550,9 +550,9 @@ export function ItkpDashboard() {
                       onClick={() => setSpiTab(cat as any)}
                       style={{
                         flex: 1, padding: '12px 8px', border: 'none', background: isActive ? '#fff' : 'transparent',
-                        borderBottom: isActive ? '2px solid #ef4444' : '2px solid transparent',
+                        borderBottom: isActive ? '2px solid var(--danger-500, #ef4444)' : '2px solid transparent',
                         cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                        color: isActive ? '#b91c1c' : '#475569', transition: 'all 0.2s', minWidth: 100
+                        color: isActive ? 'var(--danger-600, #b91c1c)' : 'var(--text-secondary)', transition: 'all 0.2s', minWidth: 100
                       }}
                     >
                       <span style={{ fontSize: 13, fontWeight: 600 }}>{cat}</span>
@@ -565,51 +565,51 @@ export function ItkpDashboard() {
               </div>
 
               {/* List / Content */}
-              <div style={{ padding: 0, background: '#fff' }}>
+              <div style={{ padding: 0, background: 'var(--surface)' }}>
                 {spiTab !== 'Perhitungan' ? (
                   modalData.data.categories[spiTab].dimensions.map((dim: any, i: number) => (
                     <div key={i} style={{ 
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                      padding: '12px 24px', borderBottom: '1px solid #f1f5f9'
+                      padding: '12px 24px', borderBottom: '1px solid var(--border)'
                     }}>
-                      <span style={{ fontSize: 14, color: '#334155' }}>{dim.name}</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{dim.value}</span>
+                      <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>{dim.name}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{dim.value}</span>
                     </div>
                   ))
                 ) : (
-                  <div style={{ padding: '20px 24px', fontSize: 14, color: '#334155', lineHeight: 1.6 }}>
+                  <div style={{ padding: '20px 24px', fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.6 }}>
                     <div style={{ fontWeight: 600, marginBottom: 12 }}>Perhitungannya:</div>
-                    <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: 8, fontFamily: 'monospace', fontSize: 13, marginBottom: 20 }}>
+                    <div style={{ padding: '12px 16px', background: 'var(--surface-2)', borderRadius: 8, fontFamily: 'monospace', fontSize: 13, marginBottom: 20 }}>
                       (76,59 &times; 0,305) + (88,10 &times; 0,328) + (58,37 &times; 0,367) = 73,67854
                     </div>
                     
                     <div style={{ fontWeight: 600, marginBottom: 12 }}>Kemudian dikurangi faktor koreksi:</div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 20, fontSize: 13 }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
-                          <th style={{ padding: '8px 0', textAlign: 'left', color: '#0f172a' }}>Faktor koreksi</th>
-                          <th style={{ padding: '8px 0', textAlign: 'right', color: '#0f172a' }}>Pengurangan</th>
+                        <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                          <th style={{ padding: '8px 0', textAlign: 'left', color: 'var(--text-primary)' }}>Faktor koreksi</th>
+                          <th style={{ padding: '8px 0', textAlign: 'right', color: 'var(--text-primary)' }}>Pengurangan</th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <tr style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '8px 0' }}>Pelaksanaan SPI</td>
                           <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>4,49</td>
                         </tr>
-                        <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
+                        <tr style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '8px 0' }}>Fakta Korupsi</td>
                           <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>sekitar 3,07</td>
                         </tr>
                         <tr>
-                          <td style={{ padding: '12px 0', fontWeight: 700, color: '#0f172a' }}>Total faktor koreksi</td>
-                          <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>7,56</td>
+                          <td style={{ padding: '12px 0', fontWeight: 700, color: 'var(--text-primary)' }}>Total faktor koreksi</td>
+                          <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>7,56</td>
                         </tr>
                       </tbody>
                     </table>
 
-                    <div style={{ marginBottom: 20, fontSize: 13, color: '#475569' }}>
+                    <div style={{ marginBottom: 20, fontSize: 13, color: 'var(--text-secondary)' }}>
                       Angka <strong>Fakta Korupsi sekitar 3,07</strong> merupakan hasil rekonstruksi karena bagian tersebut belum terlihat pada tangkapan layar:
-                      <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: 8, fontFamily: 'monospace', marginTop: 8, textAlign: 'center' }}>
+                      <div style={{ padding: '12px 16px', background: 'var(--surface-2)', borderRadius: 8, fontFamily: 'monospace', marginTop: 8, textAlign: 'center' }}>
                         73,68 - 66,12 = 7,56<br/>
                         7,56 - 4,49 = 3,07
                       </div>
@@ -618,7 +618,7 @@ export function ItkpDashboard() {
                     <div style={{ fontWeight: 600, marginBottom: 12 }}>Sehingga nilai akhirnya:</div>
                     <div style={{ 
                       padding: '12px 20px', border: '1px solid #0f172a', display: 'inline-block', 
-                      borderRadius: 4, fontFamily: 'monospace', fontWeight: 600, fontSize: 15, color: '#0f172a' 
+                      borderRadius: 4, fontFamily: 'monospace', fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' 
                     }}>
                       73,68 - 4,49 - 3,07 = 66,12
                     </div>
@@ -732,9 +732,9 @@ function IndicatorCard({ ind, onDetailClick }: { ind: ItkpIndicatorModel; onDeta
             padding: '6px 12px', 
             fontSize: 12, 
             borderRadius: 6, 
-            border: '1px solid #e2e8f0', 
-            background: '#f8fafc', 
-            color: '#334155',
+            border: '1px solid var(--border)', 
+            background: 'var(--surface-2)', 
+            color: 'var(--text-primary)',
             cursor: 'pointer',
             fontWeight: 500,
             display: 'flex',
