@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './Topbar.module.css';
 
 import { ThemeToggle } from './ThemeToggle';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, Search, ChevronRight, RadioTower } from 'lucide-react';
+import { Search, ChevronRight, LogOut } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionProvider';
 import { ROLE_LABEL } from '@/lib/auth/access';
 import { logout } from '@/lib/auth/actions';
@@ -16,45 +15,17 @@ import { CommandPalette } from './CommandPalette';
 export function Topbar() {
   const pathname = usePathname();
   const { full_name, role } = useSession();
-  const [spseSync, setSpseSync] = useState('');
-  const [sirupSync, setSirupSync] = useState('');
-  const [syncOpen, setSyncOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const syncRef = useRef<HTMLDivElement>(null);
+  const [isHidden, setIsHidden] = useState(false);
 
   const activeEntry = findActiveEntry(pathname);
   const title = activeEntry?.link.name ?? 'Ringkasan Kementerian';
   const breadcrumbGroup = activeEntry?.group.label;
-
-  // Mock sync timers
-  useEffect(() => {
-    const spseStart = Date.now() - 4 * 60 * 1000;
-    const sirupStart = Date.now() - 38 * 60 * 1000;
-
-    const tick = () => {
-      const now = Date.now();
-      const fmt = (start: number) => {
-        const diff = Math.floor((now - start) / 1000);
-        const m = Math.floor(diff / 60);
-        const s = diff % 60;
-        return `${m}m ${String(s).padStart(2, '0')}d lalu`;
-      };
-      setSpseSync(fmt(spseStart));
-      setSirupSync(fmt(sirupStart));
-    };
-
-    tick();
-    const intv = setInterval(tick, 1000);
-    return () => clearInterval(intv);
-  }, []);
-
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (syncRef.current && !syncRef.current.contains(e.target as Node)) setSyncOpen(false);
-    };
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
-  }, []);
+  
+  // Get initials for avatar
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -67,71 +38,66 @@ export function Topbar() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Hide topbar when scrolling down, show when scrolling up
+      if (currentScrollY > lastScrollY && currentScrollY > 60) {
+        setIsHidden(true);
+      } else {
+        setIsHidden(false);
+      }
+      
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <header className={styles.topbar}>
+    <header className={`${styles.topbar} ${isHidden ? styles.hidden : ''}`}>
       <div className={styles.titleWrap}>
-        <div className={styles.breadcrumb}>
+        <div className={styles.inlineBreadcrumb}>
           <span className={styles.eyebrow}>DEWA-PBJ</span>
           {breadcrumbGroup && (
             <>
-              <ChevronRight size={11} className={styles.crumbSep} />
+              <ChevronRight size={14} className={styles.crumbSep} />
               <span className={styles.crumbGroup}>{breadcrumbGroup}</span>
             </>
           )}
+          <ChevronRight size={14} className={styles.crumbSep} />
+          <h1 className={styles.pageTitle}>{title}</h1>
         </div>
-        <h1>{title}</h1>
       </div>
+      
       <div className={styles.controlsRow}>
         <button
           type="button"
-          className={styles.searchBtn}
+          className={styles.iconBtn}
           onClick={() => setPaletteOpen(true)}
+          aria-label="Pencarian"
+          title="Pencarian (Ctrl+K)"
         >
-          <Search size={14} />
-          <span>Cari halaman…</span>
-          <kbd className={styles.kbd}>Ctrl K</kbd>
+          <Search size={16} />
         </button>
-
-        <div className={styles.syncWrap} ref={syncRef}>
-          <button
-            type="button"
-            className={styles.syncBadge}
-            onClick={() => setSyncOpen((v) => !v)}
-            aria-expanded={syncOpen}
-          >
-            <RadioTower size={13} />
-            <span>2 sumber tersinkron</span>
-          </button>
-          <AnimatePresence>
-            {syncOpen && (
-              <motion.div
-                className={styles.syncPopover}
-                initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <div className={styles.syncItem}>
-                  <span className={`${styles.dot} ${styles.ok}`} />
-                  <span className={styles.syncLabel}>SPSE</span>
-                  <span className={styles.mono}>tersinkron {spseSync}</span>
-                </div>
-                <div className={styles.syncItem}>
-                  <span className={`${styles.dot} ${styles.warn}`} />
-                  <span className={styles.syncLabel}>SIRUP</span>
-                  <span className={styles.mono}>tersinkron {sirupSync}</span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
 
         <ThemeToggle />
 
-        <div className={styles.userChip}>
-          <div className={styles.userMeta}>
-            <span className={styles.userName}>{full_name}</span>
-            <span className={styles.userRole}>{ROLE_LABEL[role]}</span>
+        <div className={styles.divider} />
+
+        <div className={styles.userSection}>
+          <div className={styles.userProfile}>
+            <div className={styles.avatar}>
+              {full_name ? getInitials(full_name) : 'U'}
+            </div>
+            <div className={styles.userMeta}>
+              <span className={styles.userName}>{full_name}</span>
+              <span className={styles.userRole}>{ROLE_LABEL[role]}</span>
+            </div>
           </div>
           <form action={logout}>
             <button type="submit" className={styles.logoutBtn} aria-label="Keluar" title="Keluar">

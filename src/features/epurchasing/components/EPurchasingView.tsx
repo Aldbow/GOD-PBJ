@@ -499,9 +499,6 @@ export function EPurchasingView() {
           <>
             <div>
               <h3 className={styles.modalTitle}>{selectedItem.rup_name}</h3>
-              <p className={styles.modalText} style={{ margin: 0 }}>
-                Penyedia: <strong style={{ color: 'var(--text-primary)' }}>{selectedItem.kode_penyedia || '-'}</strong>
-              </p>
             </div>
 
             <div className={styles.modalGrid}>

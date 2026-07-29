@@ -132,7 +132,7 @@ export function Sidebar() {
         onClick={toggleCollapsed}
         aria-label={collapsed ? 'Perluas sidebar' : 'Ciutkan sidebar'}
       >
-        {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
+        {collapsed ? <ChevronsRight size={18} /> : <ChevronsLeft size={18} />}
         {!collapsed && <span></span>}
       </button>
 
