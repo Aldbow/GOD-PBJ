@@ -5,14 +5,14 @@ import type { Role } from '@/types';
  * Dipakai oleh proxy.ts (gate optimistik), DAL/page guard, Sidebar, dan API.
  *
  *   admin   → '*'  akses semua route
- *   sekjend → hanya Ringkasan '/'
+ *   sekjend → hanya Ringkasan '/ringkasan'
  *   ppk     → hanya tampilan paketnya '/ppk'
  *
  * Nilai adalah prefix path yang diizinkan (match persis atau sub-path).
  */
 export const ROUTE_ACCESS: Record<Role, string[] | '*'> = {
   admin: '*',
-  sekjend: ['/', '/rencana-pengadaan', '/itkp', '/risiko-pengadaan'],
+  sekjend: ['/ringkasan', '/rencana-pengadaan', '/itkp', '/risiko-pengadaan'],
   // PPK: halaman ringkasan PPK + semua fitur Realisasi (data ter-scope ke PPK ybs)
   ppk: [
     '/ppk',
@@ -28,8 +28,8 @@ export const ROUTE_ACCESS: Record<Role, string[] | '*'> = {
 
 /** Route tujuan setelah login, per role. */
 export const LANDING: Record<Role, string> = {
-  admin: '/',
-  sekjend: '/',
+  admin: '/ringkasan',
+  sekjend: '/ringkasan',
   ppk: '/ppk',
 };
 
@@ -40,8 +40,8 @@ export const ROLE_LABEL: Record<Role, string> = {
   ppk: 'PPK',
 };
 
-/** Halaman publik yang tidak butuh sesi. */
-export const PUBLIC_ROUTES = ['/login'];
+/** Halaman publik yang tidak butuh sesi — '/' adalah landing page marketing. */
+export const PUBLIC_ROUTES = ['/', '/login'];
 
 /**
  * Apakah `role` boleh mengakses `path`?

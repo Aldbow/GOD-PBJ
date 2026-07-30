@@ -50,7 +50,8 @@
       "Bash(node shot.mjs itkp-before.png)",
       "Bash(command -v chromium-cli)",
       "Bash(command -v psql)",
-      "Bash(command -v supabase)"
+      "Bash(command -v supabase)",
+      "Bash(npx next *)"
     ],
     "additionalDirectories": [
       "\\tmp\\pwcheck",

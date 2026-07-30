@@ -13,7 +13,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'ringkasan',
     label: null,
     links: [
-      { name: 'Ringkasan', href: '/', icon: React.createElement(LayoutDashboard, { size: 18 }) },
+      { name: 'Ringkasan', href: '/ringkasan', icon: React.createElement(LayoutDashboard, { size: 18 }) },
     ],
   },
   {

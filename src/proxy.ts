@@ -10,7 +10,8 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
  * Next.js 16 Proxy (pengganti middleware). Berjalan di Node.js runtime.
  * Tugas:
  *   1. Refresh session Supabase & sinkronkan cookie (pola resmi @supabase/ssr).
- *   2. Gate rute: belum login → /login; sudah login buka /login → landing;
+ *   2. Gate rute: belum login → /login (kecuali '/', landing page publik);
+ *      sudah login buka '/' atau /login → landing sesuai role;
  *      sudah login tapi role tak berhak → landing role tsb.
  *
  * Ini lapis optimistik; pengecekan ketat tetap di DAL & API (server-side).
