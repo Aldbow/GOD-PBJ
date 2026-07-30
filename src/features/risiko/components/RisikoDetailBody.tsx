@@ -62,7 +62,16 @@ export function RisikoDetailBody({ detail }: Props) {
 
       <div>
         <h4 className={styles.modalSectionTitle}>Rincian Komponen Skor</h4>
-        {detail.components.map((c) => (
+        {detail.components
+          .filter((c) => {
+            if (detail.jenis_paket?.toLowerCase() === 'swakelola') {
+              if (['metode', 'jenis', 'sumber_dana'].includes(c.code)) {
+                return false;
+              }
+            }
+            return true;
+          })
+          .map((c) => (
           <div key={c.code} className={styles.modalBox} style={{ marginBottom: 8 }}>
             <p className={styles.modalBoxText} style={{ fontWeight: 600 }}>
               {c.label}: {c.applicable ? (c.score != null ? `${c.score} / ${c.maxScore}` : 'Tidak dapat dinilai') : 'Tidak Berlaku'}

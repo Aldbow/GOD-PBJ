@@ -29,6 +29,7 @@ import {
 import { RisikoDetailBody } from './RisikoDetailBody';
 import { RisikoKategoriDonut } from './charts/RisikoKategoriDonut';
 import { RisikoDistribusiBarChart } from './charts/RisikoDistribusiBarChart';
+import { RisikoDriverStackedBarChart, type StackedBucket } from './charts/RisikoDriverStackedBarChart';
 import styles from '@/components/paket/paketView.module.css';
 import distStyles from './RisikoDistribusi.module.css';
 
@@ -94,7 +95,7 @@ export function RisikoPengadaanView() {
   const [kategoriFilter, setKategoriFilter] = useState<string[]>([]);
   const [jenisPaketFilter, setJenisPaketFilter] = useState<string[]>([]);
   const [statusPelaksanaanFilter, setStatusPelaksanaanFilter] = useState<string[]>([]);
-  const [donutJenisFilter, setDonutJenisFilter] = useState<DonutJenisFilter>('ALL');
+  // donutJenisFilter state removed in favor of global jenisPaketFilter
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
@@ -256,12 +257,8 @@ export function RisikoPengadaanView() {
 
   const hasActiveExtraFilters = kategoriFilter.length > 0 || jenisPaketFilter.length > 0 || statusPelaksanaanFilter.length > 0;
 
-  // Filter khusus kartu donut Kategori Risiko — independen dari filter global, hanya mempersempit
-  // tampilan donut per Jenis Paket (Penyedia/Swakelola) tanpa mengubah chart/tabel lain.
-  const donutRows = useMemo(
-    () => (donutJenisFilter === 'ALL' ? filteredData : filteredData.filter((r) => r.jenis_paket === donutJenisFilter)),
-    [filteredData, donutJenisFilter]
-  );
+  // Sinkronisasi penuh dengan filter global
+  const donutRows = filteredData;
 
   const totalPaket = useMemo(() => sumTotalPaket(filteredData), [filteredData]);
   const kategoriCounts = useMemo(() => {
@@ -292,7 +289,29 @@ export function RisikoPengadaanView() {
   const distJenisPengadaan = useMemo(() => groupBy(filteredData.filter((r) => r.jenis_paket === 'Penyedia'), (r) => r.jenis_pengadaan), [filteredData]);
   const distSumberDana = useMemo(() => groupBy(filteredData.filter((r) => r.jenis_paket === 'Penyedia'), (r) => r.sumber_dana), [filteredData]);
   const distTipeSwakelola = useMemo(() => groupBy(filteredData.filter((r) => r.jenis_paket === 'Swakelola'), (r) => r.tipe_swakelola), [filteredData]);
-  const distRiskDriver = useMemo(() => groupBy(filteredData, (r) => r.main_risk_driver), [filteredData]);
+
+  // Aggregation bertumpuk (stacked) untuk Pemicu Risiko berdasarkan Kategori Keseluruhan
+  const distRiskDriverStacked = useMemo(() => {
+    const map = new Map<string, StackedBucket>();
+    const FALLBACK_LABEL = 'Tidak Diketahui';
+    for (const row of filteredData) {
+      const rawLabel = row.main_risk_driver;
+      const label = rawLabel && rawLabel.trim() ? rawLabel : FALLBACK_LABEL;
+      let bucket = map.get(label);
+      if (!bucket) {
+        bucket = {
+          label,
+          totalCount: 0,
+          counts: { TINGGI: 0, SEDANG: 0, RENDAH: 0, DATA_TIDAK_LENGKAP: 0 },
+        };
+        map.set(label, bucket);
+      }
+      const c = countRup(row.kd_rup);
+      bucket.totalCount += c;
+      bucket.counts[row.kategori] += c;
+    }
+    return Array.from(map.values()).sort((a, b) => b.totalCount - a.totalCount);
+  }, [filteredData]);
 
   const sortedPackages = useMemo(() => {
     const copy = [...filteredData];
@@ -431,7 +450,7 @@ export function RisikoPengadaanView() {
                 <LayoutGrid size={13} />
                 Distribusi Risiko
               </span>
-              <span className={distStyles.sectionCaption}>Sebaran kategori risiko dan komponen pemicunya berdasarkan filter yang aktif</span>
+              <span className={distStyles.sectionCaption}>Sebaran kategori risiko dan komponen pemicunya</span>
             </div>
 
             {/* ─── 3 Kartu Horizontal ─── */}
@@ -445,14 +464,21 @@ export function RisikoPengadaanView() {
                     <div className={distStyles.cardSubtitle}>Per level risiko</div>
                   </div>
                   <div className={distStyles.donutJenisToggle}>
-                    {DONUT_JENIS_OPTIONS.map((opt) => (
+                    {DONUT_JENIS_OPTIONS.map((opt) => {
+                      const isActive = opt.value === 'ALL'
+                        ? jenisPaketFilter.length === 0
+                        : jenisPaketFilter.length === 1 && jenisPaketFilter[0] === opt.value;
+                      return (
                       <button
                         key={opt.value}
                         type="button"
                         className={distStyles.donutJenisPill}
-                        onClick={() => setDonutJenisFilter(opt.value)}
+                        onClick={() => {
+                          if (opt.value === 'ALL') setJenisPaketFilter([]);
+                          else setJenisPaketFilter([opt.value]);
+                        }}
                       >
-                        {donutJenisFilter === opt.value && (
+                        {isActive && (
                           <motion.span
                             layoutId="donutJenisIndicator"
                             className={distStyles.donutJenisIndicator}
@@ -460,12 +486,12 @@ export function RisikoPengadaanView() {
                           />
                         )}
                         <span
-                          className={`${distStyles.donutJenisLabel} ${donutJenisFilter === opt.value ? distStyles.donutJenisLabelActive : ''}`}
+                          className={`${distStyles.donutJenisLabel} ${isActive ? distStyles.donutJenisLabelActive : ''}`}
                         >
                           {opt.label}
                         </span>
                       </button>
-                    ))}
+                    )})}
                   </div>
                 </div>
                 <RisikoKategoriDonut rows={donutRows} />
@@ -482,21 +508,34 @@ export function RisikoPengadaanView() {
                       <div className={distStyles.cardSubtitle}>Pemicu risiko dominan</div>
                     </div>
                   </div>
+                  <p style={{
+                    fontSize: 12,
+                    color: 'var(--text-secondary)',
+                    margin: '0 0 12px 0',
+                    lineHeight: 1.5,
+                    padding: '8px 12px',
+                    background: 'var(--surface-raised, var(--surface))',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                  }}>
+                    💡 Setiap bar menunjukkan <strong style={{ color: 'var(--text-primary)' }}>proporsi tingkat kategori risiko</strong> dari paket yang dipicu oleh risiko tersebut.
+                    Warna <span style={{ color: '#ef4444', fontWeight: 600 }}>merah</span> = Tinggi,{' '}
+                    <span style={{ color: '#eab308', fontWeight: 600 }}>kuning</span> = Sedang,{' '}
+                    <span style={{ color: '#22c55e', fontWeight: 600 }}>hijau</span> = Rendah.
+                    Angka di ujung kanan menunjukkan total jumlah paket. <em>Arahkan kursor untuk detail.</em>
+                  </p>
                   <div className={distStyles.chartArea}>
-                    <RisikoDistribusiBarChart data={distRiskDriver} multicolor={true} />
+                    <RisikoDriverStackedBarChart data={distRiskDriverStacked} />
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className={styles.filterHead}>
+          <div className={styles.filterHead} style={{ marginTop: 40 }}>
             <span className={styles.filterHeadTitle}>Filter</span>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span className={styles.mutedCell}>
-                <Package size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-                {totalPaket} paket
-              </span>
+
               <button
                 type="button"
                 className={styles.advancedToggle}
