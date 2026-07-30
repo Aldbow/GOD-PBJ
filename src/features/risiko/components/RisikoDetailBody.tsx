@@ -10,7 +10,27 @@ import {
   DATA_QUALITY_FLAG_LABEL,
   type RiskDetail,
 } from '@/lib/risiko/types';
+import { DollarSign, Clock, PenTool, Target, FileText, Activity, CheckCircle } from 'lucide-react';
 import styles from '@/components/paket/paketView.module.css';
+
+const getIconForCode = (code: string) => {
+  switch(code) {
+    case 'pagu': return <DollarSign size={16} />;
+    case 'sisa_waktu': return <Clock size={16} />;
+    case 'jumlah_revisi': return <PenTool size={16} />;
+    case 'metode': return <Target size={16} />;
+    case 'jenis': return <FileText size={16} />;
+    case 'sumber_dana': return <Activity size={16} />;
+    default: return <CheckCircle size={16} />;
+  }
+}
+
+const getScoreBadgeVariant = (score: number | null) => {
+  if (score === 3) return 'tinggi';
+  if (score === 2) return 'sedang';
+  if (score === 1) return 'rendah';
+  return 'default';
+}
 
 interface Props {
   detail: RiskDetail;
@@ -62,6 +82,7 @@ export function RisikoDetailBody({ detail }: Props) {
 
       <div>
         <h4 className={styles.modalSectionTitle}>Rincian Komponen Skor</h4>
+      <div style={{ display: 'grid', gap: '12px' }}>
         {detail.components
           .filter((c) => {
             if (detail.jenis_paket?.toLowerCase() === 'swakelola') {
@@ -72,17 +93,54 @@ export function RisikoDetailBody({ detail }: Props) {
             return true;
           })
           .map((c) => (
-          <div key={c.code} className={styles.modalBox} style={{ marginBottom: 8 }}>
-            <p className={styles.modalBoxText} style={{ fontWeight: 600 }}>
-              {c.label}: {c.applicable ? (c.score != null ? `${c.score} / ${c.maxScore}` : 'Tidak dapat dinilai') : 'Tidak Berlaku'}
-            </p>
-            <p className={styles.modalText} style={{ margin: '2px 0' }}>
-              Nilai mentah: {c.rawValue ?? '-'} {c.normalizedValue ? `(normalisasi: ${c.normalizedValue})` : ''}
-            </p>
-            <p className={styles.modalText} style={{ margin: '2px 0' }}>{c.reason}</p>
-            <p className={styles.modalText} style={{ margin: '2px 0', opacity: 0.7 }}>Sumber: {c.sourceTable}</p>
+          <div key={c.code} style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            padding: '16px',
+            background: 'var(--surface-raised, var(--surface))',
+            borderRadius: '12px',
+            border: '1px solid var(--border)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: '8px', background: 'var(--surface-sunken)', color: 'var(--text-secondary)' }}>
+                  {getIconForCode(c.code)}
+                </span>
+                <strong style={{ fontSize: '14px', fontWeight: 600 }}>{c.label}</strong>
+              </div>
+              <div>
+                {c.applicable ? (
+                  c.score != null ? (
+                    <Badge variant={getScoreBadgeVariant(c.score)}>Skor: {c.score} / {c.maxScore}</Badge>
+                  ) : (
+                    <Badge variant="default">Tidak dinilai</Badge>
+                  )
+                ) : (
+                  <Badge variant="default">Tidak Berlaku</Badge>
+                )}
+              </div>
+            </div>
+            
+            <div style={{ paddingLeft: '40px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                {c.reason}
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '11px', padding: '3px 8px', background: 'var(--surface-sunken)', borderRadius: '6px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono, monospace)', border: '1px solid var(--border)' }}>
+                  Data: {c.rawValue ?? '-'}
+                </span>
+                {c.normalizedValue && (
+                  <span style={{ fontSize: '11px', padding: '3px 8px', background: 'var(--surface-sunken)', borderRadius: '6px', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                    Kategori: {c.normalizedValue}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         ))}
+      </div>
       </div>
 
       {detail.transaction_refs.length > 0 && (
@@ -115,7 +173,7 @@ export function RisikoDetailBody({ detail }: Props) {
       <div>
         <h4 className={styles.modalSectionTitle}>Perhitungan</h4>
         <p className={styles.modalText} style={{ opacity: 0.7 }}>
-          Dihitung: {new Date(detail.calculated_at).toLocaleString('id-ID')} · Versi aturan: {detail.rules_version}
+          Dihitung: {new Date(detail.calculated_at).toLocaleString('id-ID')}
         </p>
       </div>
     </>

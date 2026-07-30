@@ -33,8 +33,8 @@ export const JENIS_SCORE: Record<string, number> = {
   Barang: 0,
   'Jasa Lainnya': 1,
   'Barang;Jasa Lainnya': 1,
-  'Pekerjaan Konstruksi': 2,
-  'Jasa Konsultansi': 3,
+  'Pekerjaan Konstruksi': 3,
+  'Jasa Konsultansi': 2,
 };
 
 /** Skor risiko sumber dana (Penyedia). Kunci di-uppercase karena data live
