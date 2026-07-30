@@ -20,11 +20,12 @@ interface Props {
   data: StackedBucket[];
   maxBars?: number;
   height?: number | string;
+  onClick?: (driverLabel: string) => void;
 }
 
 const KATEGORI_ORDER: RiskKategori[] = ['TINGGI', 'SEDANG', 'RENDAH', 'DATA_TIDAK_LENGKAP'];
 
-export function RisikoDriverStackedBarChart({ data, maxBars = 8, height = '100%' }: Props) {
+export function RisikoDriverStackedBarChart({ data, maxBars = 8, height = '100%', onClick }: Props) {
   const isDark = useIsDark();
   const ink = chartInk(isDark);
 
@@ -102,6 +103,16 @@ export function RisikoDriverStackedBarChart({ data, maxBars = 8, height = '100%'
         responsive: true,
         maintainAspectRatio: false,
         layout: { padding: { right: 100 } }, // ruang untuk label total di kanan
+        onHover: (event: any, chartElement: any) => {
+          if (onClick && event.native?.target) {
+            event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+          }
+        },
+        onClick: (event: any, chartElement: any) => {
+          if (!onClick || !chartElement.length) return;
+          const idx = chartElement[0].index;
+          onClick(buckets[idx].label);
+        },
         plugins: {
           legend: { 
             display: true,

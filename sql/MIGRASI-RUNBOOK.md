@@ -79,11 +79,12 @@ Import tiap CSV ke tabelnya. Dua tabel `api_paket_*_terumumkan` **dibuat oleh im
 ```
 > File ini juga membuat versi lama view epurchasing — abaikan, akan ditimpa di Fase 5.
 
-### Fase 4 — View base master-data (final: LTRIM + kolom kurasi)
+### Fase 4 — View base master-data (final: LTRIM + kolom kurasi + resolusi PPK tunggal)
 ```
-13. sql/fix_join_ltrim_satker.sql              -- view_paket_penyedia_master_data, view_paket_swakelola_master_data
+13.  sql/fix_join_ltrim_satker.sql              -- view_paket_penyedia_master_data, view_paket_swakelola_master_data (base: LTRIM satker)
+13b. sql/fix_satker_tunggal_ppk.sql             -- lanjutan (final): auto-resolve satker/PPK saat 1 kode satker cuma py 1 PPK di master
 ```
-> Butuh: `master_data`, `api_paket_*_terumumkan`, `ai_kurasi_paket`.
+> Butuh: `master_data`, `api_paket_*_terumumkan`, `ai_kurasi_paket`. Setelah menjalankan 13b, klik "Hitung Ulang" di halaman Risiko Pengadaan (atau POST `/api/risiko/recalculate/penyedia` & `/swakelola`) agar `risiko_pengadaan` terisi ulang dengan nilai baru.
 
 ### Fase 5 — View dashboard realisasi (jalankan berurutan; final tercapai kumulatif)
 ```
@@ -135,8 +136,8 @@ node scripts/diag_unknown_satker.mjs           -- satker & eselon1 'Tidak Diketa
 | Objek | File final |
 |---|---|
 | view_rup_final | setup_rup_history_and_dashboard.sql |
-| view_paket_penyedia_master_data | fix_join_ltrim_satker.sql |
-| view_paket_swakelola_master_data | fix_join_ltrim_satker.sql |
+| view_paket_penyedia_master_data | fix_satker_tunggal_ppk.sql (dibangun di atas fix_join_ltrim_satker.sql) |
+| view_paket_swakelola_master_data | fix_satker_tunggal_ppk.sql (dibangun di atas fix_join_ltrim_satker.sql) |
 | view_dashboard_tender | fix_kaji_ulang_realisasi_views.sql |
 | view_dashboard_penunjukan_langsung | lock_pagu_to_masterdata.sql |
 | view_dashboard_pengadaan_langsung | fix_metode_pengadaan_from_realisasi.sql |

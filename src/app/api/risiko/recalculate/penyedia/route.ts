@@ -35,12 +35,16 @@ async function fetchMasterPage(offset: number, limit: number): Promise<{ rows: M
   const { data, error, count } = await supabase
     .from('view_paket_penyedia_master_data')
     .select(
-      'kd_rup, nama_paket, pagu, metode_pengadaan, jenis_pengadaan, tgl_akhir_pemilihan, tahun_anggaran, satker:"SATUAN KERJA", eselon1:"UNIT KERJA", nama_ppk:MASTER_NAMA_PPK',
+      'kd_rup, nama_paket, pagu, metode_pengadaan, jenis_pengadaan, tgl_akhir_pemilihan, tahun_anggaran, satker:"SATUAN KERJA", eselon1:"UNIT KERJA", nama_ppk:MASTER_NAMA_PPK, satker_sirup:nama_satker, nama_ppk_sirup:nama_ppk',
       { count: 'exact' }
     )
     .order('kd_rup', { ascending: true })
     .range(offset, offset + limit - 1);
   if (error) throw new Error(`Gagal mengambil master data penyedia: ${error.message}`);
+  // Fallback ke nama SIRUP mentah saat kolom master kosong (satker/PPK tidak lolos join di
+  // view_paket_penyedia_master_data — lihat ANALISIS-KONEKSI-SATKER.md Celah 1 & 3). Tanpa ini,
+  // baris risiko tampil blank walau datanya sebenarnya ada di SIRUP, hanya ter-masking/tidak
+  // ter-verifikasi ke master_data.
   const rows = ((data ?? []) as unknown as Array<Record<string, unknown>>).map((r) => ({
     kd_rup: String(r.kd_rup),
     nama_paket: (r.nama_paket as string | null) ?? null,
@@ -49,9 +53,9 @@ async function fetchMasterPage(offset: number, limit: number): Promise<{ rows: M
     jenis_pengadaan: (r.jenis_pengadaan as string | null) ?? null,
     tgl_akhir_pemilihan: (r.tgl_akhir_pemilihan as string | null) ?? null,
     tahun_anggaran: r.tahun_anggaran != null ? Number(r.tahun_anggaran) : null,
-    satker: (r.satker as string | null) ?? null,
+    satker: (r.satker as string | null) ?? (r.satker_sirup as string | null) ?? null,
     eselon1: (r.eselon1 as string | null) ?? null,
-    nama_ppk: (r.nama_ppk as string | null) ?? null,
+    nama_ppk: (r.nama_ppk as string | null) ?? (r.nama_ppk_sirup as string | null) ?? null,
   }));
   return { rows, total: count ?? rows.length };
 }

@@ -95,6 +95,7 @@ export function RisikoPengadaanView() {
   const [kategoriFilter, setKategoriFilter] = useState<string[]>([]);
   const [jenisPaketFilter, setJenisPaketFilter] = useState<string[]>([]);
   const [statusPelaksanaanFilter, setStatusPelaksanaanFilter] = useState<string[]>([]);
+  const [mainRiskDriverFilter, setMainRiskDriverFilter] = useState<string | null>(null);
   // donutJenisFilter state removed in favor of global jenisPaketFilter
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -237,8 +238,19 @@ export function RisikoPengadaanView() {
     if (kategoriFilter.length > 0) d = d.filter((item) => kategoriFilter.includes(item.kategori));
     if (jenisPaketFilter.length > 0) d = d.filter((item) => jenisPaketFilter.includes(item.jenis_paket));
     if (statusPelaksanaanFilter.length > 0) d = d.filter((item) => statusPelaksanaanFilter.includes(item.execution_status));
+    if (mainRiskDriverFilter) {
+      d = d.filter((item) => {
+        const rawLabel = item.main_risk_driver;
+        const label = rawLabel && rawLabel.trim() ? rawLabel : 'Tidak Diketahui';
+        return label === mainRiskDriverFilter;
+      });
+    }
     return d;
-  }, [data, eselon1, satker, ppk, kategoriFilter, jenisPaketFilter, statusPelaksanaanFilter]);
+  }, [data, eselon1, satker, ppk, kategoriFilter, jenisPaketFilter, statusPelaksanaanFilter, mainRiskDriverFilter]);
+
+  const handleRiskDriverClick = useCallback((label: string) => {
+    setMainRiskDriverFilter((prev) => (prev === label ? null : label));
+  }, []);
 
   const filteredData = useMemo(() => {
     let d = baseData;
@@ -522,10 +534,10 @@ export function RisikoPengadaanView() {
                     Warna <span style={{ color: '#ef4444', fontWeight: 600 }}>merah</span> = Tinggi,{' '}
                     <span style={{ color: '#eab308', fontWeight: 600 }}>kuning</span> = Sedang,{' '}
                     <span style={{ color: '#22c55e', fontWeight: 600 }}>hijau</span> = Rendah.
-                    Angka di ujung kanan menunjukkan total jumlah paket. <em>Arahkan kursor untuk detail.</em>
+                    Angka di ujung kanan menunjukkan total jumlah paket. <em>Klik pada bar untuk mem-filter data tabel, klik lagi untuk menghapus filter.</em>
                   </p>
                   <div className={distStyles.chartArea}>
-                    <RisikoDriverStackedBarChart data={distRiskDriverStacked} />
+                    <RisikoDriverStackedBarChart data={distRiskDriverStacked} onClick={handleRiskDriverClick} />
                   </div>
                 </div>
               </div>
@@ -577,7 +589,19 @@ export function RisikoPengadaanView() {
                 <span className={styles.filterLabel}>Status Pelaksanaan</span>
                 <FilterPillGroup options={STATUS_PELAKSANAAN_OPTIONS} selected={statusPelaksanaanFilter} onChange={setStatusPelaksanaanFilter} />
               </div>
-              {hasActiveExtraFilters && (
+              
+              {mainRiskDriverFilter && (
+                <div className={styles.filterRow}>
+                  <span className={styles.filterLabel}>Pemicu Risiko</span>
+                  <div className={styles.filterPills}>
+                    <button className={`${styles.filterPill} ${styles.active}`} onClick={() => setMainRiskDriverFilter(null)}>
+                      {mainRiskDriverFilter} ✕
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {(kategoriFilter.length > 0 || jenisPaketFilter.length > 0 || statusPelaksanaanFilter.length > 0 || mainRiskDriverFilter) && (
                 <button
                   type="button"
                   className={styles.resetAllBtn}
@@ -585,6 +609,7 @@ export function RisikoPengadaanView() {
                     setKategoriFilter([]);
                     setJenisPaketFilter([]);
                     setStatusPelaksanaanFilter([]);
+                    setMainRiskDriverFilter(null);
                   }}
                 >
                   Reset Semua Filter
