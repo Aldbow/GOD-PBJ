@@ -373,7 +373,7 @@ export function RingkasanView() {
       {/* Baris 3b — Ringkasan Sumber Pengadaan (dari RUP, bukan dari realisasi) */}
       <motion.div variants={item} className={styles.sectionGroup}>
         <SectionHeader
-          title={<span className={styles.sectionEyebrow}><Building2 size={16} /> Ringkasan Sumber Pengadaan</span>}
+          title={<span className={styles.sectionEyebrow}><Building2 size={16} /> Ringkasan Cara Pengadaan</span>}
           caption="Proporsi paket Penyedia vs Swakelola dari RUP terumumkan (bukan dari realisasi)"
         />
         <div className={styles.methodGrid}>
@@ -383,7 +383,7 @@ export function RingkasanView() {
           </div>
           <div className={styles.panel}>
             <div className={styles.panelHeaderRow}>
-              <div className={styles.panelTitle}><BarChart3 size={15} /> Realisasi per Sumber</div>
+              <div className={styles.panelTitle}><BarChart3 size={15} /> Realisasi per Cara Pengadaan</div>
               <div className={styles.segmentedControl}>
                 <div className={styles.segmentedBg} style={{ transform: sumberChartMode === 'paket' ? 'translateX(100%)' : 'translateX(0)' }} />
                 <button

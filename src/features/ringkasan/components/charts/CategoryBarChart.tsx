@@ -65,11 +65,11 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
   const dataRef = React.useRef(data);
   const getLabelRef = React.useRef(getLabel);
   const modeRef = React.useRef(mode);
-  React.useEffect(() => {
-    dataRef.current = data;
-    getLabelRef.current = getLabel;
-    modeRef.current = mode;
-  }, [data, getLabel, mode]);
+
+  // Update refs secara sinkron agar plugin (yang dipanggil saat draw) selalu punya data terbaru
+  dataRef.current = data;
+  getLabelRef.current = getLabel;
+  modeRef.current = mode;
 
   const endLabelPlugin = useMemo<Plugin<'bar'>>(
     () => ({
