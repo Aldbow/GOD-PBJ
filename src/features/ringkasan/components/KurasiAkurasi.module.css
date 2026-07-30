@@ -68,13 +68,13 @@
 
 .ringWrap {
   position: relative;
-  width: 130px;
-  height: 130px;
+  width: 170px;
+  height: 170px;
   flex-shrink: 0;
   margin: 0 auto;
 }
 
-.ring { width: 130px; height: 130px; }
+.ring { width: 170px; height: 170px; }
 
 .ringTrack {
   fill: none;
@@ -100,7 +100,7 @@
 }
 
 .ringPct {
-  font-size: 24px;
+  font-size: 34px;
   font-weight: 700;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
@@ -108,7 +108,7 @@
 }
 
 .ringLabel {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-secondary);
   margin-top: 3px;
   text-transform: uppercase;
@@ -131,7 +131,7 @@
 .stackBar span { display: block; height: 100%; }
 .stackBar span + span { box-shadow: -2px 0 0 var(--surface); }
 
-.segAkurat { background: #0ca30c; }
+.segAkurat { background: #00B676; }
 .segKoreksi { background: #d03b3b; }
 .segBelum { background: var(--border-strong, #cbd5e1); }
 
@@ -172,7 +172,7 @@
   color: var(--text-secondary);
 }
 
-.nGood .numVal { color: #0a7d0a; }
+.nGood .numVal { color: #00B676; }
 .nBad .numVal { color: #c0392b; }
 .nWait .numVal { color: var(--text-secondary); }
 
@@ -215,7 +215,7 @@
 /* Mode isFullWidth (3-column layout) */
 .mainLayoutFullWidth {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 32px;
   align-items: stretch;
 }

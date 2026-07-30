@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge, Sparkles } from 'lucide-react';
+import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge, Sparkles, ShieldAlert } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ErrorBox } from '@/components/ui/ErrorBox';
@@ -35,6 +35,7 @@ import { AnomaliPanel } from '@/components/paket/AnomaliPanel';
 import { AnomaliTable } from './AnomaliTable';
 import { SatkerDetailModal } from './SatkerDetailModal';
 import { KurasiTidakAkuratTable } from './KurasiTidakAkuratTable';
+import { RisikoInsightPanel } from './RisikoInsightPanel';
 import styles from './RingkasanView.module.css';
 
 const container: Variants = {
@@ -689,6 +690,14 @@ export function RingkasanView() {
         <div className={styles.stackedFull}>
           <ItkpGauge satker={impliedSatkerForItkp} forceComponentA={isFiltered} />
           <PedomanLengkapCard />
+        </div>
+      </motion.div>
+
+      {/* Baris 7a — Insight Risiko Pengadaan (Ditambahkan sesuai permintaan) */}
+      <motion.div variants={item} className={styles.sectionGroup}>
+        <SectionHeader title={<span className={styles.sectionEyebrow}><ShieldAlert size={16} /> Risiko Pengadaan</span>} />
+        <div className={styles.stackedFull}>
+          <RisikoInsightPanel satker={applied.satker} ppk={applied.ppk} />
         </div>
       </motion.div>
 

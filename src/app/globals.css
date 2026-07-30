@@ -28,13 +28,13 @@
   --text-tertiary: #8A93A3;
 
   /* Semantic accents */
-  --teal-600: #0F6E56;
+  --teal-600: #00B676;
   --teal-700: #0B5A46;
   --teal-100: #E1F5EE;
-  --amber-600: #9C6B0B;
+  --amber-600: #EFA908;
   --amber-700: #7C5408;
   --amber-100: #FCEFD9;
-  --red-600: #B3261E;
+  --red-600: #F16026;
   --red-700: #8F1D17;
   --red-100: #FBEAE8;
   --info-600: #1D5FA8;
@@ -118,13 +118,13 @@
   --text-secondary: #9AA3B7;
   --text-tertiary: #667085;
 
-  --teal-600: #2DD4A8;
+  --teal-600: #00B676;
   --teal-700: #3BE0B6;
   --teal-100: rgba(45, 212, 168, 0.12);
-  --amber-600: #F2B84B;
+  --amber-600: #EFA908;
   --amber-700: #F6C86B;
   --amber-100: rgba(242, 184, 75, 0.12);
-  --red-600: #F87171;
+  --red-600: #F16026;
   --red-700: #FB8A8A;
   --red-100: rgba(248, 113, 113, 0.14);
   --info-600: #5B9BF0;

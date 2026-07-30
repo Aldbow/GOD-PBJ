@@ -11,10 +11,10 @@ export { useIsDark, chartInk, fmtCompactRp };
 // var(--teal-600)/var(--amber-600)/var(--red-600) di src/app/globals.css) supaya donut kategori
 // dan badge kategori di tabel/detail memakai warna yang identik — JANGAN diubah sendiri-sendiri.
 const RISK_KATEGORI_HEX: Record<RiskKategori, { light: string; dark: string }> = {
-  RENDAH: { light: '#0F6E56', dark: '#2DD4A8' },
-  SEDANG: { light: '#9C6B0B', dark: '#F2B84B' },
-  TINGGI: { light: '#B3261E', dark: '#F87171' },
-  DATA_TIDAK_LENGKAP: { light: '#94a3b8', dark: '#64748b' },
+  RENDAH: { light: '#00B676', dark: '#00B676' },
+  SEDANG: { light: '#EFA908', dark: '#EFA908' },
+  TINGGI: { light: '#F16026', dark: '#F16026' },
+  DATA_TIDAK_LENGKAP: { light: '#475569', dark: '#cbd5e1' },
 };
 
 export function riskKategoriColor(kategori: RiskKategori, isDark: boolean): string {

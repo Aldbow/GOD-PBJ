@@ -102,7 +102,7 @@ export const SERIES = {
   realisasi: { light: '#2a78d6', dark: '#3987e5' } as ColorPair, // biru brand
   sudah: { light: '#0ca30c', dark: '#0ca30c' } as ColorPair, // status good
   belum: { light: '#cbd5e1', dark: '#475569' } as ColorPair, // netral
-  akurat: { light: '#0ca30c', dark: '#0ca30c' } as ColorPair,
+  akurat: { light: '#00B676', dark: '#00B676' } as ColorPair,
   perluKoreksi: { light: '#d03b3b', dark: '#e66767' } as ColorPair,
   belumKurasi: { light: '#cbd5e1', dark: '#475569' } as ColorPair,
 };

@@ -13,7 +13,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 export interface StackedBucket {
   label: string;
   totalCount: number;
-  counts: Record<RiskKategori, number>;
+  counts: Record<string, number>;
 }
 
 interface Props {
@@ -21,11 +21,22 @@ interface Props {
   maxBars?: number;
   height?: number | string;
   onClick?: (driverLabel: string) => void;
+  segmentKeys?: string[];
+  segmentLabels?: Record<string, string>;
+  segmentColors?: (key: string, isDark: boolean) => string;
 }
 
 const KATEGORI_ORDER: RiskKategori[] = ['TINGGI', 'SEDANG', 'RENDAH', 'DATA_TIDAK_LENGKAP'];
 
-export function RisikoDriverStackedBarChart({ data, maxBars = 8, height = '100%', onClick }: Props) {
+export function RisikoDriverStackedBarChart({ 
+  data, 
+  maxBars = 8, 
+  height = '100%', 
+  onClick,
+  segmentKeys = KATEGORI_ORDER,
+  segmentLabels = RISK_KATEGORI_LABEL,
+  segmentColors = (k: string, isDark: boolean) => riskKategoriColor(k as RiskKategori, isDark)
+}: Props) {
   const isDark = useIsDark();
   const ink = chartInk(isDark);
 
@@ -34,18 +45,18 @@ export function RisikoDriverStackedBarChart({ data, maxBars = 8, height = '100%'
     const top = data.slice(0, maxBars - 1);
     const rest = data.slice(maxBars - 1);
     
+    const otherCounts: Record<string, number> = {};
+    for (const key of segmentKeys) {
+      otherCounts[key] = rest.reduce((s, b) => s + (b.counts[key] || 0), 0);
+    }
+
     const other: StackedBucket = {
       label: 'Lainnya',
       totalCount: rest.reduce((s, b) => s + b.totalCount, 0),
-      counts: {
-        TINGGI: rest.reduce((s, b) => s + b.counts.TINGGI, 0),
-        SEDANG: rest.reduce((s, b) => s + b.counts.SEDANG, 0),
-        RENDAH: rest.reduce((s, b) => s + b.counts.RENDAH, 0),
-        DATA_TIDAK_LENGKAP: rest.reduce((s, b) => s + b.counts.DATA_TIDAK_LENGKAP, 0),
-      }
+      counts: otherCounts
     };
     return [...top, other];
-  }, [data, maxBars]);
+  }, [data, maxBars, segmentKeys]);
 
   // Plugin: menampilkan total paket di ujung kanan setiap bar
   const totalLabelPlugin: Plugin<'bar'> = useMemo(() => ({
@@ -57,7 +68,7 @@ export function RisikoDriverStackedBarChart({ data, maxBars = 8, height = '100%'
 
       ctx.save();
       ctx.font = 'bold 11px var(--font-geist-sans), sans-serif';
-      ctx.fillStyle = ink.text;
+      ctx.fillStyle = ink.valueText;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
 
@@ -82,16 +93,16 @@ export function RisikoDriverStackedBarChart({ data, maxBars = 8, height = '100%'
       }
       ctx.restore();
     },
-  }), [buckets, ink.text]);
+  }), [buckets, ink.valueText]);
 
   const { chartData, options } = useMemo(
     () => ({
       chartData: {
         labels: buckets.map((b) => b.label),
-        datasets: KATEGORI_ORDER.map((kat) => ({
-          label: RISK_KATEGORI_LABEL[kat],
-          data: buckets.map((b) => b.totalCount === 0 ? 0 : (b.counts[kat] / b.totalCount) * 100),
-          backgroundColor: riskKategoriColor(kat, isDark),
+        datasets: segmentKeys.map((key) => ({
+          label: segmentLabels[key] || key,
+          data: buckets.map((b) => b.totalCount === 0 ? 0 : ((b.counts[key] || 0) / b.totalCount) * 100),
+          backgroundColor: segmentColors(key, isDark),
           borderRadius: 4,
           borderSkipped: false,
           barThickness: 'flex' as const,
@@ -118,7 +129,7 @@ export function RisikoDriverStackedBarChart({ data, maxBars = 8, height = '100%'
             display: true,
             position: 'bottom' as const,
             labels: {
-              color: ink.text,
+              color: ink.valueText,
               usePointStyle: true,
               boxWidth: 8,
               padding: 20,
@@ -135,8 +146,8 @@ export function RisikoDriverStackedBarChart({ data, maxBars = 8, height = '100%'
                 const b = buckets[ctx.dataIndex];
                 const pct = (ctx.raw as number).toFixed(1).replace('.', ',');
                 const dsLabel = ctx.dataset.label;
-                const kat = KATEGORI_ORDER.find(k => RISK_KATEGORI_LABEL[k] === dsLabel);
-                const count = kat ? b.counts[kat] : 0;
+                const key = segmentKeys.find(k => (segmentLabels[k] || k) === dsLabel);
+                const count = key ? (b.counts[key] || 0) : 0;
                 return `${dsLabel}: ${fmtInt(count)} paket (${pct}%)`;
               },
               footer: (items: TooltipItem<'bar'>[]) => {
@@ -164,7 +175,7 @@ export function RisikoDriverStackedBarChart({ data, maxBars = 8, height = '100%'
           y: {
             stacked: true,
             ticks: {
-              color: ink.text,
+              color: ink.valueText,
               font: { size: 12 },
               callback: function (val: any) {
                 return buckets[val].label;

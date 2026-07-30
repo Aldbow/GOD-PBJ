@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { ShieldAlert, AlertTriangle, Clock, RefreshCw, Wallet, Package, PieChart, Users, Layers, GitBranch, Building, Banknote, Tag, LayoutGrid } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShieldAlert, AlertTriangle, Clock, RefreshCw, Wallet, Package, PieChart, Users, Layers, GitBranch, Building, Banknote, Tag, LayoutGrid, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { fmtRupiahDetail, countRup } from '@/lib/format';
 import { fetchRupHistory, type RupHistoryEntry } from '@/lib/paket/rupHistory';
@@ -15,6 +15,7 @@ import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorBox } from '@/components/ui/ErrorBox';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
+import { useSession } from '@/components/auth/SessionProvider';
 
 import { kategoriVariant } from '@/lib/risiko/badge';
 import { totalPaket as sumTotalPaket, groupBy } from '@/lib/risiko/aggregate';
@@ -30,6 +31,22 @@ import { RisikoDetailBody } from './RisikoDetailBody';
 import { RisikoKategoriDonut } from './charts/RisikoKategoriDonut';
 import { RisikoDistribusiBarChart } from './charts/RisikoDistribusiBarChart';
 import { RisikoDriverStackedBarChart, type StackedBucket } from './charts/RisikoDriverStackedBarChart';
+import { riskKategoriColor } from './charts/riskChartTheme';
+import { PedomanRisikoCard } from './PedomanRisikoCard';
+
+const SCORE_KEYS = ['3', '2', '1', '0'];
+const SCORE_LABELS: Record<string, string> = {
+  '3': 'Skor 3',
+  '2': 'Skor 2',
+  '1': 'Skor 1',
+  '0': 'Data Tidak Lengkap / Skor 0',
+};
+const SCORE_COLORS = (key: string, isDark: boolean) => {
+  if (key === '3') return riskKategoriColor('TINGGI', isDark);
+  if (key === '2') return riskKategoriColor('SEDANG', isDark);
+  if (key === '1') return riskKategoriColor('RENDAH', isDark);
+  return riskKategoriColor('DATA_TIDAK_LENGKAP', isDark);
+};
 import styles from '@/components/paket/paketView.module.css';
 import distStyles from './RisikoDistribusi.module.css';
 
@@ -55,7 +72,7 @@ const STATUS_PELAKSANAAN_OPTIONS = Object.entries(EXECUTION_STATUS_LABEL).map(([
 // Kolom JSONB (components_json dst.) di-select terpisah dari kolom listing supaya baris di tabel
 // utama ringan; kolom penuh (termasuk JSONB) diambil saat baris diklik untuk detail modal.
 const LIST_COLUMNS =
-  'kd_rup,jenis_paket,nama_paket,satker,eselon1,nama_ppk,tahun_anggaran,pagu,metode_pengadaan,jenis_pengadaan,sumber_dana,tipe_swakelola,total_score,max_score,kategori,main_risk_driver,execution_status,execution_evidence_source,execution_evidence_date,jumlah_revisi,data_quality_flags,calculated_at,rules_version';
+  'kd_rup,jenis_paket,nama_paket,satker,eselon1,nama_ppk,tahun_anggaran,pagu,metode_pengadaan,jenis_pengadaan,sumber_dana,tipe_swakelola,total_score,max_score,kategori,main_risk_driver,execution_status,execution_evidence_source,execution_evidence_date,jumlah_revisi,data_quality_flags,calculated_at,rules_version,components_json';
 
 function mapRow(raw: any): RiskRow {
   return {
@@ -82,6 +99,7 @@ function mapRow(raw: any): RiskRow {
     data_quality_flags: raw.data_quality_flags || [],
     calculated_at: raw.calculated_at,
     rules_version: raw.rules_version,
+    components_json: raw.components_json,
   };
 }
 
@@ -91,6 +109,7 @@ export function RisikoPengadaanView() {
   const [error, setError] = useState<string | null>(null);
 
   const { eselon1, satker, ppk, search, setEselon1, setSatker, setPpk, setSearch } = useOrgFilters();
+  const { role } = useSession();
 
   const [kategoriFilter, setKategoriFilter] = useState<string[]>([]);
   const [jenisPaketFilter, setJenisPaketFilter] = useState<string[]>([]);
@@ -98,6 +117,7 @@ export function RisikoPengadaanView() {
   const [mainRiskDriverFilter, setMainRiskDriverFilter] = useState<string | null>(null);
   // donutJenisFilter state removed in favor of global jenisPaketFilter
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showPedoman, setShowPedoman] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<RiskRow | null>(null);
@@ -302,7 +322,7 @@ export function RisikoPengadaanView() {
   const distSumberDana = useMemo(() => groupBy(filteredData.filter((r) => r.jenis_paket === 'Penyedia'), (r) => r.sumber_dana), [filteredData]);
   const distTipeSwakelola = useMemo(() => groupBy(filteredData.filter((r) => r.jenis_paket === 'Swakelola'), (r) => r.tipe_swakelola), [filteredData]);
 
-  // Aggregation bertumpuk (stacked) untuk Pemicu Risiko berdasarkan Kategori Keseluruhan
+  // Aggregation bertumpuk (stacked) untuk Pemicu Risiko berdasarkan Skor Spesifik (1-3)
   const distRiskDriverStacked = useMemo(() => {
     const map = new Map<string, StackedBucket>();
     const FALLBACK_LABEL = 'Tidak Diketahui';
@@ -314,13 +334,24 @@ export function RisikoPengadaanView() {
         bucket = {
           label,
           totalCount: 0,
-          counts: { TINGGI: 0, SEDANG: 0, RENDAH: 0, DATA_TIDAK_LENGKAP: 0 },
+          counts: { '3': 0, '2': 0, '1': 0, '0': 0 },
         };
         map.set(label, bucket);
       }
       const c = countRup(row.kd_rup);
       bucket.totalCount += c;
-      bucket.counts[row.kategori] += c;
+      
+      let scoreStr = '0';
+      if (row.components_json && rawLabel) {
+        const comp = row.components_json.find((c: any) => c.label === rawLabel);
+        if (comp && comp.score != null) {
+          scoreStr = comp.score.toString();
+        }
+      }
+      
+      if (bucket.counts[scoreStr] !== undefined) {
+        bucket.counts[scoreStr] += c;
+      }
     }
     return Array.from(map.values()).sort((a, b) => b.totalCount - a.totalCount);
   }, [filteredData]);
@@ -432,17 +463,48 @@ export function RisikoPengadaanView() {
             : 'Belum pernah dihitung'}
           {recalculating && recalcProgress && ` — menghitung ${recalcProgress.jenis} ${recalcProgress.processed}/${recalcProgress.total}...`}
         </span>
-        <button
-          type="button"
-          className={styles.advancedToggle}
-          onClick={runRecalculate}
-          disabled={recalculating}
-          style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-        >
-          <RefreshCw size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-          {recalculating ? 'Menghitung...' : 'Hitung Ulang'}
-        </button>
+        <div>
+          <button
+            type="button"
+            className={styles.advancedToggle}
+            onClick={() => setShowPedoman(!showPedoman)}
+            style={{ 
+              backgroundColor: showPedoman ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--surface)', 
+              borderColor: showPedoman ? 'var(--accent)' : 'var(--border)', 
+              color: showPedoman ? 'var(--accent)' : 'var(--text-primary)', 
+              marginRight: 8 
+            }}
+          >
+            <Info size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+            Pedoman Penilaian
+          </button>
+          {role === 'admin' && (
+            <button
+              type="button"
+              className={styles.advancedToggle}
+              onClick={runRecalculate}
+              disabled={recalculating}
+              style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+            >
+              <RefreshCw size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+              {recalculating ? 'Menghitung...' : 'Hitung Ulang'}
+            </button>
+          )}
+        </div>
       </div>
+
+      <AnimatePresence>
+        {showPedoman && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <PedomanRisikoCard />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {loading ? (
         <p className={styles.loadingText}>Memuat data dari Supabase...</p>
@@ -537,7 +599,13 @@ export function RisikoPengadaanView() {
                     Angka di ujung kanan menunjukkan total jumlah paket. <em>Klik pada bar untuk mem-filter data tabel, klik lagi untuk menghapus filter.</em>
                   </p>
                   <div className={distStyles.chartArea}>
-                    <RisikoDriverStackedBarChart data={distRiskDriverStacked} onClick={handleRiskDriverClick} />
+                    <RisikoDriverStackedBarChart 
+                      data={distRiskDriverStacked} 
+                      onClick={handleRiskDriverClick}
+                      segmentKeys={SCORE_KEYS}
+                      segmentLabels={SCORE_LABELS}
+                      segmentColors={SCORE_COLORS}
+                    />
                   </div>
                 </div>
               </div>

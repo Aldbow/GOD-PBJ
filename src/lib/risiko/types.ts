@@ -73,6 +73,7 @@ export interface RiskRow {
   data_quality_flags: DataQualityFlag[];
   calculated_at: string;
   rules_version: string;
+  components_json?: RiskComponentResult[];
 }
 
 export interface TransactionRef {
