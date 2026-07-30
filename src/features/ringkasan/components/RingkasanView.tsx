@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { motion, Variants } from 'framer-motion';
-import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge, Sparkles, ShieldAlert } from 'lucide-react';
+import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge, Sparkles, ShieldAlert, ExternalLink } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ErrorBox } from '@/components/ui/ErrorBox';
@@ -22,6 +23,30 @@ import {
   type JenisAggregate,
   type SumberAggregate,
 } from '../lib/ringkasanData';
+
+function AccordionTableWrapper({ title, count, isOpen, onToggle, children }: any) {
+  return (
+    <div style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--surface)', overflow: 'hidden' }}>
+      <button 
+        type="button"
+        onClick={onToggle}
+        style={{ width: '100%', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isOpen ? 'color-mix(in srgb, var(--c) 4%, var(--surface))' : 'var(--surface)', border: 'none', borderBottom: isOpen ? '1px solid var(--border)' : 'none', cursor: 'pointer', textAlign: 'left', fontWeight: 600, fontSize: '13.5px', color: 'var(--text-primary)' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>{title}</span>
+          <span style={{ fontSize: '12px', background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>{count} baris data</span>
+        </div>
+        {isOpen ? <ChevronUp size={16} color="var(--text-secondary)" /> : <ChevronDown size={16} color="var(--text-secondary)" />}
+      </button>
+      {isOpen && (
+        <div>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 import { RingkasanFilter } from './RingkasanFilter';
 import { KpiCards } from './KpiCards';
 import { CategoryDonutChart } from './charts/CategoryDonutChart';
@@ -62,6 +87,11 @@ export function RingkasanView() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [applied, setApplied] = useState<RingkasanFilterValue>(EMPTY_FILTER);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isExportPrintMenuOpen, setIsExportPrintMenuOpen] = useState(false);
+
+  const [showSumberTable, setShowSumberTable] = useState(false);
+  const [showMetodeTable, setShowMetodeTable] = useState(false);
+  const [showJenisTable, setShowJenisTable] = useState(false);
   const [sortCol, setSortCol] = useState<'peringkat' | 'satker' | 'jumlahPaket' | 'pagu' | 'realisasi' | 'pctRealisasi'>('pctRealisasi');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -378,7 +408,12 @@ export function RingkasanView() {
           </div>
         </div>
 
-        <div className={`${styles.panel} ${styles.tablePanel}`}>
+        <AccordionTableWrapper 
+          title="Rincian Tabel Sumber Pengadaan" 
+          count={agg.sumber.length} 
+          isOpen={showSumberTable || isPrintExporting} 
+          onToggle={() => setShowSumberTable(!showSumberTable)}
+        >
           <div className={styles.tableScroll}>
             <table className={styles.table}>
               <thead>
@@ -411,7 +446,7 @@ export function RingkasanView() {
               </tbody>
             </table>
           </div>
-        </div>
+        </AccordionTableWrapper>
       </motion.div>
 
       {/* Baris 4 — Ringkasan Metode Pengadaan */}
@@ -452,7 +487,12 @@ export function RingkasanView() {
           </div>
         </div>
 
-        <div className={`${styles.panel} ${styles.tablePanel}`}>
+        <AccordionTableWrapper 
+          title="Rincian Tabel Metode Pengadaan" 
+          count={agg.metode.length} 
+          isOpen={showMetodeTable || isPrintExporting} 
+          onToggle={() => setShowMetodeTable(!showMetodeTable)}
+        >
           <div className={styles.tableScroll}>
             <table className={styles.table}>
               <thead>
@@ -496,7 +536,7 @@ export function RingkasanView() {
               )}
             </table>
           </div>
-        </div>
+        </AccordionTableWrapper>
       </motion.div>
 
       {/* Baris 4b — Ringkasan Jenis Pengadaan */}
@@ -537,7 +577,12 @@ export function RingkasanView() {
           </div>
         </div>
 
-        <div className={`${styles.panel} ${styles.tablePanel}`}>
+        <AccordionTableWrapper 
+          title="Rincian Tabel Jenis Pengadaan" 
+          count={agg.jenis.length} 
+          isOpen={showJenisTable || isPrintExporting} 
+          onToggle={() => setShowJenisTable(!showJenisTable)}
+        >
           <div className={styles.tableScroll}>
             <table className={styles.table}>
               <thead>
@@ -570,14 +615,14 @@ export function RingkasanView() {
               </tbody>
             </table>
           </div>
-        </div>
+        </AccordionTableWrapper>
       </motion.div>
 
       {/* Baris 5 — Pemeringkatan Satuan Kerja (disembunyikan saat filter Satker/PPK aktif) */}
       {!isFiltered && (
         <motion.div variants={item} className={styles.sectionGroup}>
           <SectionHeader
-            title={<span className={styles.sectionEyebrow}><Trophy size={16} /> Pemeringkatan Satuan Kerja</span>}
+            title={<span className={styles.sectionEyebrow}><Trophy size={16} /> Peringkat Realisasi Satuan Kerja</span>}
             caption="Peringkat satker berdasarkan realisasi anggaran (dari RUP terumumkan)"
           />
           <div className={styles.panel}>
@@ -695,7 +740,14 @@ export function RingkasanView() {
 
       {/* Baris 7a — Insight Risiko Pengadaan (Ditambahkan sesuai permintaan) */}
       <motion.div variants={item} className={styles.sectionGroup}>
-        <SectionHeader title={<span className={styles.sectionEyebrow}><ShieldAlert size={16} /> Risiko Pengadaan</span>} />
+        <SectionHeader 
+          title={<span className={styles.sectionEyebrow}><ShieldAlert size={16} /> Risiko Pengadaan</span>}
+          action={
+            <Link href="/risiko-pengadaan" className={styles.ghostBtn} style={{ textDecoration: 'none', padding: '4px 10px', fontSize: '11.5px', height: '28px' }}>
+              Lihat Detail Halaman <ExternalLink size={13} style={{ marginLeft: 4 }} />
+            </Link>
+          }
+        />
         <div className={styles.stackedFull}>
           <RisikoInsightPanel satker={applied.satker} ppk={applied.ppk} />
         </div>

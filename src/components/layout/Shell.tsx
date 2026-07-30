@@ -5,6 +5,8 @@ import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import styles from './Shell.module.css';
 
+import { ScrollToTop } from '@/components/ui/ScrollToTop';
+
 export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className={styles.appShell}>
@@ -13,6 +15,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <Topbar />
         {children}
       </main>
+      <ScrollToTop />
     </div>
   );
 }
