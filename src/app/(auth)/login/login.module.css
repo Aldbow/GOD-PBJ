@@ -73,6 +73,95 @@
   -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 75%);
 }
 
+/* Garis pindai (scanline) — nuansa dashboard pemantauan real-time */
+.scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 120px;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(45, 212, 168, 0.1) 45%,
+    rgba(45, 212, 168, 0.18) 50%,
+    rgba(45, 212, 168, 0.1) 55%,
+    transparent
+  );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scanline {
+    animation: scan 9s ease-in-out infinite;
+  }
+}
+
+@keyframes scan {
+  0% { transform: translateY(-140px); opacity: 0; }
+  8% { opacity: 1; }
+  50% { transform: translateY(70vh); opacity: 1; }
+  92% { opacity: 1; }
+  100% { transform: translateY(calc(100vh + 20px)); opacity: 0; }
+}
+
+/* Grain/noise halus untuk kedalaman visual, tanpa aset gambar */
+.noise {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Partikel data yang melayang lembut di panel brand */
+.particles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--teal-600);
+  box-shadow: 0 0 6px 1px color-mix(in srgb, var(--teal-600) 70%, transparent);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7DE8CD;
+  margin-bottom: 14px;
+}
+
+.eyebrowDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal-600);
+  box-shadow: 0 0 8px 2px color-mix(in srgb, var(--teal-600) 80%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .eyebrowDot {
+    animation: pulseDot 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
 .brandTop {
   display: flex;
   align-items: center;
@@ -111,10 +200,22 @@
 .brandBody h2 em {
   font-style: normal;
   color: var(--teal-600);
-  background: linear-gradient(120deg, var(--teal-600), #7DE8CD);
+  background: linear-gradient(100deg, var(--teal-600) 30%, #7DE8CD 50%, var(--teal-600) 70%);
+  background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .brandBody h2 em {
+    animation: shimmer 5s ease-in-out infinite;
+  }
+}
+
+@keyframes shimmer {
+  0%, 100% { background-position: 0% 0; }
+  50% { background-position: 100% 0; }
 }
 
 .points {
@@ -205,6 +306,7 @@
   justify-content: center;
   padding: 40px 24px;
   overflow: hidden;
+  background: var(--bg-page);
 }
 
 /* Cahaya lembut di belakang kartu (khusus panel kanan) */
@@ -218,14 +320,27 @@
   opacity: 0.9;
 }
 
-.card {
+.topBar {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 2;
+}
+
+.cardWrap {
   position: relative;
   z-index: 1;
   width: 100%;
   max-width: 420px;
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
   backdrop-filter: blur(12px) saturate(160%);
   -webkit-backdrop-filter: blur(12px) saturate(160%);
   border: 1px solid var(--border);
@@ -324,6 +439,8 @@
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
   box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--accent) 60%, transparent);
   transition: filter var(--dur-fast) ease, box-shadow var(--dur-fast) ease, opacity var(--dur-fast) ease;
 }
@@ -334,6 +451,17 @@
 }
 
 .submit:disabled { opacity: 0.7; cursor: progress; }
+
+.ripple {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  z-index: -1;
+}
 
 .spinner {
   width: 16px;
