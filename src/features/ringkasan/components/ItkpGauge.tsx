@@ -6,7 +6,8 @@ import { Info, Gauge, LayoutGrid, ArrowRight } from 'lucide-react';
 import { computeItkpA, type ItkpAInput } from '@/lib/itkp/calcA';
 import { computeItkpBCD } from '@/lib/itkp/calcBCD';
 import { getDummyBCDForUnit } from '@/lib/itkp/dummyBCD';
-import { fetchItkpAData, type ItkpAUnit } from '@/lib/itkp/fetchA';
+import { fetchItkpAData, partitionGabunganForItkp, type ItkpAUnit } from '@/lib/itkp/fetchA';
+import type { GabunganRow } from '../lib/ringkasanData';
 import { normSatker } from '@/lib/itkp/crosswalk';
 import { predikatOf, nextPredikatLabel } from '@/lib/itkp/itkpModel';
 import { fmtDec, fmtPct } from '@/lib/format';
@@ -32,19 +33,36 @@ interface Komponen {
 interface ItkpGaugeProps {
   satker: string;
   forceComponentA?: boolean;
+  // Baris view_dashboard_gabungan_satker yang sudah di-fetch RingkasanView —
+  // dipakai untuk merekonstruksi partisi tender/epurchasing/swakelola supaya
+  // fetchItkpAData tidak menghitung ulang view yang sama dua kali dalam satu
+  // page load. Kosong sampai RingkasanView selesai memuat rows-nya.
+  rows: GabunganRow[];
+  // true selama RingkasanView masih memuat rows — dipakai untuk membedakan
+  // "belum selesai memuat" dari "sudah selesai tapi datanya memang kosong",
+  // supaya kartu ini tidak nyangkut di skeleton selamanya bila dataset kosong.
+  rowsLoading: boolean;
 }
 
-export function ItkpGauge({ satker, forceComponentA = false }: ItkpGaugeProps) {
+export function ItkpGauge({ satker, forceComponentA = false, rows, rowsLoading }: ItkpGaugeProps) {
   const [units, setUnits] = useState<ItkpAUnit[]>([]);
   const [kementerian, setKementerian] = useState<ItkpAInput | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (rows.length === 0) {
+      // Selesai memuat di RingkasanView tapi datasetnya memang kosong — jangan
+      // nyangkut di skeleton menunggu rows yang tidak akan pernah terisi.
+      if (!rowsLoading) setLoading(false);
+      return;
+    }
     let alive = true;
+    setLoading(true);
     (async () => {
       try {
-        const res = await fetchItkpAData();
+        const prefetched = partitionGabunganForItkp(rows);
+        const res = await fetchItkpAData(prefetched);
         if (!alive) return;
         setUnits(res.units);
         setKementerian(res.kementerian);
@@ -57,7 +75,7 @@ export function ItkpGauge({ satker, forceComponentA = false }: ItkpGaugeProps) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [rows, rowsLoading]);
 
   const unitByNorm = useMemo(() => {
     const map = new Map<string, ItkpAUnit>();

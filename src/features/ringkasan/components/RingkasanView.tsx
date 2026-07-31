@@ -733,7 +733,7 @@ export function RingkasanView() {
       <motion.div variants={item} className={styles.sectionGroup}>
         <SectionHeader title={<span className={styles.sectionEyebrow}><Gauge size={16} /> Indeks Tata Kelola Pengadaan</span>} />
         <div className={styles.stackedFull}>
-          <ItkpGauge satker={impliedSatkerForItkp} forceComponentA={isFiltered} />
+          <ItkpGauge satker={impliedSatkerForItkp} forceComponentA={isFiltered} rows={rows} rowsLoading={loading} />
           <PedomanLengkapCard />
         </div>
       </motion.div>

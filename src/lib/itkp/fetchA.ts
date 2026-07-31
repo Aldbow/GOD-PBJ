@@ -79,7 +79,42 @@ function addToKementerian(k: ItkpAInput, field: keyof ItkpAInput, value: number)
   k[field] += Number(value) || 0;
 }
 
-export async function fetchItkpAData(): Promise<ItkpAFetchResult> {
+// Metode yang dipetakan ke branch Tender di view_dashboard_gabungan_satker/tender
+// (persis WHERE clause pada sql/create_view_dashboard_tender.sql) — dipakai untuk
+// merekonstruksi partisi tender/epurchasing/swakelola dari baris gabungan yang
+// sudah di-fetch di tempat lain, alih-alih fetch ulang view yang sama.
+const TENDER_METODE = new Set(['Tender', 'Seleksi', 'Tender Cepat', 'Pembayaran untuk Kontrak Tahun Jamak']);
+
+export interface PrefetchedRealisasi {
+  tender: RealisasiRow[];
+  epurchasing: RealisasiRow[];
+  swakelola: RealisasiRow[];
+}
+
+/**
+ * Partisi baris `view_dashboard_gabungan_satker` (sudah di-fetch, mis. oleh
+ * RingkasanView) jadi 3 dari 5 dataset yang dibutuhkan fetchItkpAData —
+ * epurchasing/swakelola pakai tag literal-nya sendiri, tender pakai set
+ * metode_pengadaan yang sama seperti yang membangun branch itu di DB. PL/PnL
+ * tidak bisa direkonstruksi dari sini karena gabungan hanya expose `total`
+ * gabungan (bukan pecahan total_transaksional/total_pencatatan), jadi tetap
+ * di-fetch terpisah oleh fetchItkpAData.
+ */
+export function partitionGabunganForItkp(
+  rows: { satker: string | null; total: number | null; metode_pengadaan: string | null }[]
+): PrefetchedRealisasi {
+  const tender: RealisasiRow[] = [];
+  const epurchasing: RealisasiRow[] = [];
+  const swakelola: RealisasiRow[] = [];
+  for (const r of rows) {
+    if (r.metode_pengadaan === 'E-Purchasing') epurchasing.push({ satker: r.satker, total: r.total });
+    else if (r.metode_pengadaan === 'Swakelola') swakelola.push({ satker: r.satker, total: r.total });
+    else if (r.metode_pengadaan && TENDER_METODE.has(r.metode_pengadaan)) tender.push({ satker: r.satker, total: r.total });
+  }
+  return { tender, epurchasing, swakelola };
+}
+
+export async function fetchItkpAData(prefetched?: PrefetchedRealisasi): Promise<ItkpAFetchResult> {
   const [afirmasiRows, masterRows] = await Promise.all([
     fetchAll<AfirmasiRow>(
       'data_afirmasi_pdn_perencanaan',
@@ -88,12 +123,15 @@ export async function fetchItkpAData(): Promise<ItkpAFetchResult> {
     fetchAll<MasterDataRow>('master_data', '"SATUAN KERJA",SATKER,KPA,"UNIT KERJA"'),
   ]);
 
+  // tender/epurchasing/swakelola dipakai ulang dari view_dashboard_gabungan_satker
+  // saat dipanggil dari Ringkasan (lihat ItkpGauge) supaya tidak menghitung ulang
+  // kelima view dashboard realisasi yang sama dua kali dalam satu page load.
   const [tenderRows, epurchRows, plRows, pnlRows, swakelolaRows] = await Promise.all([
-    fetchAll<RealisasiRow>('view_dashboard_tender', 'satker,total'),
-    fetchAll<RealisasiRow>('view_dashboard_epurchasing_v6', 'satker,total'),
+    prefetched ? Promise.resolve(prefetched.tender) : fetchAll<RealisasiRow>('view_dashboard_tender', 'satker,total'),
+    prefetched ? Promise.resolve(prefetched.epurchasing) : fetchAll<RealisasiRow>('view_dashboard_epurchasing_v6', 'satker,total'),
     fetchAll<RealisasiRow>('view_dashboard_pengadaan_langsung', 'satker,total_transaksional,total_pencatatan'),
     fetchAll<RealisasiRow>('view_dashboard_penunjukan_langsung', 'satker,total_transaksional,total_pencatatan'),
-    fetchAll<RealisasiRow>('view_dashboard_swakelola_v1', 'satker,total'),
+    prefetched ? Promise.resolve(prefetched.swakelola) : fetchAll<RealisasiRow>('view_dashboard_swakelola_v1', 'satker,total'),
   ]);
 
   const unitsMap = new Map<string, ItkpAUnit>();
