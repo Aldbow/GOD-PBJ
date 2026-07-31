@@ -22,22 +22,22 @@ const FEATURES: Feature[] = [
   {
     icon: LayoutDashboard,
     title: 'Ringkasan Real-time',
-    description: 'Pantau realisasi anggaran dan progres paket pengadaan dalam satu layar.',
+    description: '',
   },
   {
     icon: ShieldAlert,
     title: 'Deteksi Risiko Dini',
-    description: 'Identifikasi paket berisiko lewat skor dan indikator peringatan otomatis.',
+    description: '',
   },
   {
     icon: ShoppingCart,
     title: 'Realisasi Multi-Metode',
-    description: 'Lacak E-Purchasing, Tender, Pengadaan Langsung, Penunjukan Langsung, dan Swakelola.',
+    description: '',
   },
   {
     icon: GraduationCap,
     title: 'Penilaian ITKP',
-    description: 'Nilai tingkat kematangan dan pemanfaatan sistem pengadaan tiap satuan kerja.',
+    description: '',
   },
 ];
 
@@ -46,11 +46,7 @@ export function LandingFeatures() {
     <section id="modul" className={styles.section}>
       <div className={styles.header}>
         <span className={styles.eyebrow}>Modul</span>
-        <h2 className={styles.heading}>Satu Dashboard, Seluruh Siklus Pengadaan</h2>
-        <p className={styles.sub}>
-          DEWA-PBJ merangkum data perencanaan, realisasi, dan risiko pengadaan Kementerian
-          Ketenagakerjaan dalam satu tempat.
-        </p>
+        <h2 className={styles.heading}>Digital Early Warning Analytics</h2>
       </div>
 
       <motion.div

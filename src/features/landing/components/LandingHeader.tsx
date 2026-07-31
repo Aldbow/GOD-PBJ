@@ -25,7 +25,6 @@ export function LandingHeader() {
 
         <nav className={styles.nav}>
           <a href="#modul" className={styles.navLink}>Modul</a>
-          <a href="#tentang" className={styles.navLink}>Tentang</a>
         </nav>
 
         <Link href="/login" className={styles.loginBtn}>

@@ -168,16 +168,10 @@ export function LandingHero() {
           </motion.div>
 
           <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate="visible" className={styles.title}>
-            Pemantauan Pengadaan
+            Digital Early Warning
             <br />
-            <span className={styles.titleAccent}>Terintegrasi </span>
+            <span className={styles.titleAccent}>Analytics </span>
           </motion.h1>
-
-          <motion.p custom={2} variants={fadeUp} initial="hidden" animate="visible" className={styles.subtitle}>
-            Sistem informasi yang menampilkan data realisasi Pengadaan Barang/Jasa Kementerian
-            Ketenagakerjaan secara akurat dan real-time, guna mendukung pengawasan serta deteksi
-            risiko sejak dini.
-          </motion.p>
 
           <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible" className={styles.actions}>
             <Link href="/login" className={styles.primaryBtn}>
