@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useActionState } from 'react';
+import Link from 'next/link';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
-import { Mail, Lock, LogIn, ShieldCheck, LineChart, Radar, AlertCircle } from 'lucide-react';
+import { Mail, Lock, LogIn, ShieldCheck, LineChart, Radar, AlertCircle, ArrowLeft } from 'lucide-react';
 import { login, type LoginState } from '@/lib/auth/actions';
 import { AuthInput } from '@/components/auth/AuthInput';
 import styles from './login.module.css';
@@ -97,6 +98,13 @@ export default function LoginPage() {
           <motion.div className={styles.mobileBrand} variants={item}>
             <span className={styles.brandMark} />
             <strong>DEWA-PBJ</strong>
+          </motion.div>
+
+          <motion.div variants={item} className={styles.backButtonWrapper}>
+            <Link href="/" className={styles.backButton}>
+              <ArrowLeft size={16} />
+              Kembali ke Beranda
+            </Link>
           </motion.div>
 
           <motion.h1 className={styles.heading} variants={item}>

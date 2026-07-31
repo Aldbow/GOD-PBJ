@@ -1,9 +1,19 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useEffect, useRef } from 'react';
 import { motion, type Variants } from 'framer-motion';
-import { ArrowRight, ChevronDown, Zap } from 'lucide-react';
+import {
+  ArrowRight,
+  ChevronDown,
+  Zap,
+  ShieldCheck,
+  TrendingUp,
+  LayoutDashboard,
+  ShieldAlert,
+  ShoppingCart,
+  GraduationCap,
+} from 'lucide-react';
 import styles from './LandingHero.module.css';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -13,190 +23,196 @@ const fadeUp: Variants = {
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.15 + 0.2, duration: 0.7, ease: EASE },
+    transition: { delay: i * 0.12 + 0.15, duration: 0.7, ease: EASE },
   }),
 };
 
-type Mouse = { x: number | null; y: number | null; radius: number };
+const CHART_BARS = [38, 56, 46, 70, 52, 88, 64];
 
-class Particle {
-  x: number;
-  y: number;
-  directionX: number;
-  directionY: number;
-  size: number;
-  color: string;
+type Particle = { top: string; left: string; size: number; dur: number; delay: number };
 
-  constructor(x: number, y: number, directionX: number, directionY: number, size: number, color: string) {
-    this.x = x;
-    this.y = y;
-    this.directionX = directionX;
-    this.directionY = directionY;
-    this.size = size;
-    this.color = color;
-  }
+const PARTICLES: Particle[] = [
+  { top: '18%', left: '38%', size: 3, dur: 5.5, delay: 0 },
+  { top: '32%', left: '52%', size: 2, dur: 6.5, delay: 0.8 },
+  { top: '12%', left: '62%', size: 3, dur: 5, delay: 1.6 },
+  { top: '48%', left: '30%', size: 2, dur: 7, delay: 0.4 },
+  { top: '60%', left: '68%', size: 3, dur: 6, delay: 2.2 },
+  { top: '25%', left: '20%', size: 2, dur: 5.8, delay: 1.2 },
+  { top: '70%', left: '45%', size: 2, dur: 6.8, delay: 2.8 },
+  { top: '8%', left: '48%', size: 3, dur: 5.2, delay: 1.9 },
+];
 
-  draw(ctx: CanvasRenderingContext2D) {
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-    ctx.fillStyle = this.color;
-    ctx.fill();
-  }
+function DashboardMockup() {
+  return (
+    <div className={styles.dashMockup}>
+      <div className={styles.dashTopbar}>
+        <span className={styles.dashDot} data-c="red" />
+        <span className={styles.dashDot} data-c="amber" />
+        <span className={styles.dashDot} data-c="teal" />
+        <span className={styles.dashUrl}>dewa-pbj.app/ringkasan</span>
+      </div>
 
-  update(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, mouse: Mouse) {
-    if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
-    if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
+      <div className={styles.dashBody}>
+        <div className={styles.dashSidebar}>
+          <span className={`${styles.dashSidebarIcon} ${styles.dashSidebarIconActive}`}>
+            <LayoutDashboard size={13} />
+          </span>
+          <span className={styles.dashSidebarIcon}>
+            <ShieldAlert size={13} />
+          </span>
+          <span className={styles.dashSidebarIcon}>
+            <ShoppingCart size={13} />
+          </span>
+          <span className={styles.dashSidebarIcon}>
+            <GraduationCap size={13} />
+          </span>
+        </div>
 
-    if (mouse.x !== null && mouse.y !== null) {
-      const dx = mouse.x - this.x;
-      const dy = mouse.y - this.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < mouse.radius + this.size) {
-        const forceDirectionX = dx / distance;
-        const forceDirectionY = dy / distance;
-        const force = (mouse.radius - distance) / mouse.radius;
-        this.x -= forceDirectionX * force * 5;
-        this.y -= forceDirectionY * force * 5;
-      }
-    }
+        <div className={styles.dashMain}>
+          <div className={styles.dashKpiRow}>
+            <div className={styles.dashKpi}>
+              <span className={styles.dashKpiValue} data-c="teal">92%</span>
+              <span className={styles.dashKpiLabel}>Realisasi</span>
+            </div>
+            <div className={styles.dashKpi}>
+              <span className={styles.dashKpiValue} data-c="indigo">128</span>
+              <span className={styles.dashKpiLabel}>Paket</span>
+            </div>
+            <div className={styles.dashKpi}>
+              <span className={styles.dashKpiValue} data-c="amber">7</span>
+              <span className={styles.dashKpiLabel}>Risiko</span>
+            </div>
+          </div>
 
-    this.x += this.directionX;
-    this.y += this.directionY;
-    this.draw(ctx);
-  }
+          <div className={styles.dashChartPanel}>
+            <div className={styles.dashChart}>
+              {CHART_BARS.map((h, i) => (
+                <span
+                  key={i}
+                  className={styles.dashBar}
+                  data-peak={i === CHART_BARS.length - 2 || undefined}
+                  style={{ height: `${h}%` }}
+                />
+              ))}
+            </div>
+            <div className={styles.dashGauge}>
+              <div className={styles.dashGaugeRing} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function LandingHero() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const parallaxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const el = parallaxRef.current;
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let animationFrameId: number;
-    let particles: Particle[] = [];
-    const mouse: Mouse = { x: null, y: null, radius: 180 };
-
-    const init = () => {
-      particles = [];
-      const numberOfParticles = (canvas.height * canvas.width) / 9000;
-      for (let i = 0; i < numberOfParticles; i++) {
-        const size = Math.random() * 2 + 1;
-        const x = Math.random() * (canvas.width - size * 4) + size * 2;
-        const y = Math.random() * (canvas.height - size * 4) + size * 2;
-        const directionX = reduceMotion ? 0 : Math.random() * 0.4 - 0.2;
-        const directionY = reduceMotion ? 0 : Math.random() * 0.4 - 0.2;
-        particles.push(new Particle(x, y, directionX, directionY, size, 'rgba(45, 212, 168, 0.85)'));
-      }
+    let frame = 0;
+    const handleMove = (event: PointerEvent) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const x = (event.clientX / window.innerWidth - 0.5) * 2;
+        const y = (event.clientY / window.innerHeight - 0.5) * 2;
+        el.style.setProperty('--px', `${x * 22}px`);
+        el.style.setProperty('--py', `${y * 16}px`);
+      });
     };
 
-    const resizeCanvas = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      init();
-    };
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    const connect = () => {
-      for (let a = 0; a < particles.length; a++) {
-        for (let b = a; b < particles.length; b++) {
-          const dist = (particles[a].x - particles[b].x) ** 2 + (particles[a].y - particles[b].y) ** 2;
-
-          if (dist < (canvas.width / 7) * (canvas.height / 7)) {
-            const opacity = 1 - dist / 22000;
-            const dxMouseA = particles[a].x - (mouse.x ?? -9999);
-            const dyMouseA = particles[a].y - (mouse.y ?? -9999);
-            const distMouseA = Math.sqrt(dxMouseA * dxMouseA + dyMouseA * dyMouseA);
-
-            ctx.strokeStyle =
-              mouse.x !== null && distMouseA < mouse.radius
-                ? `rgba(255, 255, 255, ${opacity})`
-                : `rgba(45, 212, 168, ${opacity * 0.7})`;
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(particles[a].x, particles[a].y);
-            ctx.lineTo(particles[b].x, particles[b].y);
-            ctx.stroke();
-          }
-        }
-      }
-    };
-
-    const draw = () => {
-      ctx.fillStyle = '#0A0E15';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      particles.forEach((p) => p.update(ctx, canvas, mouse));
-      connect();
-    };
-
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      draw();
-    };
-
-    const handleMouseMove = (event: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = event.clientX - rect.left;
-      mouse.y = event.clientY - rect.top;
-    };
-    const handleMouseOut = () => {
-      mouse.x = null;
-      mouse.y = null;
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseout', handleMouseOut);
-
-    init();
-    if (reduceMotion) {
-      draw();
-    } else {
-      animate();
-    }
-
+    window.addEventListener('pointermove', handleMove);
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseout', handleMouseOut);
-      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('pointermove', handleMove);
+      cancelAnimationFrame(frame);
     };
   }, []);
 
   return (
     <section className={styles.hero}>
-      <canvas ref={canvasRef} className={styles.canvas} aria-hidden />
-      <div className={styles.overlay} aria-hidden />
+      <div className={styles.gradientBg} aria-hidden>
+        <div ref={parallaxRef} className={styles.parallaxLayer}>
+          <span className={styles.blob1} />
+          <span className={styles.blob2} />
+          <span className={styles.blob3} />
+        </div>
+        <span className={styles.aurora} />
+        <div className={styles.particles}>
+          {PARTICLES.map((p, i) => (
+            <span
+              key={i}
+              className={styles.particle}
+              style={
+                {
+                  '--py2': p.top,
+                  '--px2': p.left,
+                  '--size': `${p.size}px`,
+                  '--dur': `${p.dur}s`,
+                  '--delay': `${p.delay}s`,
+                } as React.CSSProperties
+              }
+            />
+          ))}
+        </div>
+        <span className={styles.gridOverlay} />
+      </div>
 
-      <div className={styles.content}>
-        <motion.div custom={0} variants={fadeUp} initial="hidden" animate="visible" className={styles.badge}>
-          <Zap size={14} />
-          <span>Sistem Peringatan Dini Pengadaan</span>
-        </motion.div>
+      <div className={styles.inner}>
+        <div className={styles.left}>
+          <motion.div custom={0} variants={fadeUp} initial="hidden" animate="visible" className={styles.badge}>
+            <Zap size={14} />
+            <span>Sistem Peringatan Dini Pengadaan Barang/Jasa</span>
+          </motion.div>
 
-        <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate="visible" className={styles.title}>
-          DEWA-PBJ
-        </motion.h1>
+          <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate="visible" className={styles.title}>
+            Pemantauan Pengadaan
+            <br />
+            <span className={styles.titleAccent}>Terintegrasi </span>
+          </motion.h1>
 
-        <motion.p custom={2} variants={fadeUp} initial="hidden" animate="visible" className={styles.subtitle}>
-          Dashboard pemantauan realisasi Pengadaan Barang/Jasa Kementerian Ketenagakerjaan —
-          mendeteksi risiko sejak dini, menyajikan data secara real-time.
-        </motion.p>
+          <motion.p custom={2} variants={fadeUp} initial="hidden" animate="visible" className={styles.subtitle}>
+            Sistem informasi yang menyajikan data realisasi Pengadaan Barang/Jasa Kementerian
+            Ketenagakerjaan secara akurat dan real-time, guna mendukung pengawasan serta deteksi
+            risiko sejak dini.
+          </motion.p>
 
-        <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible" className={styles.actions}>
-          <Link href="/login" className={styles.primaryBtn}>
-            Masuk ke Dashboard
-            <ArrowRight size={17} />
-          </Link>
-          <a href="#modul" className={styles.secondaryBtn}>
-            Lihat Modul
-            <ChevronDown size={16} />
-          </a>
+          <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible" className={styles.actions}>
+            <Link href="/login" className={styles.primaryBtn}>
+              Masuk ke Sistem
+              <ArrowRight size={17} />
+            </Link>
+            <a href="#modul" className={styles.secondaryBtn}>
+              Modul
+              <ChevronDown size={16} />
+            </a>
+          </motion.div>
+        </div>
+
+        <motion.div custom={2} variants={fadeUp} initial="hidden" animate="visible" className={styles.right}>
+          <div className={styles.isoWrap}>
+            <div className={styles.dashGlow} aria-hidden />
+            <div className={styles.dashStage}>
+              <DashboardMockup />
+              <div className={styles.isoFloatCard}>
+                <ShieldCheck size={15} />
+                <span>Risiko Terpantau</span>
+              </div>
+              <div className={styles.isoFloatCard2}>
+                <TrendingUp size={15} />
+                <span>Realisasi Terkendali</span>
+              </div>
+            </div>
+          </div>
         </motion.div>
       </div>
+
+      <a href="#modul" className={styles.scrollCue}>
+        <span>Scroll</span>
+        <ChevronDown size={18} />
+      </a>
     </section>
   );
 }
