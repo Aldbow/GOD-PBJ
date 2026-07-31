@@ -174,7 +174,7 @@ export function LandingHero() {
           </motion.h1>
 
           <motion.p custom={2} variants={fadeUp} initial="hidden" animate="visible" className={styles.subtitle}>
-            Sistem informasi yang menyajikan data realisasi Pengadaan Barang/Jasa Kementerian
+            Sistem informasi yang menampilkan data realisasi Pengadaan Barang/Jasa Kementerian
             Ketenagakerjaan secara akurat dan real-time, guna mendukung pengawasan serta deteksi
             risiko sejak dini.
           </motion.p>

@@ -13,7 +13,7 @@ const fadeUp: Variants = {
 
 const ROLES = [
   { icon: ShieldCheck, label: 'Administrator (UKPBJ)' },
-  { icon: Building2, label: 'Sekretariat Jenderal' },
+  { icon: Building2, label: 'Leader' },
   { icon: Users, label: 'PPK' },
 ];
 
