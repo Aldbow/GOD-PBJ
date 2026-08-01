@@ -1,0 +1,308 @@
+/* ============================================================
+   Splash screen landing — logo + wordmark DEWA-PBJ
+   Semua animasi murni CSS: bila JS gagal, splash tetap hilang
+   sendiri lewat animation-delay var(--splash-reveal).
+   ============================================================ */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(160deg, #060911 0%, #0a0e15 45%, #0b1420 100%);
+  animation: splashOut 1000ms cubic-bezier(0.4, 0, 0.2, 1) var(--splash-reveal, 3800ms) forwards;
+}
+
+@keyframes splashOut {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* ---------- Halo di belakang logo ---------- */
+
+.glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(680px, 88vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(0, 182, 118, 0.24) 0%,
+    rgba(45, 212, 168, 0.09) 42%,
+    transparent 68%
+  );
+  filter: blur(50px);
+  animation: glowBreathe 4000ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes glowBreathe {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  45% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0.85;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+/* ---------- Panggung logo + teks ---------- */
+
+.stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 0 24px;
+  animation: stageOut 750ms cubic-bezier(0.4, 0, 1, 1) var(--splash-reveal, 3800ms) forwards;
+}
+
+@keyframes stageOut {
+  to {
+    opacity: 0;
+    transform: translateY(-18px) scale(1.06);
+  }
+}
+
+/* ---------- Logo: cincin tergambar + inti berdenyut ---------- */
+
+.mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(72px, 18vw, 92px);
+  aspect-ratio: 1;
+  margin-bottom: 6px;
+}
+
+.markSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  animation: markIn 1200ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+
+@keyframes markIn {
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-90deg) scale(1);
+  }
+}
+
+.markRing {
+  fill: none;
+  stroke: var(--teal-600);
+  stroke-width: 5;
+  stroke-linecap: round;
+  /* keliling 2πr dengan r=42 */
+  stroke-dasharray: 264;
+  stroke-dashoffset: 264;
+  filter: drop-shadow(0 0 10px rgba(0, 182, 118, 0.5));
+  animation: ringDraw 1750ms cubic-bezier(0.65, 0, 0.35, 1) 220ms forwards;
+}
+
+@keyframes ringDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.markCore {
+  fill: var(--teal-600);
+  transform-box: fill-box;
+  transform-origin: center;
+  filter: drop-shadow(0 0 12px rgba(0, 182, 118, 0.85));
+  animation: coreIn 850ms cubic-bezier(0.34, 1.56, 0.64, 1) 1000ms both;
+}
+
+@keyframes coreIn {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.markPulse {
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--teal-600) 55%, transparent);
+  opacity: 0;
+  animation: pulseOut 2000ms ease-out 1750ms both;
+}
+
+@keyframes pulseOut {
+  from {
+    opacity: 0.7;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.55);
+  }
+}
+
+/* ---------- Wordmark per huruf ---------- */
+
+.wordmark {
+  display: flex;
+  perspective: 600px;
+  padding-left: 0.18em;
+  font-size: clamp(26px, 7.5vw, 46px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  color: #fff;
+}
+
+.letter {
+  display: inline-block;
+  opacity: 0;
+  animation: letterIn 720ms cubic-bezier(0.22, 1, 0.36, 1) calc(1150ms + var(--i) * 95ms) both;
+}
+
+@keyframes letterIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) rotateX(-60deg);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+/* ---------- Tagline ---------- */
+
+.tagline {
+  margin: 0;
+  font-size: clamp(10px, 2.6vw, 12.5px);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  animation: taglineIn 900ms cubic-bezier(0.22, 1, 0.36, 1) 2100ms both;
+}
+
+@keyframes taglineIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    letter-spacing: 0.16em;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    letter-spacing: 0.28em;
+  }
+}
+
+/* ---------- Bar progres ---------- */
+
+.progress {
+  position: relative;
+  width: clamp(140px, 34vw, 200px);
+  height: 2px;
+  margin-top: 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+  opacity: 0;
+  animation: progressIn 500ms ease 2150ms forwards;
+}
+
+@keyframes progressIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.progress > i {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--teal-600), #2dd4a8);
+  box-shadow: 0 0 12px rgba(0, 182, 118, 0.6);
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: progressFill 1550ms cubic-bezier(0.4, 0, 0.2, 1) 2150ms forwards;
+}
+
+@keyframes progressFill {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ---------- Hormati prefers-reduced-motion: hanya fade ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .glow {
+    animation: none;
+  }
+
+  .markSvg,
+  .markCore,
+  .letter,
+  .tagline,
+  .progress {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .markSvg {
+    transform: rotate(-90deg);
+  }
+
+  .markRing {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .markPulse {
+    animation: none;
+  }
+
+  .progress > i {
+    animation: none;
+    transform: scaleX(1);
+  }
+
+  .stage {
+    animation: stageFade 400ms ease var(--splash-reveal, 3800ms) forwards;
+  }
+
+  .splash {
+    animation-duration: 500ms;
+  }
+}
+
+@keyframes stageFade {
+  to {
+    opacity: 0;
+  }
+}

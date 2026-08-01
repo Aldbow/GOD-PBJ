@@ -14,6 +14,7 @@ import {
   ShoppingCart,
   GraduationCap,
 } from 'lucide-react';
+import { useLandingReveal } from './LandingIntro';
 import styles from './LandingHero.module.css';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -107,6 +108,8 @@ function DashboardMockup() {
 
 export function LandingHero() {
   const parallaxRef = useRef<HTMLDivElement>(null);
+  // Entrance hero ditahan sampai splash mengangkat, supaya stagger-nya terlihat.
+  const animate = useLandingReveal() ? 'visible' : 'hidden';
 
   useEffect(() => {
     const el = parallaxRef.current;
@@ -162,18 +165,18 @@ export function LandingHero() {
 
       <div className={styles.inner}>
         <div className={styles.left}>
-          <motion.div custom={0} variants={fadeUp} initial="hidden" animate="visible" className={styles.badge}>
+          <motion.div custom={0} variants={fadeUp} initial="hidden" animate={animate} className={styles.badge}>
             <Zap size={14} />
             <span>Sistem Peringatan Dini Pengadaan Barang/Jasa</span>
           </motion.div>
 
-          <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate="visible" className={styles.title}>
+          <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate={animate} className={styles.title}>
             Digital Early Warning
             <br />
             <span className={styles.titleAccent}>Analytics </span>
           </motion.h1>
 
-          <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible" className={styles.actions}>
+          <motion.div custom={3} variants={fadeUp} initial="hidden" animate={animate} className={styles.actions}>
             <Link href="/login" className={styles.primaryBtn}>
               Masuk ke Sistem
               <ArrowRight size={17} />
@@ -185,7 +188,7 @@ export function LandingHero() {
           </motion.div>
         </div>
 
-        <motion.div custom={2} variants={fadeUp} initial="hidden" animate="visible" className={styles.right}>
+        <motion.div custom={2} variants={fadeUp} initial="hidden" animate={animate} className={styles.right}>
           <div className={styles.isoWrap}>
             <div className={styles.dashGlow} aria-hidden />
             <div className={styles.dashStage}>
