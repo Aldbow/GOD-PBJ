@@ -107,7 +107,7 @@ export default function LoginPage() {
       <aside className={styles.brandPanel}>
         {/* Aurora / orb latar */}
         <motion.span
-          className={`${styles.orb} ${styles.orbTeal}`}
+          className={`${styles.orb} ${styles.orbBrand}`}
           animate={floatA}
           transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
         />

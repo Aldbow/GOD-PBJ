@@ -27,6 +27,21 @@
   --text-secondary: #565F6E;
   --text-tertiary: #8A93A3;
 
+  /* Brand — biru #13416B.
+     Terpisah dari --teal-* yang tetap jadi warna SEMANTIK "baik/rendah"
+     pada lampu lalu lintas risiko (hijau/kuning/merah). Jangan tukar. */
+  --brand-800: #0B253D;
+  --brand-700: #0E2F4E;
+  --brand-600: #13416B;
+  --brand-500: #19568F;
+  --brand-400: #2575C1;
+  --brand-300: #509BE2;
+  --brand-100: #E3EEF7;
+
+  /* Aksen untuk permukaan yang selalu gelap (sidebar, landing, login),
+     apa pun tema aktifnya — #13416B tenggelam di latar gelap. */
+  --accent-on-dark: var(--brand-300);
+
   /* Semantic accents */
   --teal-600: #00B676;
   --teal-700: #0B5A46;
@@ -56,12 +71,12 @@
   --red-500: #EF4444;
 
   /* Accent alias (brand) */
-  --accent: var(--teal-600);
-  --accent-soft: var(--teal-100);
+  --accent: var(--brand-600);
+  --accent-soft: var(--brand-100);
 
   /* Component bits */
   --track-bg: rgba(15, 23, 42, 0.06);
-  --ring: rgba(15, 110, 86, 0.35);
+  --ring: rgba(19, 65, 107, 0.35);
   --overlay: rgba(15, 23, 42, 0.35);
 
   /* Elevation */
@@ -118,6 +133,17 @@
   --text-secondary: #9AA3B7;
   --text-tertiary: #667085;
 
+  /* Brand dicerahkan agar terbaca di atas permukaan gelap — pola yang
+     sama dipakai --info-600. --brand-700 sengaja terbalik jadi paling
+     terang karena perannya "teks di atas tint", persis --teal-700. */
+  --brand-800: #0B253D;
+  --brand-700: #A8D2F5;
+  --brand-600: #3D86CC;
+  --brand-500: #509BE2;
+  --brand-400: #7FBBEE;
+  --brand-300: #A8D2F5;
+  --brand-100: rgba(80, 155, 226, 0.14);
+
   --teal-600: #00B676;
   --teal-700: #3BE0B6;
   --teal-100: rgba(45, 212, 168, 0.12);
@@ -145,11 +171,11 @@
   --teal-500: #2DD4A8;
   --red-500: #F87171;
 
-  --accent: var(--teal-600);
-  --accent-soft: var(--teal-100);
+  --accent: var(--brand-600);
+  --accent-soft: var(--brand-100);
 
   --track-bg: rgba(255, 255, 255, 0.08);
-  --ring: rgba(45, 212, 168, 0.45);
+  --ring: rgba(80, 155, 226, 0.45);
   --overlay: rgba(2, 5, 10, 0.6);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);

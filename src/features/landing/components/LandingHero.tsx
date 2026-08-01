@@ -49,7 +49,7 @@ function DashboardMockup() {
       <div className={styles.dashTopbar}>
         <span className={styles.dashDot} data-c="red" />
         <span className={styles.dashDot} data-c="amber" />
-        <span className={styles.dashDot} data-c="teal" />
+        <span className={styles.dashDot} data-c="brand" />
         <span className={styles.dashUrl}>dewa-pbj.app/ringkasan</span>
       </div>
 
@@ -72,7 +72,7 @@ function DashboardMockup() {
         <div className={styles.dashMain}>
           <div className={styles.dashKpiRow}>
             <div className={styles.dashKpi}>
-              <span className={styles.dashKpiValue} data-c="teal">92%</span>
+              <span className={styles.dashKpiValue} data-c="brand">92%</span>
               <span className={styles.dashKpiLabel}>Realisasi</span>
             </div>
             <div className={styles.dashKpi}>

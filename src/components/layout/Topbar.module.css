@@ -57,15 +57,10 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--teal-600);
-  background: var(--teal-100);
+  color: var(--accent);
+  background: var(--accent-soft);
   padding: 4px 8px;
   border-radius: var(--radius-pill);
-}
-
-[data-theme="dark"] .eyebrow {
-  color: var(--teal-500);
-  background: rgba(45, 212, 168, 0.15);
 }
 
 .crumbSep {
@@ -164,7 +159,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -247,9 +242,9 @@
   }
 }
 
-/* Dark Mode Fine-Tuning for Teal Avatar */
+/* Dark Mode Fine-Tuning for Brand Avatar */
 [data-theme="dark"] .avatar {
-  background: linear-gradient(135deg, var(--teal-500) 0%, #0B5A46 100%);
+  background: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-600) 100%);
   box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.15);
   color: #0A0E16; /* Teks inisial lebih kontras (gelap) karena background cukup terang */
 }

@@ -41,12 +41,12 @@
   will-change: transform;
 }
 
-.orbTeal {
+.orbBrand {
   width: 460px;
   height: 460px;
   top: -120px;
   left: -100px;
-  background: radial-gradient(circle at center, rgba(45, 212, 168, 0.55), transparent 70%);
+  background: radial-gradient(circle at center, rgba(80, 155, 226, 0.55), transparent 70%);
   opacity: 0.5;
 }
 
@@ -84,9 +84,9 @@
   background: linear-gradient(
     to bottom,
     transparent,
-    rgba(45, 212, 168, 0.1) 45%,
-    rgba(45, 212, 168, 0.18) 50%,
-    rgba(45, 212, 168, 0.1) 55%,
+    rgba(80, 155, 226, 0.1) 45%,
+    rgba(80, 155, 226, 0.18) 50%,
+    rgba(80, 155, 226, 0.1) 55%,
     transparent
   );
 }
@@ -127,8 +127,8 @@
 .particle {
   position: absolute;
   border-radius: 50%;
-  background: var(--teal-600);
-  box-shadow: 0 0 6px 1px color-mix(in srgb, var(--teal-600) 70%, transparent);
+  background: var(--accent-on-dark);
+  box-shadow: 0 0 6px 1px color-mix(in srgb, var(--accent-on-dark) 70%, transparent);
 }
 
 .eyebrow {
@@ -139,7 +139,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #7DE8CD;
+  color: #A8D2F5;
   margin-bottom: 14px;
 }
 
@@ -147,8 +147,8 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--teal-600);
-  box-shadow: 0 0 8px 2px color-mix(in srgb, var(--teal-600) 80%, transparent);
+  background: var(--accent-on-dark);
+  box-shadow: 0 0 8px 2px color-mix(in srgb, var(--accent-on-dark) 80%, transparent);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -199,8 +199,8 @@
 
 .brandBody h2 em {
   font-style: normal;
-  color: var(--teal-600);
-  background: linear-gradient(100deg, var(--teal-600) 30%, #7DE8CD 50%, var(--teal-600) 70%);
+  color: var(--accent-on-dark);
+  background: linear-gradient(100deg, var(--accent-on-dark) 30%, #C7E4FA 50%, var(--accent-on-dark) 70%);
   background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -243,9 +243,9 @@
   height: 30px;
   flex-shrink: 0;
   border-radius: var(--radius-md);
-  color: var(--teal-600);
-  background: rgba(45, 212, 168, 0.12);
-  border: 1px solid rgba(45, 212, 168, 0.22);
+  color: var(--accent-on-dark);
+  background: rgba(80, 155, 226, 0.12);
+  border: 1px solid rgba(80, 155, 226, 0.22);
 }
 
 .brandFoot {
@@ -261,7 +261,7 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 2px solid var(--teal-600);
+  border: 2px solid var(--accent-on-dark);
   position: relative;
   flex-shrink: 0;
 }
@@ -275,8 +275,8 @@
   height: 11px;
   margin: -5.5px 0 0 -5.5px;
   border-radius: 50%;
-  background: var(--teal-600);
-  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--teal-600) 75%, transparent);
+  background: var(--accent-on-dark);
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent-on-dark) 75%, transparent);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -285,7 +285,7 @@
     position: absolute;
     inset: -2px;
     border-radius: 50%;
-    border: 1px solid var(--teal-600);
+    border: 1px solid var(--accent-on-dark);
     opacity: 0;
     animation: ping 2.6s ease-out infinite;
   }

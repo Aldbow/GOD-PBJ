@@ -45,7 +45,7 @@
   width: 26px;
   height: 26px;
   flex-shrink: 0;
-  border: 2px solid var(--teal-600);
+  border: 2px solid var(--accent-on-dark);
   border-radius: 50%;
 }
 
@@ -58,8 +58,8 @@
   height: 8px;
   margin: -4px 0 0 -4px;
   border-radius: 50%;
-  background: var(--teal-600);
-  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--teal-600) 75%, transparent);
+  background: var(--accent-on-dark);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--accent-on-dark) 75%, transparent);
 }
 
 .brandName {
@@ -72,6 +72,15 @@
 
 .header.scrolled .brandName {
   color: var(--text-primary);
+}
+
+.header.scrolled .brandMark {
+  border-color: var(--accent);
+}
+
+.header.scrolled .brandMark::after {
+  background: var(--accent);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 .nav {

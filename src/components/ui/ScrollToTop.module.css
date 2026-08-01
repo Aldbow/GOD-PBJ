@@ -39,11 +39,11 @@
   color: #FFFFFF;
   background: var(--accent);
   border-color: var(--accent);
-  box-shadow: var(--shadow-lg), 0 8px 24px rgba(0, 182, 118, 0.25);
+  box-shadow: var(--shadow-lg), 0 8px 24px rgba(19, 65, 107, 0.3);
 }
 
 :global(.dark) .scrollToTopBtn:hover {
-  box-shadow: var(--shadow-lg), 0 8px 24px rgba(0, 182, 118, 0.15);
+  box-shadow: var(--shadow-lg), 0 8px 24px rgba(19, 65, 107, 0.2);
 }
 
 .scrollToTopBtn:active {
