@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Portal } from '@/components/ui/Portal';
 import { Search } from 'lucide-react';
 import styles from './CommandPalette.module.css';
 import { NAV_GROUPS } from '@/lib/nav';
@@ -61,8 +62,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   };
 
   return (
-    <AnimatePresence>
-      {open && (
+    <Portal>
+      <AnimatePresence>
+        {open && (
         <motion.div
           className={styles.overlay}
           initial={{ opacity: 0 }}
@@ -109,7 +111,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             </div>
           </motion.div>
         </motion.div>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+    </Portal>
   );
 }

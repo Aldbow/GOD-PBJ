@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Portal } from './Portal';
 import { X, FileSpreadsheet, FileText, FileDown, CheckSquare, Square, Download } from 'lucide-react';
 import { exportToExcel, exportToPDF, exportToCSV, ExportColumn } from '@/lib/utils/exportUtils';
 import styles from './ExportDataModal.module.css';
@@ -86,12 +87,12 @@ export function ExportDataModal({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <AnimatePresence>
-      <div className={styles.overlay}>
-        <motion.div 
+    <Portal>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div key="export-modal" className={styles.overlay}>
+            <motion.div 
           className={styles.modal}
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -213,8 +214,10 @@ export function ExportDataModal({
               )}
             </button>
           </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Portal>
   );
 }
