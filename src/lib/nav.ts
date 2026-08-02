@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap, ListChecks, Star, Database, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap, ListChecks, Star, Database, ShieldAlert } from 'lucide-react';
 
 export type NavLink = { name: string; href: string; icon: React.ReactNode };
 export type NavGroup = { id: string; label: string | null; links: NavLink[] };
@@ -20,7 +20,6 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'perencanaan',
     label: 'Perencanaan',
     links: [
-      { name: 'Tampilan PPK', href: '/ppk', icon: React.createElement(Users, { size: 18 }) },
       { name: 'Rencana Umum Pengadaan', href: '/rencana-pengadaan', icon: React.createElement(FileText, { size: 18 }) },
     ],
   },

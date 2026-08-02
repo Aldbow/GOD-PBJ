@@ -6,16 +6,15 @@ import type { Role } from '@/types';
  *
  *   admin   → '*'  akses semua route
  *   sekjend → hanya Ringkasan '/ringkasan'
- *   ppk     → hanya tampilan paketnya '/ppk'
+ *   ppk     → fitur Realisasi & Perencanaan, data ter-scope ke PPK ybs
  *
  * Nilai adalah prefix path yang diizinkan (match persis atau sub-path).
  */
 export const ROUTE_ACCESS: Record<Role, string[] | '*'> = {
   admin: '*',
   sekjend: ['/ringkasan', '/rencana-pengadaan', '/itkp', '/risiko-pengadaan'],
-  // PPK: halaman ringkasan PPK + semua fitur Realisasi (data ter-scope ke PPK ybs)
+  // PPK: fitur Perencanaan & Realisasi, data ter-scope ke PPK ybs.
   ppk: [
-    '/ppk',
     '/epurchasing',
     '/tender',
     '/pengadaan-langsung',
@@ -30,7 +29,9 @@ export const ROUTE_ACCESS: Record<Role, string[] | '*'> = {
 export const LANDING: Record<Role, string> = {
   admin: '/ringkasan',
   sekjend: '/ringkasan',
-  ppk: '/ppk',
+  // Halaman '/ppk' dihapus; PPK mendarat di Rencana Umum Pengadaan,
+  // entri pertama yang masih ada di allowlist-nya.
+  ppk: '/rencana-pengadaan',
 };
 
 /** Label ramah untuk role (UI). */
