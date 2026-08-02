@@ -2,6 +2,7 @@
 
 import React, { useActionState, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   motion,
   useReducedMotion,
@@ -150,10 +151,10 @@ export default function LoginPage() {
           <div className={styles.brandBody}>
             <motion.span className={styles.eyebrow} variants={item}>
               <span className={styles.eyebrowDot} />
-              Pemantauan real-time aktif
+              Digital Early Warning Analytics
             </motion.span>
             <motion.h2 variants={item}>
-              Pantau realisasi PBJ Kemnaker <em>secara real-time</em>.
+              Pantau realisasi PBJ <em>Kementerian Ketenagakerjaan</em>.
             </motion.h2>
             <ul className={styles.points}>
               {FEATURES.map(({ icon: Icon, text }) => (
@@ -165,8 +166,25 @@ export default function LoginPage() {
             </ul>
           </div>
 
-          <motion.div className={styles.brandFoot} variants={item}>
-            Kementerian Ketenagakerjaan Republik Indonesia
+          <motion.div
+            className={styles.brandFoot}
+            variants={item}
+          >
+            <Image
+              src="/logo/kemnaker-putih.png"
+              alt="Kementerian Ketenagakerjaan Republik Indonesia"
+              width={461}
+              height={158}
+              className={styles.footKemnaker}
+            />
+            <span className={styles.footRule} aria-hidden />
+            <Image
+              src="/logo/ukpbj-putih.png"
+              alt="Unit Kerja Pengadaan Barang dan Jasa Kementerian Ketenagakerjaan"
+              width={900}
+              height={259}
+              className={styles.footUkpbj}
+            />
           </motion.div>
         </motion.div>
       </aside>
@@ -287,6 +305,40 @@ export default function LoginPage() {
                 {pending ? 'Memproses…' : 'Masuk'}
               </motion.button>
             </form>
+
+            <motion.div className={styles.cardInstitution} variants={item}>
+              <Image
+                src="/logo/kemnaker.png"
+                alt="Kementerian Ketenagakerjaan Republik Indonesia"
+                width={461}
+                height={158}
+                className={`${styles.cardInstK} ${styles.instLight}`}
+              />
+              <Image
+                src="/logo/kemnaker-putih.png"
+                alt="Kementerian Ketenagakerjaan Republik Indonesia"
+                width={461}
+                height={158}
+                className={`${styles.cardInstK} ${styles.instDark}`}
+              />
+
+              <span className={styles.cardInstRule} aria-hidden />
+
+              <Image
+                src="/logo/ukpbj.png"
+                alt="Unit Kerja Pengadaan Barang dan Jasa Kementerian Ketenagakerjaan"
+                width={900}
+                height={259}
+                className={`${styles.cardInstU} ${styles.instLight}`}
+              />
+              <Image
+                src="/logo/ukpbj-putih.png"
+                alt="Unit Kerja Pengadaan Barang dan Jasa Kementerian Ketenagakerjaan"
+                width={900}
+                height={259}
+                className={`${styles.cardInstU} ${styles.instDark}`}
+              />
+            </motion.div>
 
             <motion.p className={styles.legal} variants={item}>
               © 2026 DEWA-PBJ · Kementerian Ketenagakerjaan

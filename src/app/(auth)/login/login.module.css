@@ -248,10 +248,79 @@
   border: 1px solid rgba(80, 155, 226, 0.22);
 }
 
+/* Kaki panel brand: lambang kementerian dan unit kerjanya. Panel ini selalu
+   gelap apa pun tema aktif, jadi cukup varian putih. Lebih kecil dan lebih
+   redup dari lockup DEWA-PBJ di puncak panel: ini atribusi, bukan subjek. */
 .brandFoot {
-  font-size: 12px;
-  color: #6B7896;
-  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.footKemnaker {
+  width: auto;
+  height: 34px;
+  opacity: 0.7;
+}
+
+.footUkpbj {
+  width: auto;
+  height: 26px;
+  opacity: 0.7;
+}
+
+.footRule {
+  flex-shrink: 0;
+  width: 1px;
+  height: 26px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+}
+
+/* ============================================================
+   Identitas di kaki kartu (hanya < 900px, saat panel brand hilang)
+   ============================================================ */
+
+.cardInstitution {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 6px 0 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.cardInstK {
+  width: auto;
+  height: 30px;
+  opacity: 0.8;
+}
+
+.cardInstU {
+  width: auto;
+  height: 23px;
+  opacity: 0.8;
+}
+
+.cardInstRule {
+  flex-shrink: 0;
+  width: 1px;
+  height: 22px;
+  background: var(--border-strong);
+}
+
+/* Kartu ikut ThemeToggle, sedangkan tiap lambang resmi cuma punya satu warna.
+   Jadi pasangan varian ditukar lewat atribut tema, bukan diwarnai ulang. */
+.instDark {
+  display: none;
+}
+
+[data-theme="dark"] .instLight {
+  display: none;
+}
+
+[data-theme="dark"] .instDark {
+  display: block;
 }
 
 /* ============================================================
@@ -492,6 +561,9 @@
     display: none;
   }
   .mobileBrand {
+    display: flex;
+  }
+  .cardInstitution {
     display: flex;
   }
   .card {
