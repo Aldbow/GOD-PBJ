@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getApiSupabase } from '@/lib/supabase/apiClient';
 import { splitCompositeIds } from '@/lib/risiko/normalize';
 import { computeRisikoSwakelola, type SwakelolaCalcInput } from '@/lib/risiko/calcSwakelola';
 import { buildSwakelolaRow, type SwakelolaMasterMeta } from '@/lib/risiko/riskModel';
 import type { EvidenceRecord } from '@/lib/risiko/calcExecutionStatus';
 import type { RupHistoryEntry } from '@/lib/paket/rupHistory';
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 // Populasi Swakelola jauh lebih kecil daripada Penyedia (puluhan paket saat ini), tapi tetap
 // dipaginasi dengan pola yang sama supaya aman kalau datanya bertambah nanti.
@@ -27,7 +25,7 @@ interface MasterRow {
 }
 
 async function fetchMasterPage(offset: number, limit: number): Promise<{ rows: MasterRow[]; total: number }> {
-  const { data, error, count } = await supabase
+  const { data, error, count } = await getApiSupabase()
     .from('view_paket_swakelola_master_data')
     .select(
       'kd_rup, nama_paket, pagu, tipe_swakelola, tgl_awal_pelaksanaan_kontrak, tahun_anggaran, satker:"SATUAN KERJA", eselon1:"UNIT KERJA", nama_ppk:MASTER_NAMA_PPK, satker_sirup:nama_satker, nama_ppk_sirup:nama_ppk',
@@ -59,7 +57,7 @@ async function fetchAllRows(table: string, select: string): Promise<Array<Record
   let offset = 0;
   const limit = 1000;
   while (true) {
-    const { data, error } = await supabase.from(table).select(select).range(offset, offset + limit - 1);
+    const { data, error } = await getApiSupabase().from(table).select(select).range(offset, offset + limit - 1);
     if (error) throw new Error(`Gagal mengambil ${table}: ${error.message}`);
     if (!data || data.length === 0) break;
     all = all.concat(data as unknown as Array<Record<string, unknown>>);
@@ -108,7 +106,7 @@ async function loadRealisasiIndex(): Promise<Map<string, EvidenceRecord[]>> {
 async function fetchRevisionChain(kdRup: string): Promise<RupHistoryEntry[]> {
   const target = Number(kdRup);
   if (!Number.isFinite(target)) return [];
-  const { data, error } = await supabase.rpc('get_rup_history', { target_rup: target });
+  const { data, error } = await getApiSupabase().rpc('get_rup_history', { target_rup: target });
   if (error) {
     console.error(`[risiko] get_rup_history gagal untuk ${kdRup}:`, error.message);
     return [];
@@ -169,7 +167,7 @@ export async function POST(request: Request) {
     const errors: { kd_rup: string; error: string }[] = [];
     for (let i = 0; i < rowsToUpsert.length; i += UPSERT_CHUNK_SIZE) {
       const chunk = rowsToUpsert.slice(i, i + UPSERT_CHUNK_SIZE);
-      const { error, count } = await supabase.from('risiko_pengadaan').upsert(chunk, { onConflict: 'kd_rup', count: 'exact' });
+      const { error, count } = await getApiSupabase().from('risiko_pengadaan').upsert(chunk, { onConflict: 'kd_rup', count: 'exact' });
       if (error) {
         chunk.forEach((r) => errors.push({ kd_rup: r.kd_rup, error: error.message }));
       } else {

@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getApiSupabase } from '@/lib/supabase/apiClient';
 import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || '',
@@ -47,7 +42,7 @@ type KurasiInput = {
 
 // Ambil satu batch paket yang belum dikurasi dari sumber penyedia.
 async function fetchPenyediaBatch(limit: number): Promise<KurasiInput[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getApiSupabase()
     .from('view_paket_penyedia_master_data')
     .select('kd_rup, rup_name:nama_paket, pagu, metode_pengadaan, jenis_pengadaan, status_dikecualikan, tipe_paket, nama_ppk, satker:"SATUAN KERJA"')
     .is('status_kurasi', null)
@@ -72,7 +67,7 @@ async function fetchPenyediaBatch(limit: number): Promise<KurasiInput[]> {
 // Ambil satu batch paket swakelola yang belum dikurasi.
 // Swakelola tidak punya kolom jenis_pengadaan/metode_pengadaan; metode diisi 'Swakelola'.
 async function fetchSwakelolaBatch(limit: number): Promise<KurasiInput[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getApiSupabase()
     .from('view_paket_swakelola_master_data')
     .select('kd_rup, rup_name:nama_paket, pagu, tipe_swakelola, nama_ppk, satker:"SATUAN KERJA", nama_satker_penyelenggara, nama_klpd_penyelenggara')
     .is('status_kurasi', null)
@@ -270,7 +265,7 @@ export async function POST() {
       const isHonorAtauUangSaku = isSwakelola && containsHonorAtauUangSaku(input?.rup_name);
       const forceAkurat = !isHonorAtauUangSaku && isSwakelolaDenganPenyelenggara(input);
 
-      const { error } = await supabase
+      const { error } = await getApiSupabase()
         .from('ai_kurasi_paket')
         .upsert({
           kd_rup: item.kd_rup,
