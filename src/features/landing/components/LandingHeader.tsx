@@ -23,10 +23,6 @@ export function LandingHeader() {
           <span className={styles.brandName}>DEWA-PBJ</span>
         </Link>
 
-        <nav className={styles.nav}>
-          <a href="#modul" className={styles.navLink}>Modul</a>
-        </nav>
-
         <Link href="/login" className={styles.loginBtn}>
           Masuk
           <ArrowRight size={15} />

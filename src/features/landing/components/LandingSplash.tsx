@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import styles from './LandingSplash.module.css';
 
 const BRAND = 'DEWA-PBJ';
@@ -27,6 +28,33 @@ export function LandingSplash({ onExitStart, onExitEnd }: Props) {
       <span className={styles.glow} aria-hidden />
 
       <div className={styles.stage} aria-hidden>
+        {/* Urutan cerita: kementerian dan unit kerjanya lebih dulu, baru
+            sistemnya. Sama seperti logo studio yang mendahului filmnya. */}
+        <div className={styles.authority}>
+          <Image
+            src="/logo/kemnaker-putih.png"
+            alt="Kementerian Ketenagakerjaan Republik Indonesia"
+            width={461}
+            height={158}
+            className={styles.authKemnaker}
+            priority
+          />
+
+          <span className={styles.authRule} />
+
+          <Image
+            src="/logo/ukpbj-putih.png"
+            alt="Unit Kerja Pengadaan Barang dan Jasa Kementerian Ketenagakerjaan"
+            width={900}
+            height={259}
+            className={styles.authUkpbj}
+            priority
+          />
+        </div>
+
+        {/* Menandai serah terima dari pihak berwenang ke sistemnya. */}
+        <span className={styles.handoff} />
+
         <span className={styles.mark}>
           <svg viewBox="0 0 100 100" className={styles.markSvg}>
             <circle className={styles.markRing} cx="50" cy="50" r="42" />

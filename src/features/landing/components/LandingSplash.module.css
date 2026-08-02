@@ -1,7 +1,20 @@
 /* ============================================================
-   Splash screen landing — logo + wordmark DEWA-PBJ
-   Semua animasi murni CSS: bila JS gagal, splash tetap hilang
-   sendiri lewat animation-delay var(--splash-reveal).
+   Splash screen landing.
+   Alurnya satu kalimat: Kementerian Ketenagakerjaan dan UKPBJ
+   muncul lebih dulu, garis serah terima melebar, lalu sistemnya
+   sendiri terbangun. Semua animasi murni CSS, jadi bila JS gagal
+   splash tetap mengangkat sendiri lewat var(--splash-reveal).
+
+   Linimasa (ms sejak mount, angkat di 3800):
+     150   lockup Kemnaker naik
+     300   lockup UKPBJ naik
+    1050   garis serah terima melebar dari tengah
+    1150   cincin DEWA tergambar
+    1600   inti cincin muncul
+    1800   huruf D-E-W-A-P-B-J, jarak 85ms
+    2600   bar progres terisi, penuh di 3750
+    2700   tagline
+    3800   panggung terangkat, overlay memudar
    ============================================================ */
 
 .splash {
@@ -22,7 +35,7 @@
   }
 }
 
-/* ---------- Halo di belakang logo ---------- */
+/* ---------- Halo di belakang panggung ---------- */
 
 .glow {
   position: absolute;
@@ -56,7 +69,7 @@
   }
 }
 
-/* ---------- Panggung logo + teks ---------- */
+/* ---------- Panggung ---------- */
 
 .stage {
   position: relative;
@@ -64,7 +77,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
   padding: 0 24px;
   animation: stageOut 750ms cubic-bezier(0.4, 0, 1, 1) var(--splash-reveal, 3800ms) forwards;
 }
@@ -76,22 +88,88 @@
   }
 }
 
-/* ---------- Logo: cincin tergambar + inti berdenyut ---------- */
+/* ---------- Tingkat pertama: pihak berwenang ---------- */
+
+.authority {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+/* Sengaja lebih kecil dan lebih redup dari tanda DEWA di bawahnya: ini
+   konteks kelembagaan, bukan subjek layarnya. */
+.authKemnaker {
+  width: auto;
+  height: 52px;
+  opacity: 0;
+  animation: authorityIn 750ms cubic-bezier(0.22, 1, 0.36, 1) 150ms forwards;
+}
+
+.authUkpbj {
+  width: auto;
+  height: 40px;
+  opacity: 0;
+  animation: authorityIn 750ms cubic-bezier(0.22, 1, 0.36, 1) 300ms forwards;
+}
+
+@keyframes authorityIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 0.82;
+    transform: none;
+  }
+}
+
+.authRule {
+  flex-shrink: 0;
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  opacity: 0;
+  animation: fadeOnly 600ms ease 250ms forwards;
+}
+
+@keyframes fadeOnly {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- Garis serah terima ke sistemnya ---------- */
+
+.handoff {
+  width: 0;
+  height: 1px;
+  margin: 26px 0 30px;
+  background: linear-gradient(90deg, transparent, rgba(80, 155, 226, 0.55), transparent);
+  animation: handoffOpen 700ms cubic-bezier(0.22, 1, 0.36, 1) 1050ms forwards;
+}
+
+@keyframes handoffOpen {
+  to {
+    width: 88px;
+  }
+}
+
+/* ---------- Tingkat kedua: tanda DEWA-PBJ ---------- */
 
 .mark {
   position: relative;
   display: grid;
   place-items: center;
-  width: clamp(72px, 18vw, 92px);
+  width: clamp(80px, 19vw, 100px);
   aspect-ratio: 1;
-  margin-bottom: 6px;
+  margin-bottom: 22px;
 }
 
 .markSvg {
   width: 100%;
   height: 100%;
   overflow: visible;
-  animation: markIn 1200ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+  animation: markIn 1000ms cubic-bezier(0.22, 1, 0.36, 1) 1100ms both;
 }
 
 @keyframes markIn {
@@ -114,7 +192,7 @@
   stroke-dasharray: 264;
   stroke-dashoffset: 264;
   filter: drop-shadow(0 0 10px rgba(80, 155, 226, 0.55));
-  animation: ringDraw 1750ms cubic-bezier(0.65, 0, 0.35, 1) 220ms forwards;
+  animation: ringDraw 1500ms cubic-bezier(0.65, 0, 0.35, 1) 1150ms forwards;
 }
 
 @keyframes ringDraw {
@@ -128,7 +206,7 @@
   transform-box: fill-box;
   transform-origin: center;
   filter: drop-shadow(0 0 12px rgba(80, 155, 226, 0.85));
-  animation: coreIn 850ms cubic-bezier(0.34, 1.56, 0.64, 1) 1000ms both;
+  animation: coreIn 750ms cubic-bezier(0.34, 1.56, 0.64, 1) 1600ms both;
 }
 
 @keyframes coreIn {
@@ -148,7 +226,7 @@
   border-radius: 50%;
   border: 1px solid color-mix(in srgb, var(--accent-on-dark) 55%, transparent);
   opacity: 0;
-  animation: pulseOut 2000ms ease-out 1750ms both;
+  animation: pulseOut 1800ms ease-out 2200ms both;
 }
 
 @keyframes pulseOut {
@@ -178,7 +256,7 @@
 .letter {
   display: inline-block;
   opacity: 0;
-  animation: letterIn 720ms cubic-bezier(0.22, 1, 0.36, 1) calc(1150ms + var(--i) * 95ms) both;
+  animation: letterIn 680ms cubic-bezier(0.22, 1, 0.36, 1) calc(1800ms + var(--i) * 85ms) both;
 }
 
 @keyframes letterIn {
@@ -197,14 +275,14 @@
 /* ---------- Tagline ---------- */
 
 .tagline {
-  margin: 0;
-  font-size: clamp(10px, 2.6vw, 12.5px);
+  margin: 16px 0 0;
+  font-size: clamp(9.5px, 2.4vw, 11.5px);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.28em;
   text-align: center;
   color: rgba(255, 255, 255, 0.5);
-  animation: taglineIn 900ms cubic-bezier(0.22, 1, 0.36, 1) 2100ms both;
+  animation: taglineIn 750ms cubic-bezier(0.22, 1, 0.36, 1) 2700ms both;
 }
 
 @keyframes taglineIn {
@@ -226,18 +304,12 @@
   position: relative;
   width: clamp(140px, 34vw, 200px);
   height: 2px;
-  margin-top: 6px;
+  margin-top: 30px;
   border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.09);
   overflow: hidden;
   opacity: 0;
-  animation: progressIn 500ms ease 2150ms forwards;
-}
-
-@keyframes progressIn {
-  to {
-    opacity: 1;
-  }
+  animation: fadeOnly 500ms ease 2600ms forwards;
 }
 
 .progress > i {
@@ -248,12 +320,40 @@
   box-shadow: 0 0 12px rgba(80, 155, 226, 0.6);
   transform: scaleX(0);
   transform-origin: left center;
-  animation: progressFill 1550ms cubic-bezier(0.4, 0, 0.2, 1) 2150ms forwards;
+  animation: progressFill 1150ms cubic-bezier(0.4, 0, 0.2, 1) 2600ms forwards;
 }
 
 @keyframes progressFill {
   to {
     transform: scaleX(1);
+  }
+}
+
+/* ---------- Layar sempit ---------- */
+
+@media (max-width: 560px) {
+  .authority {
+    gap: 16px;
+  }
+
+  .authKemnaker {
+    height: 38px;
+  }
+
+  .authUkpbj {
+    height: 30px;
+  }
+
+  .authRule {
+    height: 30px;
+  }
+
+  .handoff {
+    margin: 22px 0 26px;
+  }
+
+  .mark {
+    margin-bottom: 18px;
   }
 }
 
@@ -264,7 +364,14 @@
     animation: none;
   }
 
-  .markSvg,
+  .authKemnaker,
+  .authUkpbj {
+    animation: none;
+    opacity: 0.82;
+    transform: none;
+  }
+
+  .authRule,
   .markCore,
   .letter,
   .tagline,
@@ -275,6 +382,8 @@
   }
 
   .markSvg {
+    animation: none;
+    opacity: 1;
     transform: rotate(-90deg);
   }
 
@@ -285,6 +394,11 @@
 
   .markPulse {
     animation: none;
+  }
+
+  .handoff {
+    animation: none;
+    width: 88px;
   }
 
   .progress > i {

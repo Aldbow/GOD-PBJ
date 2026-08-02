@@ -1,11 +1,20 @@
+/* Transparan, menumpang lapisan .gradientBg milik hero yang kini membentang
+   satu layar penuh. z-index 1 wajib: .gradientBg adalah elemen terposisi
+   dengan z-index 0, jadi tanpa ini ia menimpa footer yang statis. */
 .footer {
+  position: relative;
+  z-index: 1;
   padding: 28px 24px 40px;
   text-align: center;
+  background: transparent;
 }
 
+/* Dikunci literal, bukan var(--text-tertiary): token itu ikut berganti tema
+   dan nilai gelapnya (#667085) cuma 3.1:1 di atas latar ini. Warna berikut
+   5.6:1, lolos WCAG AA untuk teks 12px. */
 .footer p {
   margin: 0;
   font-size: 12px;
   letter-spacing: 0.02em;
-  color: var(--text-tertiary);
+  color: #7d899c;
 }

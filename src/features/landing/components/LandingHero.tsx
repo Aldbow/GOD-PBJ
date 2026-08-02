@@ -1,12 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useRef } from 'react';
 import { motion, type Variants } from 'framer-motion';
 import {
   ArrowRight,
-  ChevronDown,
-  Zap,
   ShieldCheck,
   TrendingUp,
   LayoutDashboard,
@@ -42,6 +41,47 @@ const PARTICLES: Particle[] = [
   { top: '70%', left: '45%', size: 2, dur: 6.8, delay: 2.8 },
   { top: '8%', left: '48%', size: 3, dur: 5.2, delay: 1.9 },
 ];
+
+/**
+ * Garis wewenang di atas headline: Kementerian, unit kerja, lalu sistemnya.
+ * Ketiganya dibuat putih monokrom supaya terbaca di atas hero gelap dan
+ * terbaca sebagai satu strip, bukan tiga logo yang saling berebut perhatian.
+ * Tanda DEWA-PBJ digambar sebagai SVG karena produk ini tidak punya berkas
+ * logo; bentuknya sama dengan yang dipakai header dan halaman login.
+ */
+function BrandStrip() {
+  return (
+    <div className={styles.brandStrip}>
+      <Image
+        src="/logo/kemnaker-putih.png"
+        alt="Kementerian Ketenagakerjaan Republik Indonesia"
+        width={461}
+        height={158}
+        className={styles.brandKemnaker}
+      />
+
+      <span className={styles.brandRule} aria-hidden />
+
+      <Image
+        src="/logo/ukpbj-putih.png"
+        alt="Unit Kerja Pengadaan Barang dan Jasa Kementerian Ketenagakerjaan"
+        width={900}
+        height={259}
+        className={styles.brandUkpbj}
+      />
+
+      <span className={styles.brandRule} aria-hidden />
+
+      <span className={styles.brandDewa}>
+        <svg viewBox="0 0 48 48" className={styles.brandDewaMark} aria-hidden>
+          <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3.5" />
+          <circle cx="24" cy="24" r="6" fill="currentColor" />
+        </svg>
+        <span className={styles.brandDewaText}>DEWA-PBJ</span>
+      </span>
+    </div>
+  );
+}
 
 function DashboardMockup() {
   return (
@@ -165,26 +205,26 @@ export function LandingHero() {
 
       <div className={styles.inner}>
         <div className={styles.left}>
-          <motion.div custom={0} variants={fadeUp} initial="hidden" animate={animate} className={styles.badge}>
-            <Zap size={14} />
-            <span>Sistem Peringatan Dini Pengadaan Barang/Jasa</span>
+          <motion.div custom={0} variants={fadeUp} initial="hidden" animate={animate}>
+            <BrandStrip />
           </motion.div>
 
           <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate={animate} className={styles.title}>
             Digital Early Warning
             <br />
-            <span className={styles.titleAccent}>Analytics </span>
+            <span className={styles.titleAccent}>Analytics</span>
           </motion.h1>
+
+          <motion.p custom={2} variants={fadeUp} initial="hidden" animate={animate} className={styles.subtitle}>
+            Peringatan dini dan pemantauan realisasi pengadaan barang/jasa di
+            lingkungan Kementerian Ketenagakerjaan.
+          </motion.p>
 
           <motion.div custom={3} variants={fadeUp} initial="hidden" animate={animate} className={styles.actions}>
             <Link href="/login" className={styles.primaryBtn}>
               Masuk ke Sistem
               <ArrowRight size={17} />
             </Link>
-            <a href="#modul" className={styles.secondaryBtn}>
-              Modul
-              <ChevronDown size={16} />
-            </a>
           </motion.div>
         </div>
 
@@ -205,11 +245,6 @@ export function LandingHero() {
           </div>
         </motion.div>
       </div>
-
-      <a href="#modul" className={styles.scrollCue}>
-        <span>Scroll</span>
-        <ChevronDown size={18} />
-      </a>
     </section>
   );
 }

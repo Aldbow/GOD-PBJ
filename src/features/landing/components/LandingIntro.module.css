@@ -1,6 +1,9 @@
 /* Konten landing muncul setelah splash mengangkat.
    Animasi (bukan transition) supaya tetap jalan tanpa JS. */
 .content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
   animation: contentIn 1000ms cubic-bezier(0.22, 1, 0.36, 1) var(--splash-reveal, 3800ms) both;
 }
 
