@@ -108,14 +108,14 @@
 
 .mutedCell {
   color: var(--text-secondary);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .satkerCell {
   display: inline-block;
   max-width: 180px;
   color: var(--text-secondary);
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.4;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -154,12 +154,12 @@
 }
 
 .statusBadge {
-  font-size: 10px;
+  font-size: 11px;
   padding: 2px 8px;
 }
 
 .metodeDefault {
-  font-size: 10px;
+  font-size: 11px;
   padding: 2px 8px;
   background: var(--info-100);
   color: var(--info-700);
@@ -167,7 +167,7 @@
 }
 
 .metodeDikecualikan {
-  font-size: 10px;
+  font-size: 11px;
   padding: 2px 8px;
   background: var(--amber-100);
   color: var(--amber-700);

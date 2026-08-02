@@ -1,16 +1,28 @@
 import type { Metadata } from "next";
-import { Inter, IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+/**
+ * IBM Plex Sans + IBM Plex Mono adalah satu superfamily: perancang sama,
+ * metrik dan bentuk angka sepadan. Itu penting di sini karena antarmukanya
+ * terus-menerus menyandingkan label sans dengan angka mono di tabel yang sama.
+ * Sebelumnya Inter dipasangkan dengan Plex Mono, dua keluarga dari asal
+ * rancangan berbeda, dan angkanya tidak pernah benar-benar sepadan.
+ *
+ * Lisensinya SIL OFL dan cakupan Latin-nya penuh untuk bahasa Indonesia.
+ */
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -25,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" data-theme="light" suppressHydrationWarning>
-      <body className={`${inter.variable} ${plexMono.variable}`} suppressHydrationWarning>
+      <body className={`${plexSans.variable} ${plexMono.variable}`} suppressHydrationWarning>
         {children}
       </body>
     </html>

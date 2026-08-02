@@ -188,7 +188,7 @@
 
 .sumScoreValue {
   font-size: 48px;
-  font-weight: 800;
+  font-weight: 700;
   font-family: var(--font-mono);
   letter-spacing: -0.03em;
   line-height: 1;
@@ -283,7 +283,7 @@
 .distTick {
   position: absolute;
   transform: translateX(-50%);
-  font-size: 10px;
+  font-size: 11px;
   font-family: var(--font-mono);
   color: var(--text-tertiary);
 }
@@ -549,7 +549,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--cText);
   background: var(--cTint);
@@ -574,7 +574,7 @@
 }
 
 .pedomanIntro {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--text-secondary);
   margin: 0 0 10px;
 }
@@ -591,7 +591,7 @@
 .pedomanList li {
   display: flex;
   gap: 8px;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--text-secondary);
 }
@@ -740,7 +740,7 @@
 }
 
 .indPctCaption {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--text-tertiary);
   margin-top: -3px;
 }
@@ -888,7 +888,7 @@
 
 .summaryScore {
   font-size: 26px;
-  font-weight: 800;
+  font-weight: 700;
   font-family: var(--font-mono);
   color: var(--text-primary);
   line-height: 1;

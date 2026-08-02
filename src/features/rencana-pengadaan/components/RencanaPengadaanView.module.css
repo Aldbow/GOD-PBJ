@@ -278,7 +278,7 @@
 }
 
 .tooltipSubLabel {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-tertiary);
 }
 
@@ -502,7 +502,7 @@
 
 .scoreValue {
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-primary);
   opacity: 0.85;
   font-family: var(--font-mono);
@@ -538,7 +538,7 @@
 
 .scoreValueProminent {
   font-size: 36px;
-  font-weight: 800;
+  font-weight: 700;
   color: white;
   font-family: var(--font-mono);
   text-shadow: 0 2px 4px rgba(0,0,0,0.1);

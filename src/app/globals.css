@@ -105,8 +105,28 @@
   --space-12: 48px;
 
   /* Typography */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ---- Skala tipe ----
+     Sembilan langkah untuk seluruh sistem. Langkah kecil sengaja rapat
+     (11-15px) karena di situlah tabel, badge, dan label hidup; langkah besar
+     melompat lebih jauh karena hanya dipakai judul. Sebelum ini ada 20 ukuran
+     berbeda termasuk pecahan setengah piksel, yang bukan skala melainkan
+     kebetulan. */
+  --fs-2xs: 11px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 14px;
+  --fs-lg: 15px;
+  --fs-xl: 17px;
+  --fs-2xl: 21px;
+  --fs-3xl: 26px;
+  --fs-4xl: 32px;
+
+  --lh-tight: 1.25;
+  --lh-snug: 1.4;
+  --lh-base: 1.55;
 
   /* Motion */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -205,9 +225,11 @@ body {
   background: var(--bg-page);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.5;
-  letter-spacing: -0.01em;
+  font-size: var(--fs-md);
+  line-height: var(--lh-base);
+  /* Plex Sans sudah bertubuh lebar; tracking negatif ala Inter membuatnya
+     rapat dan susah dibaca di ukuran tabel. Dinolkan. */
+  letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -215,7 +237,22 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
+  line-height: var(--lh-tight);
+}
+
+/* Angka tabular: di dashboard pengadaan hampir setiap angka adalah data yang
+   dibaca berkolom. Tanpa ini digit punya lebar berbeda dan kolom rupiah tidak
+   pernah rata. Diterapkan pada tabel, teks mono, dan input numerik saja, bukan
+   seluruh body, supaya angka di dalam kalimat tetap berjarak wajar. */
+table,
+th,
+td,
+input[type="number"],
+[style*="--font-mono"],
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
 ::selection {

@@ -48,7 +48,7 @@
 
 .esc {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-tertiary);
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -86,7 +86,7 @@
   cursor: pointer;
   text-align: left;
   color: var(--text-primary);
-  font-size: 13.5px;
+  font-size: 14px;
   transition: background-color var(--dur-fast) ease;
 }
 

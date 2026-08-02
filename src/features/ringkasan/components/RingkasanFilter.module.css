@@ -51,7 +51,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   padding: 9px 14px;
   border-radius: var(--radius-sm);
@@ -77,7 +77,7 @@
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .activeInfo {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--text-secondary);
   margin: 12px 0 0;
 }
