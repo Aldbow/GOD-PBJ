@@ -1,0 +1,40 @@
+/* Blok anak langsung halaman muncul berurutan mengikuti arah baca, bukan
+   serentak. Tujuannya hierarki: header dan filter mendarat lebih dulu, kartu
+   metrik menyusul, tabel terakhir. Digerakkan CSS (bukan framer) supaya
+   berlaku untuk anak apa pun tanpa tiap halaman perlu diubah jadi motion. */
+.page > * {
+  animation: blockIn 460ms var(--ease-out) both;
+}
+
+.page > *:nth-child(1) {
+  animation-delay: 60ms;
+}
+
+.page > *:nth-child(2) {
+  animation-delay: 130ms;
+}
+
+.page > *:nth-child(3) {
+  animation-delay: 200ms;
+}
+
+.page > *:nth-child(4) {
+  animation-delay: 265ms;
+}
+
+/* Sisanya dijepit di satu delay: halaman dengan sepuluh blok tidak boleh
+   membuat pengguna menunggu satu detik hanya untuk melihat isinya. */
+.page > *:nth-child(n + 5) {
+  animation-delay: 320ms;
+}
+
+@keyframes blockIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
