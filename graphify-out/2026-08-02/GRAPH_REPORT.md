@@ -1,18 +1,13 @@
-# Graph Report - GOD-PBJ  (2026-08-02)
+# Graph Report - D:/App Project/GOD-PBJ  (2026-07-29)
 
 ## Corpus Check
-- 263 files · ~168,755 words
+- 4 files · ~108,852 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1356 nodes · 2478 edges · 171 communities (116 shown, 55 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 31 edges (avg confidence: 0.79)
-- Token cost: 0 input · 0 output
-
-## Graph Freshness
-- Built from commit: `6f8cec9f`
-- Run `git rev-parse HEAD` and compare to check if the graph is stale.
-- Run `graphify update .` after code changes (no API cost).
+- 1036 nodes · 1743 edges · 124 communities (78 shown, 46 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 28 edges (avg confidence: 0.8)
+- Token cost: 54,000 input · 4,900 output
 
 ## Community Hubs (Navigation)
 - Rute API & Komponen Paket
@@ -135,63 +130,18 @@
 - SQL Migrasi: Tabel AI Kurasi Paket
 - SQL Migrasi: View Metode PL
 - SQL RBAC: Seed (Historis)
-- LandingHero.tsx
-- PengadaanLangsungView.tsx
-- Appendix B - Canonical Sources (read these before reinventing)
-- PenunjukanLangsungView.tsx
-- calcPenyedia.ts
-- anomali.ts
-- penyedia/route.ts
-- swakelola/route.ts
-- types.ts
-- mappings.ts
-- calcSwakelola.ts
-- 4. DESIGN ENGINEERING DIRECTIVES (Bias Correction)
-- fmtCompactRp
-- fmtRupiah
-- riskChartTheme.ts
-- 10. REFERENCE VOCABULARY (Pattern Names the Agent Should Know)
-- tasteskill: Anti-Slop Frontend Skill
-- package.json
-- ExportDataModal.tsx
-- SatkerRankingChart.tsx
-- migrate_kurasi_to_separate_table.sql
-- 9. AI TELLS (Forbidden Patterns)
-- PedomanRisikoCard.tsx
-- 11. REDESIGN PROTOCOL
-- 3. DEFAULT ARCHITECTURE & CONVENTIONS
-- 6. PERFORMANCE & ACCESSIBILITY GUARDRAILS
-- OrgFilterBar.tsx
-- RingkasanFilter.tsx
-- sisaWaktuScore
-- CategoryBarChart.tsx
-- 0. BRIEF INFERENCE (Read the Room Before Anything Else)
-- 12. THE BLOCK LIBRARY (Contract - Implementations Land Here Iteratively)
-- 5. CONTEXT-AWARE PROACTIVITY
-- 8. DARK MODE PROTOCOL
-- 7. DIAL DEFINITIONS (Technical Reference)
-- verify_risiko_recalc.mjs
-- fix_satker_tunggal_ppk.sql
-- chart.js
-- @google/genai
-- html-to-image
-- jspdf-autotable
-- @supabase/ssr
-- @supabase/supabase-js
-- zustand
-- 64_table_risiko_pengadaan.sql
 
 ## God Nodes (most connected - your core abstractions)
 1. `sql/migrations README (Turnkey Migration Order)` - 38 edges
-2. `fmtInt()` - 34 edges
-3. `fmtPct()` - 32 edges
-4. `useIsDark()` - 25 edges
-5. `fmtRupiah()` - 25 edges
-6. `chartInk()` - 23 edges
-7. `RupHistoryEntry` - 23 edges
-8. `fmtRupiahDetail()` - 21 edges
-9. `fmtDec()` - 19 edges
-10. `RingkasanView()` - 16 edges
+2. `fmtPct()` - 22 edges
+3. `fmtInt()` - 21 edges
+4. `useIsDark()` - 18 edges
+5. `fmtRupiah()` - 17 edges
+6. `compilerOptions` - 16 edges
+7. `chartInk()` - 16 edges
+8. `supabase` - 13 edges
+9. `RingkasanView()` - 13 edges
+10. `Badge()` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Pilar: Sistem RBAC & Autentikasi` --semantically_similar_to--> `Model RBAC 3 Role (admin/sekjend/ppk)`  [INFERRED] [semantically similar]
@@ -202,8 +152,8 @@
   LAPORAN-PERKEMBANGAN.md → docs/laporan-ai-kurasi.md
 - `Prototipe UI Dashboard DEWA-PBJ` --semantically_similar_to--> `Design System Tokens (globals.css)`  [INFERRED] [semantically similar]
   data/origin/dewa-pbj-dashboard-prototype.html → docs/BASELINE-ARSITEKTUR.md
-- `buildAnomaliRows()` --indirect_call--> `a()`  [INFERRED]
-  src/features/ringkasan/lib/ringkasanData.ts → temp_epurchasing.tsx
+- `SatkerRankingChart()` --indirect_call--> `a()`  [INFERRED]
+  src/features/ringkasan/components/charts/SatkerRankingChart.tsx → temp_epurchasing.tsx
 
 ## Import Cycles
 - None detected.
@@ -216,63 +166,63 @@
 - **Dokumentasi Fitur AI Kurasi** — docs_baseline_arsitektur_ai_kurasi_flow, docs_laporan_ai_kurasi_current_flow, laporan_perkembangan_ai_kurasi_pilar [INFERRED 0.85]
 - **Pipeline Build Database dari Nol** — sql_migrasi_runbook_phase_order, sql_migrasi_runbook_ddl_gap [EXTRACTED 1.00]
 
-## Communities (171 total, 55 thin omitted)
+## Communities (124 total, 46 thin omitted)
 
 ### Community 0 - "Rute API & Komponen Paket"
-Cohesion: 0.11
-Nodes (20): FilterPillGroup(), FilterPillGroupProps, PillOption, FilterToggle(), FilterToggleProps, extractText(), PaketColumn, PaketTable() (+12 more)
+Cohesion: 0.06
+Nodes (81): useSession(), AnomaliBadge(), AnomaliPanel(), Props, TileDef, FilterPillGroup(), FilterPillGroupProps, PillOption (+73 more)
 
 ### Community 1 - "Dashboard Ringkasan & Chart"
-Cohesion: 0.10
-Nodes (31): ColorPair, JENIS_SLOT, jenisColor(), jenisPalette(), METODE_SLOT, metodeColor(), OTHER, pick() (+23 more)
+Cohesion: 0.06
+Nodes (76): AnomaliTable(), jenisClass, adjustHex(), CategoryBarChart(), CategoryBarDatum, hexToRgba(), Props, CategoryDatum (+68 more)
 
 ### Community 2 - "Layout, Auth & Navigasi"
-Cohesion: 0.11
-Nodes (19): exceljs, file-saver, framer-motion, jspdf, lucide-react, next, dependencies, exceljs (+11 more)
+Cohesion: 0.06
+Nodes (36): chart.js, exceljs, file-saver, framer-motion, @google/genai, html-to-image, jspdf, jspdf-autotable (+28 more)
 
 ### Community 3 - "Halaman Route Next.js"
-Cohesion: 0.06
-Nodes (16): react, react, metadata, metadata, metadata, metadata, metadata, metadata (+8 more)
+Cohesion: 0.08
+Nodes (13): metadata, metadata, metadata, metadata, metadata, metadata, metadata, PageTransition() (+5 more)
 
 ### Community 4 - "Dependensi NPM Frontend"
 Cohesion: 0.07
 Nodes (28): dom, dom.iterable, esnext, **/*.mts, .next/dev/types/**/*.ts, next-env.d.ts, .next/types/**/*.ts, node_modules (+20 more)
 
 ### Community 5 - "Komponen UI Dasar (Card/Badge/Modal)"
-Cohesion: 0.10
-Nodes (21): eslint, eslint-config-next, devDependencies, eslint, eslint-config-next, tailwindcss, @tailwindcss/postcss, @types/file-saver (+13 more)
+Cohesion: 0.07
+Nodes (27): eslint, eslint-config-next, devDependencies, eslint, eslint-config-next, tailwindcss, @tailwindcss/postcss, @types/file-saver (+19 more)
 
 ### Community 6 - "SQL View Dashboard Pengadaan"
-Cohesion: 0.13
-Nodes (21): computeItkpBCD(), hitungFormasi(), hitungIntegritas(), hitungKematangan(), hitungPenugasan(), hitungRenaksi(), ItkpAnalysisText, ItkpBand (+13 more)
+Cohesion: 0.11
+Nodes (24): PEDOMAN, PedomanBlock, PedomanComponentDef, PedomanGroup, PedomanLengkapCard(), emptyItkpAInput(), BAND_FORMASI, BAND_INTEGRITAS (+16 more)
 
 ### Community 7 - "ITKP: Kartu Pedoman Lengkap"
-Cohesion: 0.17
-Nodes (17): BadgeVariant, ItkpBCDResult, bcdIndicator(), buildComponents(), BuildComponentsArgs, COMPONENT_META, ComponentCode, indicatorsA() (+9 more)
+Cohesion: 0.12
+Nodes (21): BadgeVariant, COMP_ICON, ItkpDashboard(), ItkpBCDResult, PenugasanKondisi, RenaksiKondisi, fetchItkpBCDData(), bcdIndicator() (+13 more)
 
 ### Community 8 - "SQL Migrasi: Skema Tabel Inti"
-Cohesion: 0.06
-Nodes (16): view_dashboard_swakelola_v1, MIGRASI-RUNBOOK.md (rationale & supersession map), master_data, paket_e_purchasing, public.non_tender_selesai, api_pencatatan_swakelola, public.paket_anggaran_penyedia, public.paket_anggaran_swakelola (+8 more)
+Cohesion: 0.08
+Nodes (11): MIGRASI-RUNBOOK.md (rationale & supersession map), master_data, paket_e_purchasing, public.non_tender_selesai, api_pencatatan_swakelola, data_afirmasi_pdn_perencanaan, history_kaji_ulang, satker_kode_alias (+3 more)
 
 ### Community 9 - "Konfigurasi Build & Package.json"
-Cohesion: 0.39
-Nodes (11): ai_kurasi_paket, api_paket_penyedia_terumumkan, api_paket_swakelola_terumumkan, view_dashboard_epurchasing_v6, view_dashboard_gabungan_satker, view_dashboard_pengadaan_langsung, view_dashboard_penunjukan_langsung, view_dashboard_swakelola_v1 (+3 more)
+Cohesion: 0.17
+Nodes (17): api_paket_penyedia_terumumkan, api_paket_swakelola_terumumkan, ai_kurasi_paket, api_paket_penyedia_terumumkan, api_paket_swakelola_terumumkan, view_dashboard_epurchasing_v6, view_dashboard_gabungan_satker, view_dashboard_pengadaan_langsung (+9 more)
 
 ### Community 10 - "ITKP Dashboard: Model & Kartu Komponen"
-Cohesion: 0.15
-Nodes (23): Skeleton(), SkeletonProps, ItkpGauge(), Komponen, ItkpAInput, buildFineSatkerToKpa(), fuzzyContains(), MasterEselonRow (+15 more)
+Cohesion: 0.17
+Nodes (17): ItkpAInput, buildFineSatkerToKpa(), fuzzyContains(), MasterEselonRow, normSatker(), resolveAfirmasiUnit(), resolveEselon1(), addToKementerian() (+9 more)
 
 ### Community 11 - "ITKP: Crosswalk Satker/Eselon"
-Cohesion: 0.12
-Nodes (18): SectionHeader(), SectionHeaderProps, Props, RisikoInsightPanel(), SCORE_COLORS(), SCORE_KEYS, SCORE_LABELS, KATEGORI_ORDER (+10 more)
+Cohesion: 0.16
+Nodes (12): Modal(), ModalProps, SectionHeader(), SectionHeaderProps, Select(), SelectProps, PaketDetail(), MetodePengadaanChart() (+4 more)
 
 ### Community 12 - "ITKP: Kalkulasi Komponen A (Band)"
-Cohesion: 0.16
-Nodes (14): container, EASE, FEATURES, item, LoginPage(), PARTICLES, AuthInput(), AuthInputProps (+6 more)
+Cohesion: 0.19
+Nodes (12): container, EASE, FEATURES, item, LoginPage(), AuthInput(), AuthInputProps, login() (+4 more)
 
 ### Community 13 - "Skrip Analisis SIRUP"
 Cohesion: 0.14
-Nodes (15): BAND_DIGITALISASI, BAND_PENGUMUMAN_RUP, BAND_REALISASI_TENDER_PURCHASING, BAND_REALISASI_TRANSAKSIONAL, BAND_RUP_PENYEDIA, BAND_RUP_TENDER_PURCHASING, buildAnalysisA(), buildRow() (+7 more)
+Nodes (14): BAND_DIGITALISASI, BAND_PENGUMUMAN_RUP, BAND_REALISASI_TENDER_PURCHASING, BAND_REALISASI_TRANSAKSIONAL, BAND_RUP_PENYEDIA, BAND_RUP_TENDER_PURCHASING, buildRow(), ItkpABand (+6 more)
 
 ### Community 14 - "Skrip Cek History PL"
 Cohesion: 0.13
@@ -283,16 +233,16 @@ Cohesion: 0.13
 Nodes (14): baruIdx, fs, histHeader, histLines, lamaIdx, matchedHistory, plRups, revisiIdx (+6 more)
 
 ### Community 16 - "ITKP: Detail Pemanfaatan Sistem"
-Cohesion: 0.26
-Nodes (11): useSession(), CommandPalette(), Shell(), Sidebar(), Topbar(), ScrollToTop(), canAccess(), findActiveEntry() (+3 more)
+Cohesion: 0.24
+Nodes (9): CommandPalette(), Sidebar(), ThemeToggle(), Topbar(), ROLE_LABEL, findActiveEntry(), NAV_GROUPS, NavGroup (+1 more)
 
 ### Community 17 - "SQL Historis: Migrate & Update Kurasi Final"
-Cohesion: 0.31
-Nodes (10): capaianBadgeVariant(), capaianOf(), ComponentCard(), emptyInput(), PemanfaatanSistemDetailView(), SatkerSortRow, SortKey, sumInputs() (+2 more)
+Cohesion: 0.23
+Nodes (11): SearchableSelect(), SearchableSelectProps, capaianBadgeVariant(), capaianOf(), emptyInput(), PemanfaatanSistemDetailView(), SatkerSortRow, SortKey (+3 more)
 
 ### Community 18 - "Dokumentasi: RBAC & AI Kurasi"
-Cohesion: 0.16
-Nodes (17): COMP_ICON, ComponentCard(), ComponentSummaryCard(), IndicatorCard(), ItkpDashboard(), PEDOMAN, PedomanBlock, PedomanComponentDef (+9 more)
+Cohesion: 0.18
+Nodes (11): Skeleton(), SkeletonProps, ItkpGauge(), ItkpGaugeProps, Komponen, fmtDec(), ItkpBCDInput, FIXED_BCD_INPUT (+3 more)
 
 ### Community 19 - "SQL View: Dashboard Realisasi (Tender/PL/E-Purchasing)"
 Cohesion: 0.15
@@ -303,20 +253,20 @@ Cohesion: 0.24
 Nodes (12): ai, containsHonorAtauUangSaku(), extractRetryAfterSeconds(), fetchPenyediaBatch(), fetchSwakelolaBatch(), isRateLimitOrModelError(), isSwakelolaDenganPenyelenggara(), KurasiInput (+4 more)
 
 ### Community 21 - "ITKP: Dashboard UI"
-Cohesion: 0.23
-Nodes (10): LANDING, PUBLIC_ROUTES, ROLE_LABEL, ROUTE_ACCESS, config, proxy(), DashboardMetrics, RiskLevel (+2 more)
+Cohesion: 0.26
+Nodes (10): canAccess(), LANDING, PUBLIC_ROUTES, ROUTE_ACCESS, config, proxy(), DashboardMetrics, RiskLevel (+2 more)
 
 ### Community 22 - "SQL Historis: Update Semua View Kurasi"
 Cohesion: 0.18
 Nodes (6): view_paket_penyedia_master_data, view_paket_swakelola_master_data, view_paket_penyedia_master_data, view_paket_swakelola_master_data, view_dashboard_epurchasing_v6, view_rup_final
 
 ### Community 23 - "RBAC: Access Control & Proxy"
-Cohesion: 0.29
-Nodes (8): AppLayout(), SessionContext, SessionProvider(), getProfile, requireAccess(), requireRole(), verifySession, Profile
+Cohesion: 0.26
+Nodes (9): AppLayout(), SessionContext, SessionProvider(), Shell(), getProfile, requireAccess(), requireRole(), verifySession (+1 more)
 
 ### Community 24 - "Modul Rencana Pengadaan"
-Cohesion: 0.16
-Nodes (13): Card(), CardProps, HOVER_TRANSITION, TAP_TRANSITION, hintClass, StatCard(), StatCardProps, StatTone (+5 more)
+Cohesion: 0.20
+Nodes (8): Card(), CardProps, HOVER_TRANSITION, TAP_TRANSITION, hintClass, StatCard(), StatCardProps, StatTone
 
 ### Community 25 - "Skrip Cek Koneksi Supabase"
 Cohesion: 0.22
@@ -498,10 +448,6 @@ Nodes (3): view_dashboard_epurchasing_v6, view_dashboard_gabungan_satker, view_d
 Cohesion: 0.50
 Nodes (3): public.paket_anggaran_penyedia, public.paket_anggaran_swakelola, public.tender_selesai_nilai
 
-### Community 70 - "SQL: Setup RUP History & Dashboard (Historis)"
-Cohesion: 0.19
-Nodes (22): CategoryDatum, CategoryDonutChart(), Props, chartInk(), seriesColor(), useIsDark(), KurasiMetodeChart(), Mode (+14 more)
-
 ### Community 71 - "UI: RadioGroup"
 Cohesion: 0.50
 Nodes (3): view_dashboard_pengadaan_langsung, view_dashboard_penunjukan_langsung, view_dashboard_tender
@@ -511,172 +457,32 @@ Cohesion: 0.50
 Nodes (3): view_dashboard_pengadaan_langsung, view_dashboard_penunjukan_langsung, view_dashboard_swakelola_v1
 
 ### Community 73 - "Skrip Adapt"
-Cohesion: 0.15
-Nodes (20): getIconForCode(), getScoreBadgeVariant(), Props, RisikoDetailBody(), DONUT_JENIS_OPTIONS, DonutJenisFilter, JENIS_PAKET_OPTIONS, KATEGORI_OPTIONS (+12 more)
+Cohesion: 0.50
+Nodes (3): public.paket_anggaran_penyedia, public.paket_anggaran_swakelola, public.tender_selesai_nilai
 
 ### Community 76 - "Skrip Cek Tipe Pencatatan"
 Cohesion: 0.67
 Nodes (3): Keputusan Desain: Pagu Dikunci ke Masterdata, Keputusan Desain: Join Satker via LTRIM, Tabel master_data
 
-### Community 124 - "LandingHero.tsx"
-Cohesion: 0.12
-Nodes (14): LandingFooter(), LandingHeader(), CHART_BARS, EASE, fadeUp, LandingHero(), Particle, PARTICLES (+6 more)
-
-### Community 125 - "PengadaanLangsungView.tsx"
-Cohesion: 0.13
-Nodes (18): DualProgressBar(), DualProgressBarProps, MetricCardDef, MetricGrid(), MetricGridProps, Badge(), BadgeProps, ErrorBox() (+10 more)
-
-### Community 126 - "Appendix B - Canonical Sources (read these before reinventing)"
-Cohesion: 0.09
-Nodes (21): APPENDICES - Real Source-Backed Reference Material, Appendix A - Install Commands per Design System, Appendix B - Canonical Sources (read these before reinventing), Appendix C - Apple Liquid Glass: Honest Web Approximation, Apple Liquid Glass (Apple platforms only), Atlassian, Bootstrap, Carbon (+13 more)
-
-### Community 127 - "PenunjukanLangsungView.tsx"
-Cohesion: 0.17
-Nodes (12): PaketDetailModal(), PaketDetailModalProps, RupHistoryTimeline(), RupHistoryTimelineProps, KURASI_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS, TIPE_RUP_OPTIONS (+4 more)
-
-### Community 128 - "calcPenyedia.ts"
-Cohesion: 0.19
-Nodes (15): KATEGORI_BANDS_PENYEDIA, KATEGORI_BANDS_SWAKELOLA, KategoriBand, PAGU_BANDS, paguBand(), pickKategori(), ScoreBand, ExecutionInput (+7 more)
-
-### Community 129 - "anomali.ts"
-Cohesion: 0.21
-Nodes (14): AnomaliBadge(), AnomaliPanel(), Props, TileDef, AnomaliTable(), jenisClass, AnomaliDetail, ANOMALI_LABEL (+6 more)
-
-### Community 130 - "penyedia/route.ts"
-Cohesion: 0.26
-Nodes (12): fetchAllRows(), fetchMasterPage(), fetchRevisionChain(), fetchRevisionChainsBatched(), indexByCompositeId(), loadEvidenceIndices(), MasterRow, POST() (+4 more)
-
-### Community 131 - "swakelola/route.ts"
-Cohesion: 0.23
-Nodes (12): fetchAllRows(), fetchMasterPage(), fetchRevisionChain(), fetchRevisionChainsBatched(), loadRealisasiIndex(), MasterRow, POST(), supabase (+4 more)
-
-### Community 132 - "types.ts"
-Cohesion: 0.27
-Nodes (12): earliestValid(), ExecutionResult, isValidDate(), resolveExecutionStatus(), RiskCalcResult, DataQualityFlag, ExecutionStatus, JenisPaket (+4 more)
-
-### Community 133 - "mappings.ts"
-Cohesion: 0.20
-Nodes (12): EPURCHASING_EXECUTED_STATUSES, EvidencePool, isEpurchasingStatusExecuted(), JENIS_SCORE, METODE_EVIDENCE_SOURCES, METODE_SCORE, normalizeSumberDana(), normalizeTipeSwakelola() (+4 more)
-
-### Community 134 - "calcSwakelola.ts"
-Cohesion: 0.26
-Nodes (9): EvidenceIndices, EvidenceRecord, resolveSwakelolaExecutionStatus(), revisiScore(), computeRisikoSwakelola(), notApplicableComponent(), SwakelolaCalcInput, empty (+1 more)
-
-### Community 135 - "4. DESIGN ENGINEERING DIRECTIVES (Bias Correction)"
-Cohesion: 0.17
-Nodes (12): 4.10 Quotes & Testimonials, 4.11 Page Theme Lock (Light / Dark Mode Consistency), 4.1 Typography, 4.2 Color Calibration, 4.3 Layout Diversification, 4.4 Materiality, Shadows, Cards, 4.5 Interactive UI States, 4.6 Data & Form Patterns (+4 more)
-
-### Community 136 - "fmtCompactRp"
-Cohesion: 0.29
-Nodes (9): Modal(), ModalProps, fmtCompactRp(), metodePalette(), RealisasiDonutChart(), RealisasiStackedBarChart(), ItkpGaugeProps, SatkerDetailModalProps (+1 more)
-
-### Community 137 - "fmtRupiah"
-Cohesion: 0.55
-Nodes (11): EPurchasingView(), PengadaanLangsungView(), PenunjukanLangsungView(), SwakelolaView(), TenderView(), useOrgFilters(), matchesAnomali(), summarizeAnomali() (+3 more)
-
-### Community 138 - "riskChartTheme.ts"
-Cohesion: 0.29
-Nodes (9): foldTopN(), Props, RisikoDistribusiBarChart(), PALETTE_DARK, PALETTE_LIGHT, RISK_KATEGORI_HEX, riskBarColor(), riskPalette() (+1 more)
-
-### Community 139 - "10. REFERENCE VOCABULARY (Pattern Names the Agent Should Know)"
-Cohesion: 0.20
-Nodes (10): 10. REFERENCE VOCABULARY (Pattern Names the Agent Should Know), Animation Library Choice, Cards & Containers, Galleries & Media, Hero Paradigms, Layout & Grids, Micro-Interactions & Effects, Navigation & Menus (+2 more)
-
-### Community 140 - "tasteskill: Anti-Slop Frontend Skill"
-Cohesion: 0.20
-Nodes (10): 13. OUT OF SCOPE, 14. FINAL PRE-FLIGHT CHECK, 1.A Dial Inference (design read → dial values), 1.B Use-Case Presets, 1.C How the Dials Drive Output, 1. THE THREE DIALS (Core Configuration), 2.A When to reach for a real design system (use official packages), 2.B When the brief is an aesthetic, not a system (+2 more)
-
-### Community 141 - "package.json"
-Cohesion: 0.20
-Nodes (9): name, private, scripts, build, dev, lint, start, test (+1 more)
-
-### Community 142 - "ExportDataModal.tsx"
-Cohesion: 0.38
-Nodes (8): ExportDataModal(), ExportDataModalProps, num(), ExportColumn, ExportOptions, exportToCSV(), exportToExcel(), exportToPDF()
-
-### Community 143 - "SatkerRankingChart.tsx"
-Cohesion: 0.22
-Nodes (7): rankColor(), Metric, METRICS, Row, SatkerRankingChart(), SatkerAggregate, a()
-
-### Community 144 - "migrate_kurasi_to_separate_table.sql"
-Cohesion: 0.22
-Nodes (6): api_paket_penyedia_terumumkan, api_paket_swakelola_terumumkan, ai_kurasi_paket, api_paket_penyedia_terumumkan, api_paket_swakelola_terumumkan, ai_kurasi_paket
-
-### Community 145 - "9. AI TELLS (Forbidden Patterns)"
-Cohesion: 0.25
-Nodes (8): 9.A Visual & CSS, 9. AI TELLS (Forbidden Patterns), 9.B Typography, 9.C Layout & Spacing, 9.D Content & Data ("Jane Doe" Effect), 9.E External Resources & Components, 9.F Production-Test Tells (banned outright), 9.G EM-DASH BAN (the single most-violated Tell)
-
-### Community 146 - "PedomanRisikoCard.tsx"
-Cohesion: 0.29
-Nodes (6): PEDOMAN_RISIKO, PedomanBlock, PedomanComponentDef, PedomanGroup, PedomanRisikoCard(), PedomanRow
-
-### Community 147 - "11. REDESIGN PROTOCOL"
-Cohesion: 0.29
-Nodes (7): 11.A Detect the Mode (first action), 11.B Audit Before Touching, 11.C Preservation Rules, 11.D Modernisation Levers (priority order), 11.E Decision Tree: Targeted Evolution vs Full Redesign, 11.F What Never Changes Silently, 11. REDESIGN PROTOCOL
-
-### Community 148 - "3. DEFAULT ARCHITECTURE & CONVENTIONS"
-Cohesion: 0.29
-Nodes (7): 3.A Stack, 3.B State, 3.C Icons, 3.D Emoji Policy, 3. DEFAULT ARCHITECTURE & CONVENTIONS, 3.E Responsiveness & Layout Mechanics, 3.F Dependency Verification (mandatory)
-
-### Community 149 - "6. PERFORMANCE & ACCESSIBILITY GUARDRAILS"
-Cohesion: 0.29
-Nodes (7): 6.A Hardware Acceleration, 6.B Reduced Motion (mandatory), 6.C Dark Mode (mandatory for any consumer-facing page), 6.D Core Web Vitals Targets, 6.E DOM Cost, 6.F Z-Index Restraint, 6. PERFORMANCE & ACCESSIBILITY GUARDRAILS
-
-### Community 150 - "OrgFilterBar.tsx"
-Cohesion: 0.38
-Nodes (5): OrgFilterBar(), OrgFilterBarProps, uniqueSorted(), SearchInput(), SearchInputProps
-
-### Community 151 - "RingkasanFilter.tsx"
-Cohesion: 0.38
-Nodes (5): SearchableSelect(), SearchableSelectProps, Props, RingkasanFilter(), RingkasanFilterValue
-
-### Community 152 - "sisaWaktuScore"
-Cohesion: 0.38
-Nodes (4): addMonths(), SisaWaktuResult, sisaWaktuScore(), today
-
-### Community 153 - "CategoryBarChart.tsx"
-Cohesion: 0.47
-Nodes (5): adjustHex(), CategoryBarChart(), CategoryBarDatum, hexToRgba(), Props
-
-### Community 154 - "0. BRIEF INFERENCE (Read the Room Before Anything Else)"
-Cohesion: 0.40
-Nodes (5): 0.A Read these signals first, 0.B Output a one-line "Design Read" before generating, 0. BRIEF INFERENCE (Read the Room Before Anything Else), 0.C If the brief is ambiguous, ask one question, do not guess, 0.D Anti-Default Discipline
-
-### Community 155 - "12. THE BLOCK LIBRARY (Contract - Implementations Land Here Iteratively)"
-Cohesion: 0.40
-Nodes (5): 12.A File Location, 12.B Required Frontmatter, 12.C Required Body Sections, 12.D Block-Library Discipline, 12. THE BLOCK LIBRARY (Contract - Implementations Land Here Iteratively)
-
-### Community 156 - "5. CONTEXT-AWARE PROACTIVITY"
-Cohesion: 0.40
-Nodes (5): 5.A Sticky-Stack - Canonical Skeleton, 5.B Horizontal-Pan - Canonical Skeleton, 5.C Scroll-Reveal Stagger - Canonical Skeleton (lighter alternative), 5. CONTEXT-AWARE PROACTIVITY, 5.D Forbidden Animation Patterns
-
-### Community 157 - "8. DARK MODE PROTOCOL"
-Cohesion: 0.40
-Nodes (5): 8.A Token Strategy (pick one, stick to it), 8.B Do Not Prescribe Specific Colors Here, 8.C Default Mode, 8.D Test in Both Modes Before Finishing, 8. DARK MODE PROTOCOL
-
-### Community 158 - "7. DIAL DEFINITIONS (Technical Reference)"
-Cohesion: 0.50
-Nodes (4): 7. DIAL DEFINITIONS (Technical Reference), DESIGN_VARIANCE (Level 1-10), MOTION_INTENSITY (Level 1-10), VISUAL_DENSITY (Level 1-10)
-
 ## Knowledge Gaps
-- **594 isolated node(s):** `eslintConfig`, `nextConfig`, `name`, `version`, `private` (+589 more)
+- **455 isolated node(s):** `eslintConfig`, `nextConfig`, `config`, `fs`, `content` (+450 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **55 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **46 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `Layout, Auth & Navigasi` to `chart.js`, `@google/genai`, `html-to-image`, `jspdf-autotable`, `Halaman Route Next.js`, `@supabase/ssr`, `@supabase/supabase-js`, `zustand`, `package.json`?**
-  _High betweenness centrality (0.041) - this node is a cross-community bridge._
-- **Why does `devDependencies` connect `Komponen UI Dasar (Card/Badge/Modal)` to `package.json`?**
-  _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **Why does `jspdf` connect `Layout, Auth & Navigasi` to `Dashboard Ringkasan & Chart`, `ExportDataModal.tsx`?**
-  _High betweenness centrality (0.023) - this node is a cross-community bridge._
-- **What connects `eslintConfig`, `nextConfig`, `name` to the rest of the system?**
-  _594 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `dependencies` connect `Layout, Auth & Navigasi` to `Komponen UI Dasar (Card/Badge/Modal)`?**
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
+- **Why does `react` connect `Layout, Auth & Navigasi` to `Rute API & Komponen Paket`, `Dashboard Ringkasan & Chart`?**
+  _High betweenness centrality (0.025) - this node is a cross-community bridge._
+- **Why does `jspdf` connect `Layout, Auth & Navigasi` to `Rute API & Komponen Paket`, `Dashboard Ringkasan & Chart`?**
+  _High betweenness centrality (0.020) - this node is a cross-community bridge._
+- **What connects `eslintConfig`, `nextConfig`, `config` to the rest of the system?**
+  _455 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Rute API & Komponen Paket` be split into smaller, more focused modules?**
-  _Cohesion score 0.11384615384615385 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05549450549450549 - nodes in this community are weakly interconnected._
 - **Should `Dashboard Ringkasan & Chart` be split into smaller, more focused modules?**
-  _Cohesion score 0.09716599190283401 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06271929824561404 - nodes in this community are weakly interconnected._
 - **Should `Layout, Auth & Navigasi` be split into smaller, more focused modules?**
-  _Cohesion score 0.10526315789473684 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05555555555555555 - nodes in this community are weakly interconnected._
