@@ -63,7 +63,7 @@ export function Sidebar() {
         {!collapsed && (
           <div className={styles.brandText}>
             <strong>DEWA-PBJ</strong>
-            <span>Early warning pengadaan</span>
+            <span>Digital Early Warning Analytics</span>
           </div>
         )}
       </div>
