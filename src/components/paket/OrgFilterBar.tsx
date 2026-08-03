@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { SearchInput } from '@/components/ui/SearchInput';
+import { DebouncedSearchInput } from '@/components/ui/DebouncedSearchInput';
 import { SearchableSelect } from './SearchableSelect';
 import { useSession } from '@/components/auth/SessionProvider';
 import styles from './OrgFilterBar.module.css';
@@ -105,11 +105,12 @@ export function OrgFilterBar({
           />
         </>
       )}
-      <SearchInput
+      <DebouncedSearchInput
         className={styles.search}
+        aria-label={searchPlaceholder}
         placeholder={searchPlaceholder}
         value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
+        onValueChange={onSearchChange}
       />
     </div>
   );

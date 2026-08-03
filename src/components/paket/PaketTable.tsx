@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import styles from './PaketTable.module.css';
@@ -49,9 +49,16 @@ export function PaketTable<T>({
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>(defaultSortDir);
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
+  // Kembali ke halaman 1 begitu kumpulan barisnya berganti (hasil pencarian
+  // atau filter baru). Disetel saat render, bukan lewat useEffect: versi efek
+  // berjalan setelah commit, jadi React sempat melukis halaman lama di atas
+  // data baru lalu meralatnya — satu render tambahan dan satu kedipan per
+  // pencarian. Pola ini yang direkomendasikan React untuk state turunan prop.
+  const [rowsSeen, setRowsSeen] = useState(rows);
+  if (rowsSeen !== rows) {
+    setRowsSeen(rows);
     setPage(1);
-  }, [rows]);
+  }
 
   const sortColumn = columns.find((c) => c.key === sortKey);
   const isSortable = (col: PaketColumn<T>) => col.sortable !== false;
