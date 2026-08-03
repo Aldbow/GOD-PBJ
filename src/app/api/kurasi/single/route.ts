@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     // Fetch from penyedia first
     let res = await supabase.from('view_paket_penyedia_master_data').select('kd_rup, rup_name:nama_paket, pagu, metode_pengadaan, jenis_pengadaan, status_dikecualikan, tipe_paket, nama_ppk, satker:"SATUAN KERJA"').eq('kd_rup', kd_rup).maybeSingle();
     let isSwakelola = false;
-    let dataPaket = res.data;
+    let dataPaket: any = res.data;
 
     if (!dataPaket) {
       // Try swakelola
