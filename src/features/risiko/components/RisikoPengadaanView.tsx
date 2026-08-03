@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, AlertTriangle, Clock, RefreshCw, Wallet, Package, PieChart, Users, Layers, GitBranch, Building, Banknote, Tag, LayoutGrid, Info } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Clock, RefreshCw, Wallet, Package, PieChart, Users, Layers, GitBranch, Building, Banknote, Tag, LayoutGrid, Info, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { fmtRupiahDetail, countRup } from '@/lib/format';
 import { fetchRupHistory, type RupHistoryEntry } from '@/lib/paket/rupHistory';
@@ -114,7 +114,13 @@ export function RisikoPengadaanView() {
   const [kategoriFilter, setKategoriFilter] = useState<string[]>([]);
   const [jenisPaketFilter, setJenisPaketFilter] = useState<string[]>([]);
   const [statusPelaksanaanFilter, setStatusPelaksanaanFilter] = useState<string[]>([]);
-  const [mainRiskDriverFilter, setMainRiskDriverFilter] = useState<string | null>(null);
+  const [mainRiskDriverFilter, setMainRiskDriverFilter] = useState<{ label: string; members: string[]; score: string | null } | null>(null);
+  // Klik bar driver bisa memicu filter ke bucket besar (mis. "Risiko Sisa Waktu Pemilihan"
+  // yang jadi driver mayoritas paket) — re-agregasi (8x groupBy + sort tabel) atas ribuan
+  // baris jadi berat kalau dijalankan sinkron di render yang sama dengan animasi chart.
+  // startTransition menandai update ini prioritas rendah supaya browser tetap sempat
+  // menggambar animasi Chart.js dulu, alih-alih terblokir oleh recompute tabel.
+  const [isFilteringDriver, startDriverFilterTransition] = useTransition();
   // donutJenisFilter state removed in favor of global jenisPaketFilter
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showPedoman, setShowPedoman] = useState(false);
@@ -262,14 +268,40 @@ export function RisikoPengadaanView() {
       d = d.filter((item) => {
         const rawLabel = item.main_risk_driver;
         const label = rawLabel && rawLabel.trim() ? rawLabel : 'Tidak Diketahui';
-        return label === mainRiskDriverFilter;
+        if (!mainRiskDriverFilter.members.includes(label)) return false;
+        if (mainRiskDriverFilter.score) {
+          // Skor spesifik dihitung dari komponen milik driver ASLI baris ini (bukan
+          // label bucket "Lainnya"), sama seperti perhitungan distRiskDriverStacked di bawah.
+          let scoreStr = '0';
+          if (item.components_json && rawLabel) {
+            const comp = item.components_json.find((c: any) => c.label === rawLabel);
+            if (comp && comp.score != null) scoreStr = comp.score.toString();
+          }
+          if (scoreStr !== mainRiskDriverFilter.score) return false;
+        }
+        return true;
       });
     }
     return d;
   }, [data, eselon1, satker, ppk, kategoriFilter, jenisPaketFilter, statusPelaksanaanFilter, mainRiskDriverFilter]);
 
-  const handleRiskDriverClick = useCallback((label: string) => {
-    setMainRiskDriverFilter((prev) => (prev === label ? null : label));
+  const handleRiskDriverClick = useCallback((label: string, members: string[], segmentKey?: string) => {
+    startDriverFilterTransition(() => {
+      setMainRiskDriverFilter((prev) => {
+        // Belum ada filter driver aktif — klik pertama hanya memfilter di level driver,
+        // skor segmen yang diklik diabaikan dulu.
+        if (!prev) return { label, members, score: null };
+        // Klik lagi di bar driver yang sama (sudah "masuk" ke driver ini) — klik pada
+        // segmen skor tertentu memperdalam filter ke skor itu; klik skor yang sama lagi
+        // untuk melepas filter skornya saja.
+        if (prev.label === label) {
+          if (segmentKey) return { ...prev, score: prev.score === segmentKey ? null : segmentKey };
+          return null;
+        }
+        // Klik driver lain — pindah filter ke driver baru, reset filter skor.
+        return { label, members, score: null };
+      });
+    });
   }, []);
 
   const filteredData = useMemo(() => {
@@ -356,12 +388,6 @@ export function RisikoPengadaanView() {
     return Array.from(map.values()).sort((a, b) => b.totalCount - a.totalCount);
   }, [filteredData]);
 
-  const sortedPackages = useMemo(() => {
-    const copy = [...filteredData];
-    copy.sort((a, b) => (b.total_score ?? -1) - (a.total_score ?? -1));
-    return copy;
-  }, [filteredData]);
-
   const columns: PaketColumn<RiskRow>[] = useMemo(
     () => [
       {
@@ -436,7 +462,7 @@ export function RisikoPengadaanView() {
     []
   );
   const exportAllData = useMemo(() => baseData, [baseData]);
-  const exportFilteredData = useMemo(() => sortedPackages, [sortedPackages]);
+  const exportFilteredData = useMemo(() => filteredData, [filteredData]);
 
   const kpiCards: MetricCardDef[] = [
     { key: 'rendah', icon: ShieldAlert, label: 'Rendah', value: kategoriCounts.RENDAH, accent: 'teal' },
@@ -578,9 +604,40 @@ export function RisikoPengadaanView() {
                   <div className={distStyles.cardHeader}>
                     <span className={`${distStyles.cardIcon} ${distStyles.cardIconRed}`}><AlertTriangle size={15} /></span>
                     <div>
-                      <div className={distStyles.cardTitle}>Resiko Utama</div>
+                      <div className={distStyles.cardTitle}>Risiko Utama</div>
                       <div className={distStyles.cardSubtitle}>Pemicu risiko dominan</div>
                     </div>
+                    {mainRiskDriverFilter && (
+                      <button
+                        type="button"
+                        onClick={() => startDriverFilterTransition(() => setMainRiskDriverFilter(null))}
+                        title={`Reset filter: ${mainRiskDriverFilter.label}${mainRiskDriverFilter.score ? ` › ${SCORE_LABELS[mainRiskDriverFilter.score]}` : ''}`}
+                        style={{
+                          marginLeft: 'auto',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          color: 'var(--text-secondary)',
+                          background: 'var(--surface-2)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 999,
+                          padding: '4px 10px',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          maxWidth: 220,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        <X size={12} style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {mainRiskDriverFilter.label}
+                          {mainRiskDriverFilter.score && ` › ${SCORE_LABELS[mainRiskDriverFilter.score]}`}
+                        </span>
+                      </button>
+                    )}
                   </div>
                   <p style={{
                     fontSize: 12,
@@ -596,11 +653,12 @@ export function RisikoPengadaanView() {
                     Warna <span style={{ color: '#ef4444', fontWeight: 600 }}>merah</span> = Tinggi,{' '}
                     <span style={{ color: '#eab308', fontWeight: 600 }}>kuning</span> = Sedang,{' '}
                     <span style={{ color: '#22c55e', fontWeight: 600 }}>hijau</span> = Rendah.
-                    Angka di ujung kanan menunjukkan total jumlah paket. <em>Klik pada bar untuk mem-filter data tabel, klik lagi untuk menghapus filter.</em>
+                    Angka di ujung kanan menunjukkan total jumlah paket. <em>Klik pada bar untuk mem-filter data tabel berdasarkan pemicu risikonya; setelah itu klik segmen warna skor pada bar yang sama untuk memperdalam filter ke skor tersebut. Klik lagi untuk menghapus filter.</em>
                   </p>
                   <div className={distStyles.chartArea}>
-                    <RisikoDriverStackedBarChart 
-                      data={distRiskDriverStacked} 
+                    <RisikoDriverStackedBarChart
+                      data={distRiskDriverStacked}
+                      maxBars={Math.max(distRiskDriverStacked.length, 1)}
                       onClick={handleRiskDriverClick}
                       segmentKeys={SCORE_KEYS}
                       segmentLabels={SCORE_LABELS}
@@ -613,7 +671,12 @@ export function RisikoPengadaanView() {
           </div>
 
           <div className={styles.filterHead} style={{ marginTop: 40 }}>
-            <span className={styles.filterHeadTitle}>Filter</span>
+            <span className={styles.filterHeadTitle}>
+              Filter
+              {isFilteringDriver && (
+                <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)' }}>Memperbarui…</span>
+              )}
+            </span>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
 
               <button
@@ -662,9 +725,17 @@ export function RisikoPengadaanView() {
                 <div className={styles.filterRow}>
                   <span className={styles.filterLabel}>Pemicu Risiko</span>
                   <div className={styles.filterPills}>
-                    <button className={`${styles.filterPill} ${styles.active}`} onClick={() => setMainRiskDriverFilter(null)}>
-                      {mainRiskDriverFilter} ✕
+                    <button className={`${styles.filterPill} ${styles.active}`} onClick={() => startDriverFilterTransition(() => setMainRiskDriverFilter(null))}>
+                      {mainRiskDriverFilter.label} ✕
                     </button>
+                    {mainRiskDriverFilter.score && (
+                      <button
+                        className={`${styles.filterPill} ${styles.active}`}
+                        onClick={() => startDriverFilterTransition(() => setMainRiskDriverFilter((prev) => (prev ? { ...prev, score: null } : prev)))}
+                      >
+                        {SCORE_LABELS[mainRiskDriverFilter.score]} ✕
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -677,7 +748,7 @@ export function RisikoPengadaanView() {
                     setKategoriFilter([]);
                     setJenisPaketFilter([]);
                     setStatusPelaksanaanFilter([]);
-                    setMainRiskDriverFilter(null);
+                    startDriverFilterTransition(() => setMainRiskDriverFilter(null));
                   }}
                 >
                   Reset Semua Filter
@@ -688,7 +759,9 @@ export function RisikoPengadaanView() {
 
           <PaketTable
             columns={columns}
-            rows={sortedPackages}
+            rows={filteredData}
+            defaultSortKey="total_score"
+            defaultSortDir="desc"
             getRowKey={(p, i) => p.kd_rup || i}
             emptyMessage="Tidak ada paket yang cocok dengan filter saat ini"
             onRowClick={(p) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, type TooltipItem, Legend, type Plugin } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { useIsDark, chartInk, riskKategoriColor } from './riskChartTheme';
@@ -14,13 +14,15 @@ export interface StackedBucket {
   label: string;
   totalCount: number;
   counts: Record<string, number>;
+  /** Label asli yang dilipat ke bucket ini (dipakai bucket "Lainnya" hasil folding). Bucket normal tidak perlu mengisi ini. */
+  members?: string[];
 }
 
 interface Props {
   data: StackedBucket[];
   maxBars?: number;
   height?: number | string;
-  onClick?: (driverLabel: string) => void;
+  onClick?: (driverLabel: string, members: string[], segmentKey?: string) => void;
   segmentKeys?: string[];
   segmentLabels?: Record<string, string>;
   segmentColors?: (key: string, isDark: boolean) => string;
@@ -53,26 +55,39 @@ export function RisikoDriverStackedBarChart({
     const other: StackedBucket = {
       label: 'Lainnya',
       totalCount: rest.reduce((s, b) => s + b.totalCount, 0),
-      counts: otherCounts
+      counts: otherCounts,
+      members: rest.map((b) => b.label),
     };
     return [...top, other];
   }, [data, maxBars, segmentKeys]);
+
+  // react-chartjs-2 hanya memakai prop `plugins` sekali saat chart pertama kali dibuat
+  // (lihat renderChart() di node_modules/react-chartjs-2) — instance plugin yang
+  // ter-registrasi tidak diganti lagi walau `totalLabelPlugin` di-memo ulang tiap render.
+  // Makanya closure-nya harus baca dari ref (bukan langsung dari `buckets`/`ink`), supaya
+  // angka "X paket" di ujung kanan tetap ikut ter-update tiap kali chart di-redraw
+  // (mis. setelah filter/klik bar mengubah data).
+  const bucketsRef = useRef(buckets);
+  bucketsRef.current = buckets;
+  const inkRef = useRef(ink);
+  inkRef.current = ink;
 
   // Plugin: menampilkan total paket di ujung kanan setiap bar
   const totalLabelPlugin: Plugin<'bar'> = useMemo(() => ({
     id: 'totalLabel',
     afterDraw(chart) {
       const { ctx } = chart;
+      const currentBuckets = bucketsRef.current;
       const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
       if (!meta?.data) return;
 
       ctx.save();
       ctx.font = 'bold 11px var(--font-geist-sans), sans-serif';
-      ctx.fillStyle = ink.valueText;
+      ctx.fillStyle = inkRef.current.valueText;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
 
-      for (let i = 0; i < buckets.length; i++) {
+      for (let i = 0; i < currentBuckets.length; i++) {
         // Cari ujung kanan bar terakhir (dataset paling atas yang visible) untuk baris ini
         let maxX = 0;
         let barY = 0;
@@ -88,12 +103,12 @@ export function RisikoDriverStackedBarChart({
           }
         }
         if (maxX > 0) {
-          ctx.fillText(fmtInt(buckets[i].totalCount) + ' paket', maxX + 8, barY);
+          ctx.fillText(fmtInt(currentBuckets[i].totalCount) + ' paket', maxX + 8, barY);
         }
       }
       ctx.restore();
     },
-  }), [buckets, ink.valueText]);
+  }), []);
 
   const { chartData, options } = useMemo(
     () => ({
@@ -119,10 +134,13 @@ export function RisikoDriverStackedBarChart({
             event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
           }
         },
-        onClick: (event: any, chartElement: any) => {
+        onClick: (event: any, chartElement: any, chartInstance: any) => {
           if (!onClick || !chartElement.length) return;
-          const idx = chartElement[0].index;
-          onClick(buckets[idx].label);
+          const el = chartElement[0];
+          const bucket = buckets[el.index];
+          const dsLabel = chartInstance?.data?.datasets?.[el.datasetIndex]?.label;
+          const segmentKey = segmentKeys.find((k) => (segmentLabels[k] || k) === dsLabel);
+          onClick(bucket.label, bucket.members && bucket.members.length > 0 ? bucket.members : [bucket.label], segmentKey);
         },
         plugins: {
           legend: { 
