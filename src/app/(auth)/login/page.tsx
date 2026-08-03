@@ -144,7 +144,7 @@ export default function LoginPage() {
             <span className={styles.brandMark} />
             <div className={styles.brandLockup}>
               <strong>DEWA-PBJ</strong>
-              <span>Early warning pengadaan</span>
+              <span>Digital Early Warning Analytics</span>
             </div>
           </motion.div>
 

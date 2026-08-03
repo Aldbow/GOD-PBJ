@@ -26,7 +26,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DEWA-PBJ · Early warning pengadaan",
+  title: "DEWA-PBJ · Digital Early Warning Analytics",
   description: "Dashboard untuk memonitor proyek PBJ Kemnaker",
 };
 

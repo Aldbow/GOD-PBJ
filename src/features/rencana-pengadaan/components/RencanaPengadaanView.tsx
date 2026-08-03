@@ -455,7 +455,7 @@ export function RencanaPengadaanView() {
                 {viewMode === 'satker' && (
                   <motion.div layoutId="activePill" className={styles.activePillBg} transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
                 )}
-                <span className={styles.segmentText}>Satuan Kerja</span>
+                <span className={styles.segmentText}>KPA</span>
               </button>
             </div>
 

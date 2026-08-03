@@ -494,6 +494,8 @@ export function EPurchasingView() {
         statusKurasi={selectedItem?.status_kurasi}
         catatanKurasi={selectedItem?.catatan_kurasi}
         rekomendasiKurasi={selectedItem?.rekomendasi_kurasi}
+        kdRup={selectedItem?.kd_rup}
+        onCurationSuccess={(newData) => setSelectedItem(prev => prev ? { ...prev, ...newData } : null)}
       >
         {selectedItem && (
           <>

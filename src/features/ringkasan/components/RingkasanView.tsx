@@ -334,7 +334,7 @@ export function RingkasanView() {
             {applied.satker || 'Kementerian Ketenagakerjaan'}
           </h1>
           <p className={styles.pageSub}>
-            Gambaran umum pelaksanaan pengadaan, realisasi anggaran, pemanfaatan sistem, dan hasil kurasi paket.
+            Gambaran umum pelaksanaan pengadaan, realisasi, pemanfaatan sistem, dan hasil kurasi paket.
           </p>
           <p className={styles.pagePeriod}>Data terakhir diperbarui {updatedLabel}</p>
         </div>
