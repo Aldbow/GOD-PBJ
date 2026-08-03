@@ -6,9 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Portal } from '@/components/ui/Portal';
 import { Search } from 'lucide-react';
 import styles from './CommandPalette.module.css';
-import { NAV_GROUPS } from '@/lib/nav';
+import { navGroupsFor } from '@/lib/nav';
 import { useSession } from '@/components/auth/SessionProvider';
-import { canAccess } from '@/lib/auth/access';
 
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
@@ -19,10 +18,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const all = NAV_GROUPS.flatMap((group) =>
-      group.links
-        .filter((link) => canAccess(role, link.href))
-        .map((link) => ({ ...link, groupLabel: group.label }))
+    const all = navGroupsFor(role).flatMap((group) =>
+      group.links.map((link) => ({ ...link, groupLabel: group.label }))
     );
     if (!q) return all;
     return all.filter((link) => link.name.toLowerCase().includes(q));

@@ -9,6 +9,7 @@ import { jsPDF } from 'jspdf';
 import { ErrorBox } from '@/components/ui/ErrorBox';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
+import { useSession } from '@/components/auth/SessionProvider';
 import { fmtInt, fmtPct, fmtRupiah } from '@/lib/format';
 import {
   fetchGabunganRows,
@@ -81,11 +82,21 @@ const getJenisLabel = (j: JenisAggregate) => j.jenis;
 const getSumberLabel = (s: SumberAggregate) => s.kategori;
 
 export function RingkasanView() {
+  // Role PPK: seluruh halaman terkunci ke satker ybs — pemilih Satker/PPK
+  // disembunyikan dan baris di luar satker itu dibuang tepat setelah fetch,
+  // supaya tidak ada komponen turunan (tabel, modal, export) yang bisa melihatnya.
+  const { role, satker: profileSatker } = useSession();
+  const isPpkScoped = role === 'ppk';
+  const scopeFilter = useMemo<RingkasanFilterValue>(
+    () => (isPpkScoped ? { satker: profileSatker ?? '', ppk: '' } : EMPTY_FILTER),
+    [isPpkScoped, profileSatker]
+  );
+
   const [rows, setRows] = useState<GabunganRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [applied, setApplied] = useState<RingkasanFilterValue>(EMPTY_FILTER);
+  const [applied, setApplied] = useState<RingkasanFilterValue>(scopeFilter);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isExportPrintMenuOpen, setIsExportPrintMenuOpen] = useState(false);
 
@@ -186,16 +197,24 @@ export function RingkasanView() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    // Tanpa satker di profil, scope PPK tidak bisa ditegakkan — lebih baik tidak
+    // menampilkan apa pun daripada diam-diam membuka data satu kementerian.
+    if (isPpkScoped && !profileSatker) {
+      setRows([]);
+      setError('Profil Anda belum memiliki Satuan Kerja. Hubungi admin UKPBJ agar data ringkasan dapat ditampilkan.');
+      setLoading(false);
+      return;
+    }
     try {
       const data = await fetchGabunganRows();
-      setRows(data);
+      setRows(isPpkScoped ? filterRows(data, scopeFilter) : data);
       setLastUpdate(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal memuat data ringkasan.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isPpkScoped, profileSatker, scopeFilter]);
 
   useEffect(() => {
     load();
@@ -334,7 +353,9 @@ export function RingkasanView() {
             {applied.satker || 'Kementerian Ketenagakerjaan'}
           </h1>
           <p className={styles.pageSub}>
-            Gambaran umum pelaksanaan pengadaan, realisasi, pemanfaatan sistem, dan hasil kurasi paket.
+            {isPpkScoped
+              ? 'Gambaran umum pengadaan, realisasi, pemanfaatan sistem, dan hasil kurasi paket pada satuan kerja Anda.'
+              : 'Gambaran umum pelaksanaan pengadaan, realisasi, pemanfaatan sistem, dan hasil kurasi paket.'}
           </p>
           <p className={styles.pagePeriod}>Data terakhir diperbarui {updatedLabel}</p>
         </div>
@@ -353,17 +374,20 @@ export function RingkasanView() {
 
       {error && <ErrorBox className={styles.spacer}>{error}</ErrorBox>}
 
-      {/* Baris 2 — Filter (disembunyikan dari hasil cetak/PDF) */}
-      <motion.div variants={item} data-exclude-print="true">
-        <RingkasanFilter
-          satkerOptions={satkerOptions}
-          getPpkOptions={getPpkOptions}
-          getSatkerByPpk={getSatkerByPpk}
-          applied={applied}
-          onApply={setApplied}
-          disabled={loading}
-        />
-      </motion.div>
+      {/* Baris 2 — Filter (disembunyikan dari hasil cetak/PDF). Role PPK tidak
+          punya pemilih Satker/PPK: ruang lingkupnya sudah terkunci ke satkernya. */}
+      {!isPpkScoped && (
+        <motion.div variants={item} data-exclude-print="true">
+          <RingkasanFilter
+            satkerOptions={satkerOptions}
+            getPpkOptions={getPpkOptions}
+            getSatkerByPpk={getSatkerByPpk}
+            applied={applied}
+            onApply={setApplied}
+            disabled={loading}
+          />
+        </motion.div>
+      )}
 
       {/* Baris 3 — KPI Cards */}
       <motion.div variants={item}>
