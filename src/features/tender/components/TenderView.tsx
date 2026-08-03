@@ -439,7 +439,7 @@ export function TenderView() {
         catatanKurasi={selectedItem?.catatan_kurasi}
         rekomendasiKurasi={selectedItem?.rekomendasi_kurasi}
         kdRup={selectedItem?.kd_rup}
-        onCurationSuccess={(newData) => setSelectedItem(prev => prev ? { ...prev, ...newData } : null)}
+        onCurationSuccess={(newData) => setSelectedItem((prev: any) => prev ? { ...prev, ...newData } : null)}
       >
         {selectedItem && (
           <>
