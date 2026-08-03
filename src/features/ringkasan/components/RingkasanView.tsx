@@ -740,7 +740,7 @@ export function RingkasanView() {
 
       {/* Baris 7a — Insight Risiko Pengadaan (Ditambahkan sesuai permintaan) */}
       <motion.div variants={item} className={styles.sectionGroup}>
-        <SectionHeader 
+        <SectionHeader
           title={<span className={styles.sectionEyebrow}><ShieldAlert size={16} /> Risiko Pengadaan</span>}
           action={
             <Link href="/risiko-pengadaan" className={styles.ghostBtn} style={{ textDecoration: 'none', padding: '4px 10px', fontSize: '11.5px', height: '28px' }}>
