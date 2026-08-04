@@ -26,12 +26,20 @@
   color: var(--text-primary);
 }
 
+/* Tanpa ini blok teks jadi flex item yang menyusut ketika tombol Segarkan ada di
+   sebelahnya, sehingga subjudul terjepit ke banyak baris. flex-basis besar
+   membuatnya mengambil sisa lebar; min-width 0 supaya tetap boleh membungkus. */
+.headerText {
+  flex: 1 1 480px;
+  min-width: 0;
+}
+
 .subtitle {
   margin: 0;
-  max-width: 68ch;
   font-size: var(--fs-md);
   line-height: var(--lh-base);
   color: var(--text-secondary);
+  text-wrap: pretty;
 }
 
 .refreshBtn {
@@ -234,7 +242,10 @@
   gap: var(--space-3);
 }
 
+/* position: relative menjadi acuan tombol "Lihat detail" yang dibentangkan
+   menutupi seluruh kartu (lihat .cardActionTarget::after). */
 .card {
+  position: relative;
   display: flex;
   align-items: stretch;
   justify-content: space-between;
@@ -244,7 +255,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--card-shadow);
-  text-decoration: none;
+  cursor: pointer;
   transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 
@@ -253,7 +264,9 @@
   border-color: var(--border-strong);
 }
 
-.card:focus-visible {
+/* Cincin fokus milik tombol, tapi digambar di kartu — itulah area yang benar-benar
+   bisa diklik. */
+.card:has(.cardActionTarget:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -382,9 +395,62 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 0;
+  font-family: inherit;
   font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.cardActionTarget:focus-visible {
+  outline: none;
+}
+
+/* Membentangkan area klik ke seluruh kartu tanpa menyarangkan elemen interaktif. */
+.cardActionTarget::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+}
+
+/* ---------- Aksi di dasar panel detail ---------- */
+
+.modalCta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 12px 16px;
+  font-size: var(--fs-md);
+  color: var(--surface);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.modalCta:hover {
+  background: var(--brand-500);
+  border-color: var(--brand-500);
+}
+
+.modalCta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.modalCtaText {
+  min-width: 0;
+}
+
+.modalCtaText strong {
+  font-weight: 600;
 }
 
 /* ---------- Keadaan kosong / gagal ---------- */

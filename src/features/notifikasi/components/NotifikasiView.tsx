@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Bell,
   CheckCircle2,
+  ChevronRight,
   Loader2,
   RefreshCw,
   ScanSearch,
@@ -14,6 +15,8 @@ import {
 } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionProvider';
 import { fmtRupiah } from '@/lib/format';
+import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
+import { fetchRupHistory, type RupHistoryEntry } from '@/lib/paket/rupHistory';
 import {
   fetchPpkNotifikasi,
   hasActionableType,
@@ -23,6 +26,8 @@ import {
   type AlertType,
   type NotifikasiItem,
 } from '@/lib/notifikasi/alerts';
+import { fetchNotifikasiDetail, type NotifikasiDetail } from '@/lib/notifikasi/detail';
+import { NotifikasiDetailBody } from './NotifikasiDetailBody';
 import styles from './NotifikasiView.module.css';
 
 type FetchState = 'idle' | 'ready' | 'error';
@@ -31,6 +36,9 @@ type FilterKey = 'semua' | 'tindakan' | AlertType;
 
 const ANOMALI_TYPES: AlertType[] = ['anomali_tanpa_rup', 'anomali_lebih_pagu'];
 
+/** Konstan supaya RupHistoryTimeline tidak menerima array baru tiap render. */
+const EMPTY_HISTORY: RupHistoryEntry[] = [];
+
 export function NotifikasiView() {
   const session = useSession();
   const [state, setState] = useState<FetchState>('idle');
@@ -38,6 +46,14 @@ export function NotifikasiView() {
   const [rows, setRows] = useState<NotifikasiItem[]>([]);
   const [filter, setFilter] = useState<FilterKey>('tindakan');
   const requestIdRef = useRef(0);
+
+  /** Paket yang sedang dibuka di panel detail; null = panel tertutup. */
+  const [selected, setSelected] = useState<NotifikasiItem | null>(null);
+  // Hasil dibawa bersama kode RUP asalnya, bukan direset saat paket berganti:
+  // dengan begitu "sedang memuat" cukup diturunkan dari perbandingan kode, dan
+  // panel tidak pernah sempat menampilkan rincian paket sebelumnya.
+  const [detailState, setDetailState] = useState<{ kdRup: string; detail: NotifikasiDetail | null } | null>(null);
+  const [historyState, setHistoryState] = useState<{ kdRup: string; entries: RupHistoryEntry[] } | null>(null);
 
   const ppkName = useMemo(
     () => (session.ppk_name || session.full_name || '').trim(),
@@ -72,6 +88,38 @@ export function NotifikasiView() {
     if (!ppkName) return;
     fetchData();
   }, [ppkName, fetchData]);
+
+  /* Rincian lengkap (kolom JSONB skor + baris realisasi) dan riwayat revisi RUP
+     baru diambil saat sebuah kartu dibuka, supaya daftar notifikasi tetap ringan
+     untuk PPK dengan ratusan paket. */
+  useEffect(() => {
+    if (!selected) return;
+    let cancelled = false;
+    const kdRup = selected.kd_rup;
+
+    fetchNotifikasiDetail(kdRup)
+      .catch((err) => {
+        console.error('[NotifikasiView] gagal memuat detail paket:', err);
+        return null;
+      })
+      .then((result) => {
+        if (!cancelled) setDetailState({ kdRup, detail: result });
+      });
+
+    fetchRupHistory(kdRup).then((entries) => {
+      if (!cancelled) setHistoryState({ kdRup, entries });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected]);
+
+  const detail = detailState && detailState.kdRup === selected?.kd_rup ? detailState.detail : null;
+  const loadingDetail = selected != null && detailState?.kdRup !== selected.kd_rup;
+  const historyData =
+    historyState && historyState.kdRup === selected?.kd_rup ? historyState.entries : EMPTY_HISTORY;
+  const loadingHistory = selected != null && historyState?.kdRup !== selected.kd_rup;
 
   const counts = useMemo(() => {
     const byType = {} as Record<AlertType, number>;
@@ -129,7 +177,7 @@ export function NotifikasiView() {
         action={
           <button type="button" className={styles.refreshBtn} onClick={refresh} disabled={refreshing}>
             <RefreshCw size={14} aria-hidden="true" className={refreshing ? styles.spin : undefined} />
-            {refreshing ? 'Menyegarkan...' : 'Segarkan'}
+            {refreshing ? 'Refresh Data...' : 'Refresh'}
           </button>
         }
       />
@@ -237,11 +285,9 @@ export function NotifikasiView() {
             </div>
           ) : (
             <ul className={styles.list}>
-              {visibleRows.map((row) => {
-                const target = realisasiTargetFor(row, ppkName);
-                return (
+              {visibleRows.map((row) => (
                   <li key={row.kd_rup}>
-                    <Link href={target.href} className={styles.card}>
+                    <div className={styles.card}>
                       <div className={styles.cardMain}>
                         <div className={styles.cardTags}>
                           {row.types.map((type) => (
@@ -289,30 +335,72 @@ export function NotifikasiView() {
                       </div>
 
                       <div className={styles.cardAction}>
-                        <span className={styles.cardActionLabel}>
-                          {target.isFallback ? 'Belum ada halaman realisasi' : 'Buka di'}
-                        </span>
-                        <span className={styles.cardActionTarget}>
-                          {target.label}
-                          <ArrowRight size={14} aria-hidden="true" />
-                        </span>
+                        <span className={styles.cardActionLabel}>Rincian paket</span>
+                        {/* Tombol dibentangkan menutupi kartu lewat ::after, bukan
+                            membungkusnya: <button> hanya boleh berisi phrasing
+                            content, sedangkan kartu memuat <h3> dan <dl>. */}
+                        <button
+                          type="button"
+                          className={styles.cardActionTarget}
+                          aria-haspopup="dialog"
+                          aria-label={`Lihat detail paket ${row.nama_paket || row.kd_rup}`}
+                          onClick={() => setSelected(row)}
+                        >
+                          Lihat detail
+                          <ChevronRight size={14} aria-hidden="true" />
+                        </button>
                       </div>
-                    </Link>
+                    </div>
                   </li>
-                );
-              })}
+              ))}
             </ul>
           )}
         </>
       )}
+
+      <PaketDetailModal
+        isOpen={selected != null}
+        onClose={() => setSelected(null)}
+        title="Detail Paket"
+        historyData={historyData}
+        loadingHistory={loadingHistory}
+        kdRup={selected?.kd_rup}
+        statusKurasi={selected?.status_kurasi ?? undefined}
+        catatanKurasi={selected?.catatan_kurasi ?? undefined}
+        rekomendasiKurasi={detail?.realisasi?.rekomendasi_kurasi ?? undefined}
+        footer={selected ? <RealisasiLink row={selected} ppkName={ppkName} /> : undefined}
+      >
+        {selected && (
+          <NotifikasiDetailBody item={selected} detail={detail} loading={loadingDetail} />
+        )}
+      </PaketDetailModal>
     </div>
+  );
+}
+
+/**
+ * Tautan lanjut dari panel detail ke halaman Realisasi paket ini — sudah terbawa
+ * filter PPK dan pencarian kode RUP-nya, jadi paket langsung tersorot di sana.
+ * Sebagian metode (mis. Dikecualikan) tidak punya halaman Realisasi sendiri;
+ * realisasiTargetFor mengembalikan Risiko Pengadaan sebagai gantinya.
+ */
+function RealisasiLink({ row, ppkName }: { row: NotifikasiItem; ppkName: string }) {
+  const target = realisasiTargetFor(row, ppkName);
+  return (
+    <Link href={target.href} className={styles.modalCta}>
+      <span className={styles.modalCtaText}>
+        {target.isFallback ? 'Belum ada halaman Realisasi — buka' : 'Buka di'}{' '}
+        <strong>{target.label}</strong>
+      </span>
+      <ArrowRight size={16} aria-hidden="true" />
+    </Link>
   );
 }
 
 function PageHeader({ action }: { action?: React.ReactNode }) {
   return (
     <header className={styles.header}>
-      <div>
+      <div className={styles.headerText}>
         <h1 className={styles.title}>Notifikasi</h1>
         <p className={styles.subtitle}>
           Seluruh paket di bawah tanggung jawab Anda beserta hal yang perlu diperhatikan —
