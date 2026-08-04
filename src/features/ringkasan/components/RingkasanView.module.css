@@ -20,7 +20,6 @@
   font-size: 14px;
   color: var(--text-secondary);
   margin: 6px 0 0;
-  max-width: 640px;
   line-height: 1.5;
 }
 
@@ -381,7 +380,6 @@
   font-size: 13px;
   line-height: 1.5;
   color: var(--text-secondary);
-  max-width: 68ch;
 }
 
 .scopeNoteIcon {
