@@ -21,6 +21,9 @@ export function KurasiMetodeChart({ metode }: { metode: MetodeAggregate[] }) {
   const isDark = useIsDark();
   const ink = chartInk(isDark);
 
+  const inkRef = React.useRef(ink);
+  inkRef.current = ink;
+
   const { data, options, plugins } = useMemo(() => {
     const labels = metode.map((m) => m.metode);
 
@@ -45,7 +48,7 @@ export function KurasiMetodeChart({ metode }: { metode: MetodeAggregate[] }) {
                 const centerX = (element.x + element.base) / 2;
                 const centerY = element.y;
                 // Belum Dikurasi (i === 2) warnanya abu-abu terang, jadi pakai ink.valueText. Sisanya putih.
-                ctx.fillStyle = i === 2 ? ink.valueText : '#ffffff';
+                ctx.fillStyle = i === 2 ? inkRef.current.valueText : '#ffffff';
                 ctx.fillText(fmtInt(val), centerX, centerY);
               }
             }
