@@ -222,7 +222,7 @@ export function LandingHero() {
 
           <motion.div custom={3} variants={fadeUp} initial="hidden" animate={animate} className={styles.actions}>
             <Link href="/login" className={styles.primaryBtn}>
-              Masuk ke Sistem
+              Masuk
               <ArrowRight size={17} />
             </Link>
           </motion.div>

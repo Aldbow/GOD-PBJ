@@ -20,7 +20,6 @@
   font-size: 14px;
   color: var(--text-secondary);
   margin: 6px 0 0;
-  max-width: 640px;
   line-height: 1.5;
 }
 
@@ -336,6 +335,79 @@
   text-align: center;
   color: var(--text-secondary);
   padding: 28px 0;
+}
+
+/* Baris 2 (role PPK) — pemilih lingkup data. Wadahnya sengaja identik dengan
+   .wrap milik RingkasanFilter yang digantikannya di slot yang sama, supaya
+   pergantian peran tidak mengubah bentuk halaman. Mekanik toggle-nya diwarisi
+   utuh dari .segmentedControl di atas. */
+.scopeBar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 24px;
+}
+
+.scopeBarRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.scopeBarLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.scopeBarLabel svg {
+  color: var(--info-600);
+  flex-shrink: 0;
+}
+
+/* Menjelaskan absennya rincian per-paket, jadi harus terbaca sebagai batasan
+   yang disengaja — bukan sekadar keterangan tambahan. */
+.scopeNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.scopeNoteIcon {
+  color: var(--warn-700, #b45309);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.scopeInfo {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 12px 0 0;
+}
+.scopeInfo b { color: var(--text-primary); font-weight: 600; }
+
+.segmentedBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .scopeBarRow { align-items: stretch; }
+  .scopeBarRow .segmentedControl { width: 100%; }
+}
+
+/* Pil geser tidak boleh jadi gerakan yang tak diminta. */
+@media (prefers-reduced-motion: reduce) {
+  .segmentedBg { transition: none; }
 }
 
 /* Baris 7 — ITKP + Kurasi + tabel paket perlu koreksi, stack penuh 1 kolom */
