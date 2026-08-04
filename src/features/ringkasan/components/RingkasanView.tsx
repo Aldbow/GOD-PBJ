@@ -455,7 +455,6 @@ export function RingkasanView() {
               ? 'Gambaran umum pengadaan, realisasi, pemanfaatan sistem, dan hasil kurasi paket pada satuan kerja Anda.'
               : 'Gambaran umum pelaksanaan pengadaan, realisasi, pemanfaatan sistem, dan hasil kurasi paket.'}
           </p>
-          <p className={styles.pagePeriod}>Data terakhir diperbarui {updatedLabel}</p>
         </div>
         <div className={styles.headerActions} data-exclude-print="true">
           <button className={styles.ghostBtn} onClick={handleDownloadPdf} disabled={loading || downloadingPdf}>

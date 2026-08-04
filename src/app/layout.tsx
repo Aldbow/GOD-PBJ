@@ -37,6 +37,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" data-theme="light" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                let theme = localStorage.getItem('theme');
+                if (!theme) {
+                  theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                document.documentElement.setAttribute('data-theme', theme);
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
       <body className={`${plexSans.variable} ${plexMono.variable}`} suppressHydrationWarning>
         {children}
       </body>

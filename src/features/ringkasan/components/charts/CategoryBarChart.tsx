@@ -65,11 +65,13 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
   const dataRef = React.useRef(data);
   const getLabelRef = React.useRef(getLabel);
   const modeRef = React.useRef(mode);
+  const inkRef = React.useRef(ink);
 
   // Update refs secara sinkron agar plugin (yang dipanggil saat draw) selalu punya data terbaru
   dataRef.current = data;
   getLabelRef.current = getLabel;
   modeRef.current = mode;
+  inkRef.current = ink;
 
   const endLabelPlugin = useMemo<Plugin<'bar'>>(
     () => ({
@@ -101,7 +103,7 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
           const pctText = pct.toFixed(1).replace('.', ',') + '%';
 
           ctx.textAlign = 'left';
-          ctx.fillStyle = ink.valueText;
+          ctx.fillStyle = inkRef.current.valueText;
           ctx.fillText(pctText, bar1.x + 6, bar1.y);
 
           const bar0 = meta0.data[i];
@@ -111,14 +113,14 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
             ctx.fillText(valText, bar0.x - 6, bar0.y);
           } else if (pct >= 0) {
             ctx.textAlign = 'left';
-            ctx.fillStyle = ink.valueText;
+            ctx.fillStyle = inkRef.current.valueText;
             ctx.fillText(valText, bar0.x + 6, bar0.y);
           }
         });
         ctx.restore();
       },
     }),
-    [ink.valueText, ink.tick, isDark]
+    []
   );
 
   const { chartData, options } = useMemo(() => {
