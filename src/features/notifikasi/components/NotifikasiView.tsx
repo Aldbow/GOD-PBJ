@@ -8,6 +8,7 @@ import {
   Bell,
   CheckCircle2,
   ChevronRight,
+  ExternalLink,
   Loader2,
   RefreshCw,
   ScanSearch,
@@ -38,6 +39,10 @@ const ANOMALI_TYPES: AlertType[] = ['anomali_tanpa_rup', 'anomali_lebih_pagu'];
 
 /** Konstan supaya RupHistoryTimeline tidak menerima array baru tiap render. */
 const EMPTY_HISTORY: RupHistoryEntry[] = [];
+
+/** Formulir klarifikasi paket milik UKPBJ — hanya ditawarkan kepada role PPK,
+ * karena merekalah yang bertanggung jawab menjelaskan temuan pada paketnya. */
+const KLARIFIKASI_FORM_URL = 'https://forms.gle/sKEvJkYEEjdgBdgf7';
 
 export function NotifikasiView() {
   const session = useSession();
@@ -368,7 +373,15 @@ export function NotifikasiView() {
         statusKurasi={selected?.status_kurasi ?? undefined}
         catatanKurasi={selected?.catatan_kurasi ?? undefined}
         rekomendasiKurasi={detail?.realisasi?.rekomendasi_kurasi ?? undefined}
-        footer={selected ? <RealisasiLink row={selected} ppkName={ppkName} /> : undefined}
+        footer={
+          selected ? (
+            <PanelActions
+              row={selected}
+              ppkName={ppkName}
+              showKlarifikasi={session.role === 'ppk'}
+            />
+          ) : undefined
+        }
       >
         {selected && (
           <NotifikasiDetailBody item={selected} detail={detail} loading={loadingDetail} />
@@ -379,21 +392,49 @@ export function NotifikasiView() {
 }
 
 /**
- * Tautan lanjut dari panel detail ke halaman Realisasi paket ini — sudah terbawa
- * filter PPK dan pencarian kode RUP-nya, jadi paket langsung tersorot di sana.
- * Sebagian metode (mis. Dikecualikan) tidak punya halaman Realisasi sendiri;
- * realisasiTargetFor mengembalikan Risiko Pengadaan sebagai gantinya.
+ * Dua jalan keluar dari panel detail: memeriksa datanya sendiri di halaman
+ * Realisasi, atau menjelaskan temuannya lewat formulir klarifikasi. Yang pertama
+ * jadi aksi utama karena tetap di dalam aplikasi; yang kedua hanya muncul untuk
+ * PPK dan ditandai sebagai tautan keluar.
+ *
+ * Tautan Realisasi sudah membawa filter PPK dan pencarian kode RUP-nya, jadi
+ * paket langsung tersorot di sana. Sebagian metode (mis. Dikecualikan) tidak
+ * punya halaman Realisasi sendiri; realisasiTargetFor mengembalikan Risiko
+ * Pengadaan sebagai gantinya.
  */
-function RealisasiLink({ row, ppkName }: { row: NotifikasiItem; ppkName: string }) {
+function PanelActions({
+  row,
+  ppkName,
+  showKlarifikasi,
+}: {
+  row: NotifikasiItem;
+  ppkName: string;
+  showKlarifikasi: boolean;
+}) {
   const target = realisasiTargetFor(row, ppkName);
   return (
-    <Link href={target.href} className={styles.modalCta}>
-      <span className={styles.modalCtaText}>
-        {target.isFallback ? 'Belum ada halaman Realisasi — buka' : 'Buka di'}{' '}
-        <strong>{target.label}</strong>
-      </span>
-      <ArrowRight size={16} aria-hidden="true" />
-    </Link>
+    <div className={styles.modalActions}>
+      <Link href={target.href} className={styles.modalCta}>
+        <span className={styles.modalCtaText}>
+          {target.isFallback ? 'Belum ada halaman Realisasi — buka' : 'Buka di'}{' '}
+          <strong>{target.label}</strong>
+        </span>
+        <ArrowRight size={16} aria-hidden="true" />
+      </Link>
+
+      {showKlarifikasi && (
+        <a
+          href={KLARIFIKASI_FORM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.modalSecondary}
+          aria-label="Ajukan klarifikasi paket — membuka formulir di tab baru"
+        >
+          Ajukan Klarifikasi
+          <ExternalLink size={14} aria-hidden="true" />
+        </a>
+      )}
+    </div>
   );
 }
 

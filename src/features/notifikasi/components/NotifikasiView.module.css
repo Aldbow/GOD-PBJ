@@ -419,12 +419,22 @@
 
 /* ---------- Aksi di dasar panel detail ---------- */
 
+/* Rasio flex-grow 3:1 menjaga aksi utama tetap dominan saat keduanya sebaris,
+   dan basis yang lebar membuat keduanya melipat jadi satu kolom penuh di panel
+   sempit alih-alih berdesakan. */
+.modalActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 .modalCta {
   display: flex;
+  flex: 3 1 260px;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  width: 100%;
   padding: 12px 16px;
   font-size: var(--fs-md);
   color: var(--surface);
@@ -451,6 +461,33 @@
 
 .modalCtaText strong {
   font-weight: 600;
+}
+
+.modalSecondary {
+  display: inline-flex;
+  flex: 1 1 170px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.modalSecondary:hover {
+  background: var(--surface-hover);
+  border-color: var(--text-tertiary);
+}
+
+.modalSecondary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ---------- Keadaan kosong / gagal ---------- */
