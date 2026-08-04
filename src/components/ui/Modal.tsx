@@ -10,9 +10,11 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
+  /** Aksi yang harus tetap terlihat saat isi panel di-scroll (mis. tombol lanjut ke halaman lain). */
+  footer?: React.ReactNode;
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) {
   
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -66,6 +68,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
               <div className={styles.content}>
                 {children}
               </div>
+              {footer && <div className={styles.footer}>{footer}</div>}
             </motion.div>
           </motion.div>
         )}

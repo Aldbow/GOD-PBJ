@@ -164,7 +164,9 @@
   font-weight: 600;
   color: var(--text-primary);
 }
-.warn .flag { color: #8a5f00; }
+/* Flag menempel di kartu Total Realisasi, jadi variannya good (target tercapai)
+   atau danger (di bawah target) — warnanya disamakan dengan .good/.danger .icon. */
+.good .flag { color: #0a7d0a; }
 .danger .flag { color: var(--red-700); }
 
-:global([data-theme='dark']) .warn .flag { color: #f0c34d; }
+:global([data-theme='dark']) .good .flag { color: #4ade80; }

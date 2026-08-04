@@ -19,8 +19,9 @@ function fmtRupiahKpi(m: number): string {
   return `Rp${fmtInt(n)}`;
 }
 
-// Target realisasi kumulatif per triwulan (persen dari pagu), dinilai dari
-// Total Realisasi. Indeks 0 = TW1.
+// Target realisasi kumulatif per triwulan (persen dari pagu). Dinilai dari
+// pctRealisasi dan ditandai pada kartu Total Realisasi — kartu yang angkanya
+// memang dinilai. Indeks 0 = TW1.
 const TARGET_TRIWULAN = [20, 50, 80, 100] as const;
 
 // Triwulan berjalan menurut tanggal saat ini. Halaman Ringkasan tidak punya
@@ -87,20 +88,10 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
       key: 'realisasi',
       label: 'Total Realisasi',
       value: fmtRupiahKpi(kpi.totalRealisasi),
-      icon: TrendingUp,
-      hint: `${fmtPct(kpi.pctRealisasi)} dari pagu`,
-      progress: kpi.pctRealisasi,
-      variant: 'good',
-      tooltip: 'Total nilai realisasi/kontrak yang sudah terserap dibanding pagu.',
-    },
-    {
-      key: 'belum',
-      label: 'Belum Realisasi',
-      value: fmtRupiahKpi(kpi.belumRealisasi),
-      icon: dibawahTarget ? AlertTriangle : Hourglass,
+      icon: dibawahTarget ? AlertTriangle : TrendingUp,
       hint: (
         <>
-          {fmtPct(belumPct)} dari pagu
+          {fmtPct(kpi.pctRealisasi)} dari pagu
           {targetDinilai === null ? (
             <> · penilaian target mulai TW2</>
           ) : (
@@ -117,14 +108,24 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
           )}
         </>
       ),
-      progress: belumPct,
-      variant: dibawahTarget ? 'danger' : 'warn',
+      progress: kpi.pctRealisasi,
+      variant: dibawahTarget ? 'danger' : 'good',
       tooltip:
-        `Selisih pagu dikurangi realisasi, yaitu anggaran yang belum terserap. ` +
+        `Total nilai realisasi/kontrak yang sudah terserap dibanding pagu. ` +
         `Target realisasi kumulatif: TW1 20%, TW2 50%, TW3 80%, TW4 100%. ` +
         (targetDinilai === null
           ? `Yang dinilai selalu triwulan terakhir yang sudah selesai; TW1 masih berjalan sehingga belum ada target yang jatuh tempo.`
           : `Yang dinilai triwulan terakhir yang sudah selesai. Kini TW${triwulan} berjalan, jadi acuannya target TW${triwulanDinilai} (${targetDinilai}%). Realisasi saat ini ${fmtPct(kpi.pctRealisasi)}.`),
+    },
+    {
+      key: 'belum',
+      label: 'Belum Realisasi',
+      value: fmtRupiahKpi(kpi.belumRealisasi),
+      icon: Hourglass,
+      hint: `${fmtPct(belumPct)} dari pagu`,
+      progress: belumPct,
+      variant: 'warn',
+      tooltip: 'Selisih pagu dikurangi realisasi, yaitu anggaran yang belum terserap.',
     },
     {
       key: 'totalPaket',
