@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Portal } from './Portal';
-import { X, FileSpreadsheet, FileText, FileDown, CheckSquare, Square, Download } from 'lucide-react';
+import { X, FileSpreadsheet, FileText, FileDown, CheckSquare, Square, Download, Lock } from 'lucide-react';
 import { exportToExcel, exportToPDF, exportToCSV, ExportColumn } from '@/lib/utils/exportUtils';
 import styles from './ExportDataModal.module.css';
 
@@ -13,16 +13,27 @@ interface ExportDataModalProps {
   columns: any[];
   allData: any[]; // Total raw data available
   filteredData: any[]; // Data currently matching filters
+  /**
+   * Cakupan data sudah ditentukan oleh kebijakan akses, bukan oleh pengguna —
+   * pilihan Terfilter/Semua disembunyikan dan `filteredData` selalu dipakai.
+   * Tanpa ini, dua radio dengan jumlah baris identik akan tampak seperti
+   * pilihan padahal bukan.
+   */
+  scopeLocked?: boolean;
+  /** Alasan penguncian, ditampilkan di tempat grup radio. */
+  scopeNotice?: string;
 }
 
-export function ExportDataModal({ 
-  isOpen, 
-  onClose, 
-  title, 
-  filename, 
-  columns, 
-  allData, 
-  filteredData 
+export function ExportDataModal({
+  isOpen,
+  onClose,
+  title,
+  filename,
+  columns,
+  allData,
+  filteredData,
+  scopeLocked = false,
+  scopeNotice
 }: ExportDataModalProps) {
   const [selectedFormat, setSelectedFormat] = useState<'excel' | 'pdf' | 'csv'>('excel');
   const [dataScope, setDataScope] = useState<'filtered' | 'all'>('filtered');
@@ -61,7 +72,7 @@ export function ExportDataModal({
 
     try {
       const activeColumns = columns.filter(c => selectedColumns.includes(c.key));
-      const activeData = dataScope === 'all' ? allData : filteredData;
+      const activeData = !scopeLocked && dataScope === 'all' ? allData : filteredData;
 
       const exportOptions = {
         filename,
@@ -141,28 +152,38 @@ export function ExportDataModal({
             {/* Data Scope Selection */}
             <div className={styles.section}>
               <h4 className={styles.sectionTitle}>Cakupan Data</h4>
-              <div className={styles.scopeOptions}>
-                <label className={styles.radioLabel}>
-                  <input 
-                    type="radio" 
-                    name="dataScope" 
-                    value="filtered" 
-                    checked={dataScope === 'filtered'}
-                    onChange={() => setDataScope('filtered')}
-                  />
-                  <span>Data Terfilter ({filteredData.length} baris)</span>
-                </label>
-                <label className={styles.radioLabel}>
-                  <input 
-                    type="radio" 
-                    name="dataScope" 
-                    value="all" 
-                    checked={dataScope === 'all'}
-                    onChange={() => setDataScope('all')}
-                  />
-                  <span>Semua Data ({allData.length} baris)</span>
-                </label>
-              </div>
+              {scopeLocked ? (
+                <div className={styles.scopeLocked}>
+                  <Lock size={15} className={styles.scopeLockedIcon} />
+                  <div>
+                    <p className={styles.scopeLockedValue}>{filteredData.length} baris</p>
+                    {scopeNotice && <p className={styles.scopeLockedNote}>{scopeNotice}</p>}
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.scopeOptions}>
+                  <label className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      name="dataScope"
+                      value="filtered"
+                      checked={dataScope === 'filtered'}
+                      onChange={() => setDataScope('filtered')}
+                    />
+                    <span>Data Terfilter ({filteredData.length} baris)</span>
+                  </label>
+                  <label className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      name="dataScope"
+                      value="all"
+                      checked={dataScope === 'all'}
+                      onChange={() => setDataScope('all')}
+                    />
+                    <span>Semua Data ({allData.length} baris)</span>
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* Column Selection */}
