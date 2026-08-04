@@ -1,38 +1,25 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Loader2, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Bell, Loader2, CheckCircle2, AlertTriangle, RefreshCw, ArrowRight } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionProvider';
-import { supabase } from '@/lib/supabase';
 import { fmtRupiah } from '@/lib/format';
+import {
+  fetchPpkNotifikasi,
+  hasActionableType,
+  realisasiTargetFor,
+  ALERT_TYPE_META,
+  NOTIFIKASI_PATH,
+  type NotifikasiItem,
+} from '@/lib/notifikasi/alerts';
 import Link from 'next/link';
 import styles from './PpkNotificationBell.module.css';
 
-interface NotifItem {
-  kd_rup: string;
-  nama_paket: string | null;
-  pagu: number | null;
-  execution_status: string;
-  kategori: string;
-}
-
 type FetchState = 'idle' | 'ready' | 'error';
 
-const RISIKO_PATH = '/risiko-pengadaan';
-/** Diambil lebih banyak dari yang ditampilkan supaya urutan keparahan dihitung di klien. */
-const FETCH_LIMIT = 20;
 const DISPLAY_LIMIT = 5;
 /** Data risiko dihitung ulang lewat /api/risiko/recalculate, bukan realtime — polling lima menit cukup. */
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
-
-/** Paket yang belum jalan DAN berisiko tinggi harus tampil di atas paket yang cuma kena satu kondisi. */
-function severity(item: NotifItem): number {
-  const belum = item.execution_status === 'BELUM_DILAKSANAKAN';
-  const tinggi = item.kategori === 'TINGGI';
-  if (belum && tinggi) return 2;
-  if (tinggi) return 1;
-  return 0;
-}
 
 export function PpkNotificationBell() {
   const session = useSession();
@@ -40,7 +27,7 @@ export function PpkNotificationBell() {
   const [state, setState] = useState<FetchState>('idle');
   /** Hanya untuk pengambilan ulang yang dipicu pengguna (buka dropdown / tombol coba lagi). */
   const [refreshing, setRefreshing] = useState(false);
-  const [items, setItems] = useState<NotifItem[]>([]);
+  const [items, setItems] = useState<NotifikasiItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -63,31 +50,20 @@ export function PpkNotificationBell() {
     // dalam useEffect, dan setState sinkron di badan efek memicu render berantai.
     const requestId = ++requestIdRef.current;
 
-    const { data, error, count } = await supabase
-      .from('risiko_pengadaan')
-      .select('kd_rup, nama_paket, pagu, execution_status, kategori', { count: 'exact' })
-      .eq('nama_ppk', ppkName)
-      .or('execution_status.eq.BELUM_DILAKSANAKAN,kategori.eq.TINGGI')
-      // nullsFirst wajib false: default Postgres untuk DESC adalah NULLS FIRST, sehingga
-      // paket tanpa pagu justru menempati puncak daftar "pagu terbesar".
-      .order('pagu', { ascending: false, nullsFirst: false })
-      .limit(FETCH_LIMIT);
-
-    if (requestId !== requestIdRef.current) return;
-
-    if (error) {
-      console.error('[PpkNotificationBell] gagal memuat peringatan paket:', error);
+    try {
+      const all = await fetchPpkNotifikasi(ppkName);
+      if (requestId !== requestIdRef.current) return;
+      // Lonceng hanya memuat yang perlu ditindak; risiko sedang/rendah dan data
+      // tidak lengkap tetap bisa dilihat lengkap di halaman /notifikasi.
+      const actionable = all.filter(hasActionableType);
+      setItems(actionable.slice(0, DISPLAY_LIMIT));
+      setTotalCount(actionable.length);
+      setState('ready');
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+      console.error('[PpkNotificationBell] gagal memuat notifikasi:', err);
       setState('error');
-      return;
     }
-
-    const rows = ((data ?? []) as NotifItem[])
-      .slice()
-      .sort((a, b) => severity(b) - severity(a) || (b.pagu ?? 0) - (a.pagu ?? 0));
-
-    setItems(rows.slice(0, DISPLAY_LIMIT));
-    setTotalCount(count ?? rows.length);
-    setState('ready');
   }, [isPpk, ppkName]);
 
   /** Pembungkus untuk pemicu dari event handler, supaya spinner muncul saat pengguna menunggu. */
@@ -146,19 +122,6 @@ export function PpkNotificationBell() {
     };
   }, [isOpen, close]);
 
-  // Rutenya /risiko-pengadaan (lihat nav.ts) — bukan /risiko, yang tidak ada dan berujung 404.
-  // Query p = filter PPK dan q = pencarian, sesuai kontrak useOrgFilters.
-  const riskHref = useCallback(
-    (kdRup?: string) => {
-      const params = new URLSearchParams();
-      if (ppkName) params.set('p', ppkName);
-      if (kdRup) params.set('q', kdRup);
-      const qs = params.toString();
-      return qs ? `${RISIKO_PATH}?${qs}` : RISIKO_PATH;
-    },
-    [ppkName]
-  );
-
   if (!isPpk) return null;
 
   const hasAlerts = state === 'ready' && totalCount > 0;
@@ -185,12 +148,10 @@ export function PpkNotificationBell() {
         aria-expanded={isOpen}
         aria-controls="ppk-notif-dropdown"
         aria-label={
-          hasAlerts
-            ? `Peringatan paket: ${totalCount} paket perlu perhatian`
-            : 'Peringatan paket'
+          hasAlerts ? `Notifikasi: ${totalCount} paket perlu tindakan` : 'Notifikasi'
         }
       >
-        <Bell size={18} className={styles.bellIcon} aria-hidden="true" />
+        <Bell size={16} className={styles.bellIcon} aria-hidden="true" />
         {hasAlerts && (
           <span className={styles.badge} aria-hidden="true">
             {badgeLabel}
@@ -204,10 +165,10 @@ export function PpkNotificationBell() {
           id="ppk-notif-dropdown"
           className={styles.dropdown}
           role="dialog"
-          aria-label="Perhatian PPK"
+          aria-label="Notifikasi paket"
         >
           <div className={styles.header}>
-            <h3 className={styles.headerTitle}>Perhatian PPK</h3>
+            <h3 className={styles.headerTitle}>Perlu Tindakan</h3>
             {hasAlerts && <span className={styles.headerCount}>{totalCount} Paket</span>}
           </div>
 
@@ -218,7 +179,7 @@ export function PpkNotificationBell() {
                   <AlertTriangle size={28} />
                 </div>
                 <span className={styles.emptyText}>
-                  Profil Anda belum tertaut ke nama PPK, jadi peringatan paket belum bisa
+                  Profil Anda belum tertaut ke nama PPK, jadi notifikasi paket belum bisa
                   ditampilkan. Hubungi admin untuk melengkapinya.
                 </span>
               </div>
@@ -233,7 +194,7 @@ export function PpkNotificationBell() {
                   <AlertTriangle size={28} />
                 </div>
                 <span className={styles.emptyText}>
-                  Gagal memuat peringatan paket. Periksa koneksi Anda lalu coba lagi.
+                  Gagal memuat notifikasi. Periksa koneksi Anda lalu coba lagi.
                 </span>
                 <button type="button" className={styles.retryBtn} onClick={refresh} disabled={refreshing}>
                   <RefreshCw size={14} aria-hidden="true" className={refreshing ? styles.spin : undefined} />
@@ -246,46 +207,60 @@ export function PpkNotificationBell() {
                   <CheckCircle2 size={28} />
                 </div>
                 <span className={styles.emptyText}>
-                  Semua paket di bawah pantauan Anda dalam kondisi aman dan sudah berjalan!
+                  Tidak ada paket yang perlu tindakan. Rincian lengkap semua paket tetap bisa
+                  dilihat di halaman Notifikasi.
                 </span>
               </div>
             ) : (
-              items.map((item) => (
-                <Link
-                  href={riskHref(item.kd_rup)}
-                  key={item.kd_rup}
-                  prefetch={false}
-                  className={styles.item}
-                  onClick={() => close()}
-                >
-                  <div className={styles.itemHeader}>
-                    <p className={styles.itemName} title={item.nama_paket ?? undefined}>
-                      {item.nama_paket || 'Tanpa Nama'}
-                    </p>
-                  </div>
-                  <div className={styles.itemTags}>
-                    {item.execution_status === 'BELUM_DILAKSANAKAN' && (
-                      <span className={`${styles.tag} ${styles.tagWarning}`}>Belum Dilaksanakan</span>
-                    )}
-                    {item.kategori === 'TINGGI' && (
-                      <span className={`${styles.tag} ${styles.tagDanger}`}>Risiko Tinggi</span>
-                    )}
-                  </div>
-                  <div className={styles.itemFooter}>
-                    <span>{item.kd_rup}</span>
-                    <span className={styles.itemPagu}>{fmtRupiah(item.pagu ?? 0)}</span>
-                  </div>
-                </Link>
-              ))
+              items.map((item) => {
+                const target = realisasiTargetFor(item, ppkName);
+                return (
+                  <Link
+                    href={target.href}
+                    key={item.kd_rup}
+                    prefetch={false}
+                    className={styles.item}
+                    onClick={() => close()}
+                  >
+                    <div className={styles.itemHeader}>
+                      <p className={styles.itemName} title={item.nama_paket ?? undefined}>
+                        {item.nama_paket || 'Tanpa Nama'}
+                      </p>
+                    </div>
+                    <div className={styles.itemTags}>
+                      {item.types.map((type) => (
+                        <span
+                          key={type}
+                          className={`${styles.tag} ${styles[`tone_${ALERT_TYPE_META[type].tone}`]}`}
+                        >
+                          {ALERT_TYPE_META[type].label}
+                        </span>
+                      ))}
+                    </div>
+                    <div className={styles.itemFooter}>
+                      <span className={styles.itemTarget}>
+                        {target.label}
+                        <ArrowRight size={12} aria-hidden="true" />
+                      </span>
+                      <span className={styles.itemPagu}>{fmtRupiah(item.pagu ?? 0)}</span>
+                    </div>
+                  </Link>
+                );
+              })
             )}
           </div>
 
-          {items.length > 0 && state !== 'error' && (
+          {state !== 'error' && ppkName && (
             <div className={styles.footer}>
-              <Link href={riskHref()} prefetch={false} className={styles.viewAllBtn} onClick={() => close()}>
+              <Link
+                href={NOTIFIKASI_PATH}
+                prefetch={false}
+                className={styles.viewAllBtn}
+                onClick={() => close()}
+              >
                 {totalCount > items.length
-                  ? `Lihat semua ${totalCount} paket di Risiko Pengadaan`
-                  : 'Lihat Semua di Risiko Pengadaan'}
+                  ? `Lihat semua ${totalCount} notifikasi`
+                  : 'Lihat semua notifikasi'}
               </Link>
             </div>
           )}

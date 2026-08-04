@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap, ListChecks, Star, Database, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap, ListChecks, Star, Database, ShieldAlert, Bell } from 'lucide-react';
 import type { Role } from '@/types';
 import { canAccess } from '@/lib/auth/access';
 
@@ -21,6 +21,15 @@ export const NAV_GROUPS: NavGroup[] = [
     label: null,
     links: [
       { name: 'Ringkasan', href: '/ringkasan', icon: React.createElement(LayoutDashboard, { size: 18 }) },
+      // Khusus PPK — halaman ini menampilkan paket milik PPK ybs, jadi tidak ada
+      // artinya untuk role lain. Terdaftar di sini (bukan hanya sebagai rute lepas)
+      // supaya breadcrumb Topbar lewat findActiveEntry mengenali /notifikasi.
+      {
+        name: 'Notifikasi',
+        href: '/notifikasi',
+        icon: React.createElement(Bell, { size: 18 }),
+        roles: ['ppk'],
+      },
     ],
   },
   {
