@@ -1,0 +1,377 @@
+"use client";
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import {
+  AlertTriangle,
+  ArrowRight,
+  Bell,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  ScanSearch,
+  ShieldAlert,
+} from 'lucide-react';
+import { useSession } from '@/components/auth/SessionProvider';
+import { fmtRupiah } from '@/lib/format';
+import {
+  fetchPpkNotifikasi,
+  hasActionableType,
+  realisasiTargetFor,
+  ALERT_TYPE_META,
+  ALERT_TYPE_ORDER,
+  type AlertType,
+  type NotifikasiItem,
+} from '@/lib/notifikasi/alerts';
+import styles from './NotifikasiView.module.css';
+
+type FetchState = 'idle' | 'ready' | 'error';
+/** 'semua' dan 'tindakan' adalah saringan lintas jenis; sisanya per AlertType. */
+type FilterKey = 'semua' | 'tindakan' | AlertType;
+
+const ANOMALI_TYPES: AlertType[] = ['anomali_tanpa_rup', 'anomali_lebih_pagu'];
+
+export function NotifikasiView() {
+  const session = useSession();
+  const [state, setState] = useState<FetchState>('idle');
+  const [refreshing, setRefreshing] = useState(false);
+  const [rows, setRows] = useState<NotifikasiItem[]>([]);
+  const [filter, setFilter] = useState<FilterKey>('tindakan');
+  const requestIdRef = useRef(0);
+
+  const ppkName = useMemo(
+    () => (session.ppk_name || session.full_name || '').trim(),
+    [session.ppk_name, session.full_name]
+  );
+
+  const fetchData = useCallback(async () => {
+    if (!ppkName) return;
+    const requestId = ++requestIdRef.current;
+    try {
+      const data = await fetchPpkNotifikasi(ppkName);
+      if (requestId !== requestIdRef.current) return;
+      setRows(data);
+      setState('ready');
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+      console.error('[NotifikasiView] gagal memuat notifikasi:', err);
+      setState('error');
+    }
+  }, [ppkName]);
+
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchData();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (!ppkName) return;
+    fetchData();
+  }, [ppkName, fetchData]);
+
+  const counts = useMemo(() => {
+    const byType = {} as Record<AlertType, number>;
+    for (const type of ALERT_TYPE_ORDER) byType[type] = 0;
+    let tindakan = 0;
+    for (const row of rows) {
+      for (const type of row.types) byType[type] += 1;
+      if (hasActionableType(row)) tindakan += 1;
+    }
+    return { byType, tindakan, semua: rows.length };
+  }, [rows]);
+
+  const anomaliCount = useMemo(
+    () => rows.filter((r) => r.types.some((t) => ANOMALI_TYPES.includes(t))).length,
+    [rows]
+  );
+
+  const paguTindakan = useMemo(
+    () => rows.filter(hasActionableType).reduce((sum, r) => sum + (r.pagu ?? 0), 0),
+    [rows]
+  );
+
+  const visibleRows = useMemo(() => {
+    if (filter === 'semua') return rows;
+    if (filter === 'tindakan') return rows.filter(hasActionableType);
+    return rows.filter((r) => r.types.includes(filter));
+  }, [rows, filter]);
+
+  if (!ppkName) {
+    return (
+      <div className={styles.page}>
+        <PageHeader />
+        <div className={styles.stateCard}>
+          <div className={`${styles.stateIcon} ${styles.warnIcon}`}>
+            <AlertTriangle size={28} />
+          </div>
+          <h2 className={styles.stateTitle}>Profil belum tertaut</h2>
+          <p className={styles.stateText}>
+            Akun Anda belum tertaut ke nama PPK, sehingga notifikasi paket belum bisa
+            ditampilkan. Hubungi administrator UKPBJ untuk melengkapi profil Anda.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const showLoading = rows.length === 0 && (state === 'idle' || refreshing);
+
+  /** Hanya jenis yang benar-benar ada isinya yang jadi tombol saringan. */
+  const activeTypeFilters = ALERT_TYPE_ORDER.filter((type) => counts.byType[type] > 0);
+
+  return (
+    <div className={styles.page}>
+      <PageHeader
+        action={
+          <button type="button" className={styles.refreshBtn} onClick={refresh} disabled={refreshing}>
+            <RefreshCw size={14} aria-hidden="true" className={refreshing ? styles.spin : undefined} />
+            {refreshing ? 'Menyegarkan...' : 'Segarkan'}
+          </button>
+        }
+      />
+
+      {showLoading ? (
+        <div className={styles.stateCard}>
+          <Loader2 size={28} className={styles.spin} aria-hidden="true" />
+          <p className={styles.stateText}>Memuat notifikasi...</p>
+        </div>
+      ) : state === 'error' ? (
+        <div className={styles.stateCard}>
+          <div className={`${styles.stateIcon} ${styles.errorIcon}`}>
+            <AlertTriangle size={28} />
+          </div>
+          <h2 className={styles.stateTitle}>Gagal memuat notifikasi</h2>
+          <p className={styles.stateText}>
+            Data tidak dapat diambil dari server. Periksa koneksi Anda lalu coba lagi.
+          </p>
+          <button type="button" className={styles.refreshBtn} onClick={refresh} disabled={refreshing}>
+            <RefreshCw size={14} aria-hidden="true" className={refreshing ? styles.spin : undefined} />
+            Coba lagi
+          </button>
+        </div>
+      ) : rows.length === 0 ? (
+        <div className={styles.stateCard}>
+          <div className={`${styles.stateIcon} ${styles.okIcon}`}>
+            <CheckCircle2 size={28} />
+          </div>
+          <h2 className={styles.stateTitle}>Tidak ada notifikasi</h2>
+          <p className={styles.stateText}>
+            Belum ada paket di bawah pantauan Anda yang tercatat pada modul Risiko maupun
+            Realisasi.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className={styles.statRow}>
+            <StatCard icon={<Bell size={16} />} label="Total Paket" value={String(counts.semua)} />
+            {/* "Perlu Tindakan" adalah gabungan lima jenis (risiko tinggi, dua
+                anomali, belum dilaksanakan, kurasi tidak akurat) — kartu di
+                sebelahnya adalah rinciannya, jadi angkanya memang tumpang tindih. */}
+            <StatCard
+              icon={<ShieldAlert size={16} />}
+              label="Perlu Tindakan"
+              value={String(counts.tindakan)}
+              tone="danger"
+            />
+            <StatCard
+              icon={<ShieldAlert size={16} />}
+              label="Paket Risiko Tinggi"
+              value={String(counts.byType.risiko_tinggi)}
+              tone="danger"
+            />
+            <StatCard
+              icon={<ScanSearch size={16} />}
+              label="Anomali Realisasi"
+              value={String(anomaliCount)}
+              tone="danger"
+            />
+            <StatCard
+              icon={<AlertTriangle size={16} />}
+              label="Kurasi Tidak Akurat"
+              value={String(counts.byType.tidak_akurat)}
+              tone="warning"
+            />
+            <StatCard
+              icon={<span aria-hidden="true">Rp</span>}
+              label="Pagu Perlu Tindakan"
+              value={fmtRupiah(paguTindakan)}
+            />
+          </div>
+
+          <div className={styles.filters} role="group" aria-label="Saring notifikasi">
+            <FilterChip
+              label="Perlu Tindakan"
+              count={counts.tindakan}
+              active={filter === 'tindakan'}
+              onClick={() => setFilter('tindakan')}
+            />
+            <FilterChip
+              label="Semua"
+              count={counts.semua}
+              active={filter === 'semua'}
+              onClick={() => setFilter('semua')}
+            />
+            <span className={styles.filterDivider} aria-hidden="true" />
+            {activeTypeFilters.map((type) => (
+              <FilterChip
+                key={type}
+                label={ALERT_TYPE_META[type].label}
+                count={counts.byType[type]}
+                active={filter === type}
+                tone={ALERT_TYPE_META[type].tone}
+                onClick={() => setFilter(type)}
+              />
+            ))}
+          </div>
+
+          {visibleRows.length === 0 ? (
+            <div className={styles.stateCard}>
+              <div className={`${styles.stateIcon} ${styles.okIcon}`}>
+                <CheckCircle2 size={28} />
+              </div>
+              <p className={styles.stateText}>Tidak ada paket pada saringan ini.</p>
+            </div>
+          ) : (
+            <ul className={styles.list}>
+              {visibleRows.map((row) => {
+                const target = realisasiTargetFor(row, ppkName);
+                return (
+                  <li key={row.kd_rup}>
+                    <Link href={target.href} className={styles.card}>
+                      <div className={styles.cardMain}>
+                        <div className={styles.cardTags}>
+                          {row.types.map((type) => (
+                            <span
+                              key={type}
+                              className={`${styles.tag} ${styles[`tone_${ALERT_TYPE_META[type].tone}`]}`}
+                            >
+                              {ALERT_TYPE_META[type].label}
+                            </span>
+                          ))}
+                        </div>
+
+                        <h3 className={styles.cardTitle}>{row.nama_paket || 'Tanpa Nama'}</h3>
+
+                        <dl className={styles.meta}>
+                          <div className={styles.metaItem}>
+                            <dt>Kode RUP</dt>
+                            <dd className={styles.mono}>{row.kd_rup}</dd>
+                          </div>
+                          <div className={styles.metaItem}>
+                            <dt>Satker</dt>
+                            <dd>{row.satker || '-'}</dd>
+                          </div>
+                          <div className={styles.metaItem}>
+                            <dt>Metode</dt>
+                            <dd>{row.metode_pengadaan || row.jenis_paket || '-'}</dd>
+                          </div>
+                          <div className={styles.metaItem}>
+                            <dt>Pagu</dt>
+                            <dd className={styles.strongValue}>{fmtRupiah(row.pagu ?? 0)}</dd>
+                          </div>
+                          {row.realisasi != null && (
+                            <div className={styles.metaItem}>
+                              <dt>Realisasi</dt>
+                              <dd className={styles.strongValue}>{fmtRupiah(row.realisasi)}</dd>
+                            </div>
+                          )}
+                        </dl>
+
+                        {row.catatan_kurasi && row.types.includes('tidak_akurat') && (
+                          <p className={styles.note}>
+                            Catatan kurasi: <span>{row.catatan_kurasi}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      <div className={styles.cardAction}>
+                        <span className={styles.cardActionLabel}>
+                          {target.isFallback ? 'Belum ada halaman realisasi' : 'Buka di'}
+                        </span>
+                        <span className={styles.cardActionTarget}>
+                          {target.label}
+                          <ArrowRight size={14} aria-hidden="true" />
+                        </span>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function PageHeader({ action }: { action?: React.ReactNode }) {
+  return (
+    <header className={styles.header}>
+      <div>
+        <h1 className={styles.title}>Notifikasi</h1>
+        <p className={styles.subtitle}>
+          Seluruh paket di bawah tanggung jawab Anda beserta hal yang perlu diperhatikan —
+          kategori risiko, status pelaksanaan, anomali realisasi, dan hasil kurasi.
+        </p>
+      </div>
+      {action}
+    </header>
+  );
+}
+
+function FilterChip({
+  label,
+  count,
+  active,
+  tone,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  tone?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      className={`${styles.chip} ${active ? styles.chipActive : ''}`}
+      onClick={onClick}
+    >
+      {tone && <span className={`${styles.chipDot} ${styles[`dot_${tone}`]}`} aria-hidden="true" />}
+      {label}
+      <span className={styles.chipCount}>{count}</span>
+    </button>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  tone?: 'warning' | 'danger';
+}) {
+  const toneClass = tone === 'warning' ? styles.statWarning : tone === 'danger' ? styles.statDanger : '';
+  return (
+    <div className={styles.stat}>
+      <span className={`${styles.statIcon} ${toneClass}`} aria-hidden="true">
+        {icon}
+      </span>
+      <div className={styles.statBody}>
+        <span className={styles.statLabel}>{label}</span>
+        <span className={styles.statValue}>{value}</span>
+      </div>
+    </div>
+  );
+}

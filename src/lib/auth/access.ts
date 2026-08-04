@@ -19,6 +19,7 @@ export const ROUTE_ACCESS: Record<Role, string[] | '*'> = {
   // '/itkp/pemanfaatan-sistem' terkunci ke satker PPK ybs.
   ppk: [
     '/ringkasan',
+    '/notifikasi',
     '/itkp',
     '/epurchasing',
     '/tender',

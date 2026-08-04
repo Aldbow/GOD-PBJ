@@ -1,0 +1,466 @@
+/* Token mengikuti globals.css: surface / surface-2 / surface-hover, border,
+   text-primary/secondary/tertiary, dan ramp red/amber/teal yang sudah membalik
+   sendiri di [data-theme="dark"]. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ---------- Header ---------- */
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-3xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.subtitle {
+  margin: 0;
+  max-width: 68ch;
+  font-size: var(--fs-md);
+  line-height: var(--lh-base);
+  color: var(--text-secondary);
+}
+
+.refreshBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.refreshBtn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.refreshBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.refreshBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+  color: var(--text-tertiary);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Ringkasan angka ---------- */
+
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
+}
+
+.statIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.statWarning {
+  background: var(--amber-100);
+  color: var(--amber-600);
+}
+
+.statDanger {
+  background: var(--red-100);
+  color: var(--red-600);
+}
+
+.statBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.statLabel {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.statValue {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Saringan ---------- */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.filterDivider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 var(--space-1);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
+}
+
+.chip:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.chipActive {
+  color: var(--surface);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.chipActive:hover {
+  color: var(--surface);
+  background: var(--accent);
+}
+
+.chipCount {
+  padding: 1px 7px;
+  font-size: var(--fs-2xs);
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+}
+
+.chipActive .chipCount {
+  background: rgba(255, 255, 255, 0.22);
+  color: inherit;
+}
+
+/* Titik warna menyamakan chip saringan dengan tone label di kartu. */
+.chipDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot_danger { background: var(--red-600); }
+.dot_warning { background: var(--amber-600); }
+.dot_info { background: var(--info-600); }
+
+.chipActive .chipDot {
+  background: currentColor;
+}
+
+/* ---------- Daftar paket ---------- */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.card {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.card:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cardMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.cardTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  font-size: var(--fs-2xs);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+/* Empat tone mengikuti AlertTypeMeta.tone di lib/notifikasi/alerts.ts. */
+.tone_danger {
+  color: var(--red-700);
+  background-color: var(--red-100);
+  border-color: color-mix(in srgb, var(--red-600) 24%, transparent);
+}
+
+.tone_warning {
+  color: var(--amber-700);
+  background-color: var(--amber-100);
+  border-color: color-mix(in srgb, var(--amber-600) 24%, transparent);
+}
+
+.tone_info {
+  color: var(--info-700);
+  background-color: var(--info-100);
+  border-color: color-mix(in srgb, var(--info-600) 24%, transparent);
+}
+
+
+.cardTitle {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin: 2px 0 0;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.metaItem dt {
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+
+.metaItem dd {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* Ditulis sebagai .metaItem dd.strongValue, bukan .strongValue saja: aturan
+   `.metaItem dd` di atas lebih spesifik dan akan menang soal warna. */
+.metaItem dd.strongValue {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  margin: 2px 0 0;
+  max-width: 90ch;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
+  color: var(--text-tertiary);
+}
+
+.note span {
+  color: var(--text-secondary);
+}
+
+.cardAction {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.cardActionLabel {
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+
+.cardActionTarget {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ---------- Keadaan kosong / gagal ---------- */
+
+.stateCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.stateIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+}
+
+.okIcon {
+  background: var(--teal-100);
+  color: var(--teal-600);
+}
+
+.warnIcon {
+  background: var(--amber-100);
+  color: var(--amber-600);
+}
+
+.errorIcon {
+  background: var(--red-100);
+  color: var(--red-600);
+}
+
+.stateTitle {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stateText {
+  margin: 0;
+  max-width: 52ch;
+  font-size: var(--fs-md);
+  line-height: var(--lh-base);
+  color: var(--text-secondary);
+}
+
+/* ---------- Responsif ---------- */
+
+@media (max-width: 720px) {
+  .card {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .cardAction {
+    align-items: flex-start;
+    text-align: left;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border);
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation-duration: 2s;
+  }
+}
