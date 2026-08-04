@@ -70,14 +70,14 @@ export function OrgFilterBar({
     [data, ppkField, eselon1Field, satkerField, eselon1, satker]
   );
 
-  // Role PPK: scope terkunci ke PPK ybs → sembunyikan pemilih Eselon/Satker/PPK,
-  // sisakan hanya pencarian.
-  const { role } = useSession();
-  const orgSelectorsHidden = role === 'ppk';
+  // Role PPK: sembunyikan pemilih Eselon dan Satker, tapi biarkan pemilih PPK
+  // agar mereka bisa melihat PPK lain di dalam satkernya.
+  const { role, satker: profileSatker } = useSession();
+  const hideEselonSatker = role === 'ppk';
 
   return (
     <div className={styles.bar}>
-      {!orgSelectorsHidden && (
+      {!hideEselonSatker && (
         <>
           <SearchableSelect
             ariaLabel="Filter Eselon I"
@@ -95,16 +95,16 @@ export function OrgFilterBar({
             options={satkerOptions}
             placeholder="Semua Satker"
           />
-          <SearchableSelect
-            ariaLabel="Filter PPK"
-            className={styles.select}
-            value={ppk ?? ''}
-            onChange={(v) => onPpkChange(v || null)}
-            options={ppkOptions}
-            placeholder="Semua PPK"
-          />
         </>
       )}
+      <SearchableSelect
+        ariaLabel="Filter PPK"
+        className={styles.select}
+        value={ppk ?? ''}
+        onChange={(v) => onPpkChange(v || null)}
+        options={ppkOptions}
+        placeholder={role === 'ppk' ? `Semua PPK di ${profileSatker || 'Satker Anda'}` : "Semua PPK"}
+      />
       <DebouncedSearchInput
         className={styles.search}
         aria-label={searchPlaceholder}

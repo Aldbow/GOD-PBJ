@@ -32,14 +32,14 @@ export function useOrgFilters(): OrgFilters {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const { role, ppk_name } = useSession();
+  const { role, ppk_name, satker: profileSatker } = useSession();
 
-  // Role PPK: scope dikunci ke PPK ybs (abaikan filter Eselon/Satker/PPK dari URL).
+  // Role PPK: scope dikunci ke satkernya, tapi masih bisa memfilter PPK di satkernya.
   const isPpkScoped = role === 'ppk';
 
   const eselon1 = isPpkScoped ? null : searchParams.get('e1');
-  const satker = isPpkScoped ? null : searchParams.get('s');
-  const ppk = isPpkScoped ? ppk_name : searchParams.get('p');
+  const satker = isPpkScoped ? profileSatker : searchParams.get('s');
+  const ppk = searchParams.get('p');
   const urlSearch = searchParams.get('q') || '';
 
   // Sumber kebenaran penyaringan adalah state ini, bukan URL. router.replace
@@ -91,7 +91,6 @@ export function useOrgFilters(): OrgFilters {
   };
 
   const setPpk = (value: string | null) => {
-    if (isPpkScoped) return;
     replaceParams((params) => {
       if (value) params.set('p', value);
       else params.delete('p');
