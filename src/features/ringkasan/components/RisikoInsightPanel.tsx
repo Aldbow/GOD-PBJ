@@ -151,7 +151,7 @@ export function RisikoInsightPanel({ satker, ppk }: Props) {
            )}
         </div>
         <div className={styles.right}>
-           <h4 className={styles.chartTitle}>Top 5 Pemicu Risiko Utama</h4>
+           <h4 className={styles.chartTitle}>Top 5 Sebaran Risiko</h4>
            {loading ? (
              <div className={styles.loading}><Loader2 className={styles.spin} /> Memuat...</div>
            ) : (
