@@ -19,6 +19,7 @@ import { useSession } from '@/components/auth/SessionProvider';
 
 import { kategoriVariant } from '@/lib/risiko/badge';
 import { totalPaket as sumTotalPaket, groupBy } from '@/lib/risiko/aggregate';
+import { mapRiskRow, RISK_LIST_COLUMNS } from '@/lib/risiko/mapRow';
 import {
   RISK_KATEGORI_LABEL,
   EXECUTION_STATUS_LABEL,
@@ -71,40 +72,6 @@ const DONUT_JENIS_OPTIONS: { value: DonutJenisFilter; label: string }[] = [
 
 const STATUS_PELAKSANAAN_OPTIONS = Object.entries(EXECUTION_STATUS_LABEL).map(([value, label]) => ({ value, label }));
 
-// Kolom JSONB (components_json dst.) di-select terpisah dari kolom listing supaya baris di tabel
-// utama ringan; kolom penuh (termasuk JSONB) diambil saat baris diklik untuk detail modal.
-const LIST_COLUMNS =
-  'kd_rup,jenis_paket,nama_paket,satker,eselon1,nama_ppk,tahun_anggaran,pagu,metode_pengadaan,jenis_pengadaan,sumber_dana,tipe_swakelola,total_score,max_score,kategori,main_risk_driver,execution_status,execution_evidence_source,execution_evidence_date,jumlah_revisi,data_quality_flags,calculated_at,rules_version,components_json';
-
-function mapRow(raw: any): RiskRow {
-  return {
-    kd_rup: String(raw.kd_rup),
-    nama_paket: raw.nama_paket,
-    jenis_paket: raw.jenis_paket,
-    satker: raw.satker,
-    eselon1: raw.eselon1,
-    nama_ppk: raw.nama_ppk,
-    tahun_anggaran: raw.tahun_anggaran,
-    pagu: raw.pagu != null ? Number(raw.pagu) : null,
-    metode_pengadaan: raw.metode_pengadaan,
-    jenis_pengadaan: raw.jenis_pengadaan,
-    sumber_dana: raw.sumber_dana,
-    tipe_swakelola: raw.tipe_swakelola,
-    total_score: raw.total_score != null ? Number(raw.total_score) : null,
-    max_score: Number(raw.max_score) || 0,
-    kategori: raw.kategori,
-    main_risk_driver: raw.main_risk_driver,
-    execution_status: raw.execution_status,
-    execution_evidence_source: raw.execution_evidence_source,
-    execution_evidence_date: raw.execution_evidence_date,
-    jumlah_revisi: raw.jumlah_revisi,
-    data_quality_flags: raw.data_quality_flags || [],
-    calculated_at: raw.calculated_at,
-    rules_version: raw.rules_version,
-    components_json: raw.components_json,
-  };
-}
-
 export function RisikoPengadaanView() {
   const [data, setData] = useState<RiskRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,11 +111,11 @@ export function RisikoPengadaanView() {
       while (true) {
         const { data, error } = await supabase
           .from('risiko_pengadaan')
-          .select(LIST_COLUMNS)
+          .select(RISK_LIST_COLUMNS)
           .range(offset, offset + limit - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
-        allData = [...allData, ...data.map(mapRow)];
+        allData = [...allData, ...data.map(mapRiskRow)];
         if (data.length < limit) break;
         offset += limit;
       }
@@ -227,7 +194,7 @@ export function RisikoPengadaanView() {
           setSelectedDetail(null);
         } else {
           setSelectedDetail({
-            ...mapRow(raw),
+            ...mapRiskRow(raw),
             components: raw.components_json || [],
             revision_chain: raw.revision_chain_json || [],
             transaction_refs: raw.transaction_refs_json || [],
