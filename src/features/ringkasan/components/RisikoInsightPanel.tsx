@@ -1,13 +1,20 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo, useTransition } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
-import { ShieldAlert, Loader2 } from 'lucide-react';
-import { SectionHeader } from '@/components/ui/SectionHeader';
+import { AlertTriangle, Loader2, X } from 'lucide-react';
+import { Badge } from '@/components/ui/Badge';
+import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
+import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
 import { RisikoKategoriDonut } from '@/features/risiko/components/charts/RisikoKategoriDonut';
 import { RisikoDriverStackedBarChart, type StackedBucket } from '@/features/risiko/components/charts/RisikoDriverStackedBarChart';
-import type { RiskKategori } from '@/lib/risiko/types';
+import { SatkerRisikoTinggiChart, type SatkerRisikoBucket } from '@/features/risiko/components/charts/SatkerRisikoTinggiChart';
+import { RisikoDetailBody } from '@/features/risiko/components/RisikoDetailBody';
 import { riskKategoriColor } from '@/features/risiko/components/charts/riskChartTheme';
+import { EXECUTION_STATUS_LABEL, type RiskKategori, type ExecutionStatus } from '@/lib/risiko/types';
+import { fmtRupiahDetail, fmtInt, countRup } from '@/lib/format';
+import { useRisikoPaketDetail } from '@/hooks/useRisikoPaketDetail';
 import styles from './RisikoInsightPanel.module.css';
 
 const SCORE_KEYS = ['3', '2', '1', '0'];
@@ -24,30 +31,53 @@ const SCORE_COLORS = (key: string, isDark: boolean) => {
   return riskKategoriColor('DATA_TIDAK_LENGKAP', isDark);
 };
 
+const SATKER_TOP_N = 10;
+
+interface RisikoInsightRow {
+  kd_rup: string;
+  nama_paket: string | null;
+  satker: string | null;
+  nama_ppk: string | null;
+  pagu: number | null;
+  total_score: number | null;
+  max_score: number;
+  kategori: RiskKategori;
+  main_risk_driver: string | null;
+  execution_status: ExecutionStatus;
+  components_json: any[];
+}
+
 interface Props {
   satker?: string;
   ppk?: string;
 }
 
 export function RisikoInsightPanel({ satker, ppk }: Props) {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<RisikoInsightRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [selectedSatkerTinggi, setSelectedSatkerTinggi] = useState<string | null>(null);
+  // Klik bar bisa memicu re-agregasi paket-list atas ribuan baris (lihat pelajaran yang sama
+  // di RisikoPengadaanView) — startTransition menjaga klik & chart tetap responsif.
+  const [isFilteringSatker, startSatkerFilterTransition] = useTransition();
+  const paketModal = useRisikoPaketDetail();
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setSelectedSatkerTinggi(null);
 
     async function fetchAll() {
-      let all: any[] = [];
+      let all: RisikoInsightRow[] = [];
       let offset = 0;
       const limit = 1000;
-      
+
       while (!cancelled) {
         let q = supabase
           .from('risiko_pengadaan')
-          .select('kd_rup, pagu, kategori, main_risk_driver, components_json')
+          .select('kd_rup, nama_paket, satker, nama_ppk, pagu, total_score, max_score, kategori, main_risk_driver, execution_status, components_json')
           .range(offset, offset + limit - 1);
-          
+
         if (satker) q = q.eq('satker', satker);
         if (ppk) q = q.eq('nama_ppk', ppk);
 
@@ -57,12 +87,12 @@ export function RisikoInsightPanel({ satker, ppk }: Props) {
           break;
         }
         if (!data || data.length === 0) break;
-        
-        all = all.concat(data);
+
+        all = all.concat(data as RisikoInsightRow[]);
         if (data.length < limit) break;
         offset += limit;
       }
-      
+
       if (!cancelled) {
         setData(all);
         setLoading(false);
@@ -91,7 +121,7 @@ export function RisikoInsightPanel({ satker, ppk }: Props) {
         map.set(label, bucket);
       }
       bucket.totalCount += 1;
-      
+
       let scoreStr = '0';
       if (row.components_json && rawLabel) {
         const comp = row.components_json.find((c: any) => c.label === rawLabel);
@@ -99,7 +129,7 @@ export function RisikoInsightPanel({ satker, ppk }: Props) {
           scoreStr = comp.score.toString();
         }
       }
-      
+
       if (bucket.counts[scoreStr] !== undefined) {
         bucket.counts[scoreStr] += 1;
       }
@@ -109,6 +139,78 @@ export function RisikoInsightPanel({ satker, ppk }: Props) {
       .sort((a, b) => b.totalCount - a.totalCount)
       .slice(0, 5);
   }, [data]);
+
+  // Ranking satker berdasarkan jumlah paket berkategori TINGGI — sumber untuk chart baru.
+  const satkerTinggiRows = useMemo(() => data.filter((r) => r.kategori === 'TINGGI'), [data]);
+
+  const satkerTinggiRanking = useMemo<SatkerRisikoBucket[]>(() => {
+    const map = new Map<string, SatkerRisikoBucket>();
+    for (const row of satkerTinggiRows) {
+      const label = row.satker && row.satker.trim() ? row.satker : 'Tidak Diketahui';
+      let bucket = map.get(label);
+      if (!bucket) {
+        bucket = { satker: label, count: 0, pagu: 0 };
+        map.set(label, bucket);
+      }
+      bucket.count += countRup(row.kd_rup);
+      bucket.pagu += row.pagu || 0;
+    }
+    return Array.from(map.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, SATKER_TOP_N);
+  }, [satkerTinggiRows]);
+
+  const paketForSelectedSatker = useMemo(() => {
+    if (!selectedSatkerTinggi) return [];
+    return satkerTinggiRows.filter((r) => (r.satker && r.satker.trim() ? r.satker : 'Tidak Diketahui') === selectedSatkerTinggi);
+  }, [satkerTinggiRows, selectedSatkerTinggi]);
+
+  const handleSatkerClick = useCallback((label: string) => {
+    startSatkerFilterTransition(() => {
+      setSelectedSatkerTinggi((prev) => (prev === label ? null : label));
+    });
+  }, []);
+
+  const paketColumns: PaketColumn<RisikoInsightRow>[] = useMemo(
+    () => [
+      {
+        key: 'nama',
+        label: 'Nama Paket',
+        render: (p) => (
+          <div className={styles.nameCell}>
+            <span className={styles.nameText} title={p.nama_paket || undefined}>{p.nama_paket || 'Tanpa Nama'}</span>
+            <span className={styles.rupCode}>RUP: {p.kd_rup}</span>
+          </div>
+        ),
+      },
+      { key: 'ppk', label: 'PPK', render: (p) => <span>{p.nama_ppk || '-'}</span> },
+      {
+        key: 'pagu',
+        label: 'Pagu',
+        align: 'right',
+        sortAccessor: (p) => p.pagu || 0,
+        render: (p) => <span>{p.pagu != null ? fmtRupiahDetail(p.pagu) : '-'}</span>,
+      },
+      {
+        key: 'total_score',
+        label: 'Skor',
+        align: 'right',
+        sortAccessor: (p) => p.total_score ?? -1,
+        render: (p) => <span>{p.total_score != null ? `${p.total_score} / ${p.max_score}` : '-'}</span>,
+      },
+      {
+        key: 'status_pelaksanaan',
+        label: 'Status Pelaksanaan',
+        align: 'center',
+        render: (p) => (
+          <Badge variant={p.execution_status === 'SUDAH_DILAKSANAKAN' ? 'rendah' : p.execution_status === 'BELUM_DILAKSANAKAN' ? 'sedang' : 'default'}>
+            {EXECUTION_STATUS_LABEL[p.execution_status]}
+          </Badge>
+        ),
+      },
+    ],
+    []
+  );
 
   return (
     <div className={styles.container}>
@@ -129,8 +231,8 @@ export function RisikoInsightPanel({ satker, ppk }: Props) {
              <div className={styles.loading}><Loader2 className={styles.spin} /> Memuat...</div>
            ) : (
              <div className={styles.barWrap}>
-               <RisikoDriverStackedBarChart 
-                 data={distRiskDriverStacked} 
+               <RisikoDriverStackedBarChart
+                 data={distRiskDriverStacked}
                  maxBars={5}
                  segmentKeys={SCORE_KEYS}
                  segmentLabels={SCORE_LABELS}
@@ -140,6 +242,75 @@ export function RisikoInsightPanel({ satker, ppk }: Props) {
            )}
         </div>
       </div>
+
+      <div className={styles.satkerSection}>
+        <div className={styles.satkerHeader}>
+          <h4 className={styles.chartTitle} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <AlertTriangle size={15} style={{ color: 'var(--red-600, #dc2626)', flexShrink: 0 }} />
+            Satuan Kerja dengan Risiko Tinggi
+          </h4>
+          {selectedSatkerTinggi && (
+            <button type="button" className={styles.resetBtn} onClick={() => startSatkerFilterTransition(() => setSelectedSatkerTinggi(null))}>
+              <X size={12} /> {selectedSatkerTinggi}
+            </button>
+          )}
+        </div>
+        <p className={styles.hintText}>
+          Setiap bar menunjukkan jumlah paket berkategori risiko <strong>Tinggi</strong> per satuan kerja (Top {SATKER_TOP_N}). Arahkan kursor untuk detail, klik bar untuk melihat daftar paketnya.
+        </p>
+        {loading ? (
+          <div className={styles.loading}><Loader2 className={styles.spin} /> Memuat...</div>
+        ) : (
+          <SatkerRisikoTinggiChart
+            data={satkerTinggiRanking}
+            selectedSatker={selectedSatkerTinggi}
+            onClick={handleSatkerClick}
+          />
+        )}
+
+        <AnimatePresence>
+          {selectedSatkerTinggi && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div className={styles.paketListSection}>
+                <div className={styles.paketListHeader}>
+                  <span>
+                    Paket risiko tinggi — <strong>{selectedSatkerTinggi}</strong>
+                    {isFilteringSatker && <span className={styles.updatingHint}> · memperbarui…</span>}
+                  </span>
+                  <span className={styles.paketListCount}>{fmtInt(paketForSelectedSatker.reduce((s, r) => s + countRup(r.kd_rup), 0))} paket</span>
+                </div>
+                <PaketTable
+                  columns={paketColumns}
+                  rows={paketForSelectedSatker}
+                  defaultSortKey="pagu"
+                  defaultSortDir="desc"
+                  pageSize={10}
+                  getRowKey={(p, i) => p.kd_rup || i}
+                  emptyMessage="Tidak ada paket untuk satuan kerja ini"
+                  onRowClick={(p) => paketModal.open(p.kd_rup)}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <PaketDetailModal
+        isOpen={paketModal.isOpen}
+        onClose={paketModal.close}
+        title="Detail Risiko Paket"
+        historyData={paketModal.historyData}
+        loadingHistory={paketModal.loadingHistory}
+      >
+        {paketModal.loadingDetail && <p>Memuat detail...</p>}
+        {!paketModal.loadingDetail && paketModal.selectedDetail && <RisikoDetailBody detail={paketModal.selectedDetail} />}
+      </PaketDetailModal>
     </div>
   );
 }

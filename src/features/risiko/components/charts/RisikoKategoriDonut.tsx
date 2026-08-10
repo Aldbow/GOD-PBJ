@@ -8,6 +8,8 @@ import { useIsDark, chartInk, riskKategoriColor } from './riskChartTheme';
 import { fmtInt } from '@/lib/format';
 import { countRup } from '@/lib/format';
 import { RISK_KATEGORI_LABEL, type RiskKategori, type RiskRow } from '@/lib/risiko/types';
+
+type DonutRow = Pick<RiskRow, 'kd_rup' | 'kategori'>;
 import styles from '@/features/ringkasan/components/charts/charts.module.css';
 
 ChartJS.register(ArcElement, Tooltip);
@@ -25,7 +27,7 @@ const KATEGORI_ICON: Record<RiskKategori, LucideIcon> = {
 };
 
 interface Props {
-  rows: RiskRow[];
+  rows: DonutRow[];
 }
 
 export function RisikoKategoriDonut({ rows }: Props) {
