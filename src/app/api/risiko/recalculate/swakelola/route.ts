@@ -3,6 +3,8 @@ import { getApiSupabase } from '@/lib/supabase/apiClient';
 import { splitCompositeIds } from '@/lib/risiko/normalize';
 import { computeRisikoSwakelola, type SwakelolaCalcInput } from '@/lib/risiko/calcSwakelola';
 import { buildSwakelolaRow, type SwakelolaMasterMeta } from '@/lib/risiko/riskModel';
+import { pruneOrphanRisikoRows } from '@/lib/risiko/pruneOrphans';
+import { fetchRevisedOldKdRup } from '@/lib/risiko/kajiUlangExclusion';
 import type { EvidenceRecord } from '@/lib/risiko/calcExecutionStatus';
 import type { RupHistoryEntry } from '@/lib/paket/rupHistory';
 
@@ -24,7 +26,14 @@ interface MasterRow {
   nama_ppk: string | null;
 }
 
-async function fetchMasterPage(offset: number, limit: number): Promise<{ rows: MasterRow[]; total: number }> {
+// `rawCount` = jumlah baris mentah yang benar-benar diambil dari view pada halaman ini (dipakai
+// untuk aritmetika offset/remaining) — beda dari `rows.length` setelah exclusion RUP revisi di
+// bawah, supaya paginasi tidak meleset ketika satu halaman kebetulan seluruhnya berisi RUP lama.
+async function fetchMasterPage(
+  offset: number,
+  limit: number,
+  excludedKdRup: Set<string>
+): Promise<{ rows: MasterRow[]; rawCount: number; total: number }> {
   const { data, error, count } = await getApiSupabase()
     .from('view_paket_swakelola_master_data')
     .select(
@@ -36,7 +45,7 @@ async function fetchMasterPage(offset: number, limit: number): Promise<{ rows: M
   if (error) throw new Error(`Gagal mengambil master data swakelola: ${error.message}`);
   // Fallback ke nama SIRUP mentah saat kolom master kosong — lihat catatan yang sama di
   // recalculate/penyedia/route.ts (ANALISIS-KONEKSI-SATKER.md Celah 1 & 3).
-  const rows = ((data ?? []) as unknown as Array<Record<string, unknown>>).map((r) => ({
+  const rawRows = ((data ?? []) as unknown as Array<Record<string, unknown>>).map((r) => ({
     kd_rup: String(r.kd_rup),
     nama_paket: (r.nama_paket as string | null) ?? null,
     pagu: r.pagu != null ? Number(r.pagu) : null,
@@ -47,7 +56,10 @@ async function fetchMasterPage(offset: number, limit: number): Promise<{ rows: M
     eselon1: (r.eselon1 as string | null) ?? null,
     nama_ppk: (r.nama_ppk as string | null) ?? (r.nama_ppk_sirup as string | null) ?? null,
   }));
-  return { rows, total: count ?? rows.length };
+  // Kode RUP lama yang sudah direvisi ke kode lain (history_kaji_ulang) — sama seperti
+  // view_dashboard_gabungan_satker, jangan hitung sebagai paket tersendiri.
+  const rows = rawRows.filter((r) => !excludedKdRup.has(r.kd_rup));
+  return { rows, rawCount: rawRows.length, total: count ?? rawRows.length };
 }
 
 // Sama seperti api/risiko/recalculate/penyedia/route.ts — PostgREST membatasi 1000 baris tanpa
@@ -130,10 +142,26 @@ export async function POST(request: Request) {
     const offset = Number(url.searchParams.get('offset') ?? '0') || 0;
     const limit = Number(url.searchParams.get('limit') ?? String(PAGE_SIZE)) || PAGE_SIZE;
 
-    const [{ rows: masterRows, total }, realisasiIndex] = await Promise.all([fetchMasterPage(offset, limit), loadRealisasiIndex()]);
+    // RUP lama yang sudah direvisi (history_kaji_ulang) — dikecualikan dari perhitungan, sama
+    // seperti view_dashboard_gabungan_satker dan recalculate/penyedia/route.ts.
+    const [excludedKdRup, realisasiIndex] = await Promise.all([fetchRevisedOldKdRup(), loadRealisasiIndex()]);
 
-    if (masterRows.length === 0) {
-      return NextResponse.json({ message: 'Tidak ada paket Swakelola pada offset ini.', processed: 0, upserted: 0, remaining: 0, nextOffset: null, total });
+    // Lihat catatan yang sama di recalculate/penyedia/route.ts — sekali di awal siklus penuh,
+    // buang baris risiko_pengadaan milik paket Swakelola yang sudah tidak ada di master data
+    // ATAU sudah masuk daftar exclusion revisi.
+    let pruned: { prunedCount: number; prunedKdRup: string[] } | null = null;
+    if (offset === 0) {
+      try {
+        pruned = await pruneOrphanRisikoRows('Swakelola', 'view_paket_swakelola_master_data', excludedKdRup);
+      } catch (pruneError) {
+        console.error('[risiko/recalculate/swakelola] gagal membersihkan baris orphan:', pruneError);
+      }
+    }
+
+    const { rows: masterRows, rawCount, total } = await fetchMasterPage(offset, limit, excludedKdRup);
+
+    if (rawCount === 0) {
+      return NextResponse.json({ message: 'Tidak ada paket Swakelola pada offset ini.', processed: 0, upserted: 0, remaining: 0, nextOffset: null, total, prunedCount: pruned?.prunedCount ?? 0 });
     }
 
     const kdRupList = masterRows.map((r) => r.kd_rup);
@@ -182,7 +210,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const nextOffset = offset + masterRows.length;
+    // Maju berdasarkan rawCount, bukan masterRows.length — lihat catatan yang sama di
+    // recalculate/penyedia/route.ts (hindari offset macet kalau satu halaman seluruhnya
+    // berisi RUP hasil revisi).
+    const nextOffset = offset + rawCount;
     const remaining = Math.max(0, total - nextOffset);
 
     return NextResponse.json({
@@ -190,6 +221,7 @@ export async function POST(request: Request) {
       processed: rowsToUpsert.length,
       upserted,
       errors: errors.length > 0 ? errors : undefined,
+      prunedCount: pruned?.prunedCount ?? 0,
       remaining,
       nextOffset: remaining > 0 ? nextOffset : null,
       total,

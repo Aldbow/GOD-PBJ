@@ -10,17 +10,73 @@ fs.readFileSync('.env.local', 'utf8').split('\n').forEach((l) => {
 });
 const sb = createClient(env['NEXT_PUBLIC_SUPABASE_URL'], env['NEXT_PUBLIC_SUPABASE_ANON_KEY']);
 
+async function fetchAllIds(table, col) {
+  const ids = new Set();
+  let offset = 0;
+  const limit = 1000;
+  while (true) {
+    const { data, error } = await sb.from(table).select(col).range(offset, offset + limit - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    for (const row of data) ids.add(String(row[col]));
+    if (data.length < limit) break;
+    offset += limit;
+  }
+  return ids;
+}
+
+// Kode RUP lama yang sudah direvisi ke kode lain (kd_rup_lama <> kd_rup_baru) sengaja
+// dikecualikan dari risiko_pengadaan (lihat src/lib/risiko/kajiUlangExclusion.ts). history_kaji_ulang
+// berisi riwayat SEMUA revisi lintas tahun (~1.500+ baris) — sebagian besar kd_rup_lama-nya
+// sudah tidak ada lagi di tabel master terumumkan sekarang untuk alasan lain (bukan exclusion
+// ini). Jadi yang relevan HANYA irisan-nya dengan master saat ini, bukan raw count kaji_ulang.
+async function fetchRevisedOldKdRupSet() {
+  const excluded = new Set();
+  let offset = 0;
+  const limit = 1000;
+  while (true) {
+    const { data, error } = await sb.from('history_kaji_ulang').select('kd_rup_lama, kd_rup_baru').range(offset, offset + limit - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    for (const row of data) {
+      if (row.kd_rup_lama != null && row.kd_rup_baru != null && String(row.kd_rup_lama) !== String(row.kd_rup_baru)) {
+        excluded.add(String(row.kd_rup_lama));
+      }
+    }
+    if (data.length < limit) break;
+    offset += limit;
+  }
+  return excluded;
+}
+
 async function main() {
-  const { count: masterPenyediaCount } = await sb.from('api_paket_penyedia_terumumkan').select('*', { count: 'exact', head: true });
-  const { count: masterSwakelolaCount } = await sb.from('api_paket_swakelola_terumumkan').select('*', { count: 'exact', head: true });
-  const masterCount = (masterPenyediaCount ?? 0) + (masterSwakelolaCount ?? 0);
+  const [masterPenyediaIds, masterSwakelolaIds, revisedOldKdRup] = await Promise.all([
+    fetchAllIds('api_paket_penyedia_terumumkan', 'kd_rup'),
+    fetchAllIds('api_paket_swakelola_terumumkan', 'kd_rup'),
+    fetchRevisedOldKdRupSet(),
+  ]);
+  const masterPenyediaCount = masterPenyediaIds.size;
+  const masterSwakelolaCount = masterSwakelolaIds.size;
+  const masterCount = masterPenyediaCount + masterSwakelolaCount;
   const { count: riskCount } = await sb.from('risiko_pengadaan').select('*', { count: 'exact', head: true });
+
+  // Hanya kd_rup_lama yang MASIH ada di master saat ini yang relevan sebagai exclusion.
+  const excludedInPenyedia = [...masterPenyediaIds].filter((k) => revisedOldKdRup.has(k)).length;
+  const excludedInSwakelola = [...masterSwakelolaIds].filter((k) => revisedOldKdRup.has(k)).length;
+  const expectedCount = masterCount - excludedInPenyedia - excludedInSwakelola;
+
   console.log(`Master Penyedia (api_paket_penyedia_terumumkan): ${masterPenyediaCount} baris`);
   console.log(`Master Swakelola (api_paket_swakelola_terumumkan): ${masterSwakelolaCount} baris`);
   console.log(`Total master: ${masterCount} baris`);
+  console.log(`RUP lama-yang-masih-ada-di-master (dikecualikan, lihat kajiUlangExclusion.ts): Penyedia ${excludedInPenyedia}, Swakelola ${excludedInSwakelola}`);
+  console.log(`Total master setelah exclusion (angka target risiko_pengadaan): ${expectedCount} baris`);
   console.log(`risiko_pengadaan terisi: ${riskCount} baris`);
-  if ((riskCount ?? 0) < masterCount) {
-    console.log(`-> Belum lengkap, sisa ${masterCount - (riskCount ?? 0)} paket (klik "Hitung Ulang" lagi sampai remaining=0 di kedua endpoint).`);
+  if ((riskCount ?? 0) < expectedCount) {
+    console.log(`-> Belum lengkap, sisa ${expectedCount - (riskCount ?? 0)} paket (klik "Hitung Ulang" lagi sampai remaining=0 di kedua endpoint).`);
+  } else if ((riskCount ?? 0) > expectedCount) {
+    console.log(`-> Lebih banyak dari target (${(riskCount ?? 0) - expectedCount} baris) — kemungkinan ada orphan/RUP revisi yang belum dibersihkan, jalankan "Hitung Ulang" lagi (recalculate men-jalankan prune di awal setiap siklus offset=0).`);
+  } else {
+    console.log('-> Lengkap dan konsisten dengan master data + exclusion revisi.');
   }
 
   console.log('\n=== Per jenis paket ===');
