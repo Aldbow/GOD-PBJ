@@ -3,6 +3,8 @@ import { getApiSupabase } from '@/lib/supabase/apiClient';
 import { splitCompositeIds } from '@/lib/risiko/normalize';
 import { computeRisikoPenyedia, type PenyediaCalcInput } from '@/lib/risiko/calcPenyedia';
 import { buildPenyediaRow, type PenyediaMasterMeta } from '@/lib/risiko/riskModel';
+import { pruneOrphanRisikoRows } from '@/lib/risiko/pruneOrphans';
+import { fetchRevisedOldKdRup } from '@/lib/risiko/kajiUlangExclusion';
 import type { EvidenceRecord, ExecutionInput } from '@/lib/risiko/calcExecutionStatus';
 import type { RupHistoryEntry } from '@/lib/paket/rupHistory';
 
@@ -29,7 +31,14 @@ interface MasterRow {
   nama_ppk: string | null;
 }
 
-async function fetchMasterPage(offset: number, limit: number): Promise<{ rows: MasterRow[]; total: number }> {
+// `rawCount` = jumlah baris mentah yang benar-benar diambil dari view pada halaman ini (dipakai
+// untuk aritmetika offset/remaining) — beda dari `rows.length` setelah exclusion RUP revisi di
+// bawah, supaya paginasi tidak meleset ketika satu halaman kebetulan seluruhnya berisi RUP lama.
+async function fetchMasterPage(
+  offset: number,
+  limit: number,
+  excludedKdRup: Set<string>
+): Promise<{ rows: MasterRow[]; rawCount: number; total: number }> {
   const { data, error, count } = await getApiSupabase()
     .from('view_paket_penyedia_master_data')
     .select(
@@ -43,7 +52,7 @@ async function fetchMasterPage(offset: number, limit: number): Promise<{ rows: M
   // view_paket_penyedia_master_data — lihat ANALISIS-KONEKSI-SATKER.md Celah 1 & 3). Tanpa ini,
   // baris risiko tampil blank walau datanya sebenarnya ada di SIRUP, hanya ter-masking/tidak
   // ter-verifikasi ke master_data.
-  const rows = ((data ?? []) as unknown as Array<Record<string, unknown>>).map((r) => ({
+  const rawRows = ((data ?? []) as unknown as Array<Record<string, unknown>>).map((r) => ({
     kd_rup: String(r.kd_rup),
     nama_paket: (r.nama_paket as string | null) ?? null,
     pagu: r.pagu != null ? Number(r.pagu) : null,
@@ -55,7 +64,10 @@ async function fetchMasterPage(offset: number, limit: number): Promise<{ rows: M
     eselon1: (r.eselon1 as string | null) ?? null,
     nama_ppk: (r.nama_ppk as string | null) ?? (r.nama_ppk_sirup as string | null) ?? null,
   }));
-  return { rows, total: count ?? rows.length };
+  // Kode RUP lama yang sudah direvisi ke kode lain (history_kaji_ulang) — sama seperti
+  // view_dashboard_gabungan_satker, jangan hitung sebagai paket tersendiri.
+  const rows = rawRows.filter((r) => !excludedKdRup.has(r.kd_rup));
+  return { rows, rawCount: rawRows.length, total: count ?? rawRows.length };
 }
 
 /** Bangun index kd_rup individual -> daftar bukti, memecah kolom yang mungkin berisi beberapa
@@ -172,10 +184,30 @@ export async function POST(request: Request) {
     const offset = Number(url.searchParams.get('offset') ?? '0') || 0;
     const limit = Number(url.searchParams.get('limit') ?? String(PAGE_SIZE)) || PAGE_SIZE;
 
-    const [{ rows: masterRows, total }, evidence] = await Promise.all([fetchMasterPage(offset, limit), loadEvidenceIndices()]);
+    // RUP lama yang sudah direvisi (history_kaji_ulang) — dikecualikan dari perhitungan, sama
+    // seperti view_dashboard_gabungan_satker, supaya "Total Paket" risiko tidak menghitung RUP
+    // lama+baru dobel. Diambil ulang tiap panggilan (bukan cache lintas-halaman) — pola yang
+    // sama seperti loadEvidenceIndices() di bawah.
+    const [excludedKdRup, evidence] = await Promise.all([fetchRevisedOldKdRup(), loadEvidenceIndices()]);
 
-    if (masterRows.length === 0) {
-      return NextResponse.json({ message: 'Tidak ada paket Penyedia pada offset ini.', processed: 0, upserted: 0, remaining: 0, nextOffset: null, total });
+    // Sekali di awal siklus penuh (bukan tiap halaman) — buang baris risiko_pengadaan yang
+    // paketnya sudah tidak ada lagi di master data ATAU sudah kadung ada dari kalkulasi
+    // sebelumnya padahal kd_rup-nya kini masuk daftar exclusion revisi. Upsert di bawah tidak
+    // pernah menyentuh baris begini, jadi tanpa ini "Hitung Ulang" berkali-kali pun tidak akan
+    // pernah menurunkan Total Paket. Best-effort: gagal di sini tidak menghentikan recalculate.
+    let pruned: { prunedCount: number; prunedKdRup: string[] } | null = null;
+    if (offset === 0) {
+      try {
+        pruned = await pruneOrphanRisikoRows('Penyedia', 'view_paket_penyedia_master_data', excludedKdRup);
+      } catch (pruneError) {
+        console.error('[risiko/recalculate/penyedia] gagal membersihkan baris orphan:', pruneError);
+      }
+    }
+
+    const { rows: masterRows, rawCount, total } = await fetchMasterPage(offset, limit, excludedKdRup);
+
+    if (rawCount === 0) {
+      return NextResponse.json({ message: 'Tidak ada paket Penyedia pada offset ini.', processed: 0, upserted: 0, remaining: 0, nextOffset: null, total, prunedCount: pruned?.prunedCount ?? 0 });
     }
 
     const kdRupList = masterRows.map((r) => r.kd_rup);
@@ -234,7 +266,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const nextOffset = offset + masterRows.length;
+    // Maju berdasarkan rawCount (baris mentah yang dikonsumsi dari view), BUKAN masterRows.length
+    // — kalau dipakai masterRows.length, halaman yang seluruhnya berisi RUP hasil revisi (rows
+    // kosong setelah exclusion) akan membuat offset tidak maju sama sekali dan siklus infinite-loop.
+    const nextOffset = offset + rawCount;
     const remaining = Math.max(0, total - nextOffset);
 
     return NextResponse.json({
@@ -242,6 +277,7 @@ export async function POST(request: Request) {
       processed: rowsToUpsert.length,
       upserted,
       errors: errors.length > 0 ? errors : undefined,
+      prunedCount: pruned?.prunedCount ?? 0,
       remaining,
       nextOffset: remaining > 0 ? nextOffset : null,
       total,
