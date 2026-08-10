@@ -880,7 +880,7 @@ export function RingkasanView() {
           }
         />
         <div className={styles.stackedFull}>
-          <RisikoInsightPanel satker={applied.satker} ppk={applied.ppk} />
+          <RisikoInsightPanel satker={applied.satker} ppk={applied.ppk} canSeePaketDetail={canSeePaketDetail} />
         </div>
       </motion.div>
 

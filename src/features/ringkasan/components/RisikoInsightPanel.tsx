@@ -52,9 +52,15 @@ interface RisikoInsightRow {
 interface Props {
   satker?: string;
   ppk?: string;
+  /** Gerbang yang sama dengan AnomaliTable/KurasiTidakAkuratTable di RingkasanView — saat false
+   * (PPK di lingkup Kementerian), chart rollup per-satker tetap tampil tapi drill-down ke
+   * identitas paket (nama, kode RUP, nama PPK) ditutup, supaya PPK tidak bisa mengintip paket
+   * milik satker lain lewat klik bar. Default true supaya pemanggil lain (kalau ada) tidak
+   * diam-diam ikut terkunci. */
+  canSeePaketDetail?: boolean;
 }
 
-export function RisikoInsightPanel({ satker, ppk }: Props) {
+export function RisikoInsightPanel({ satker, ppk, canSeePaketDetail = true }: Props) {
   const [data, setData] = useState<RisikoInsightRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -283,7 +289,10 @@ export function RisikoInsightPanel({ satker, ppk }: Props) {
           )}
         </div>
         <p className={styles.hintText}>
-          Setiap bar menunjukkan jumlah paket berkategori risiko <strong>Tinggi</strong> per satuan kerja (Top {SATKER_TOP_N}). Arahkan kursor untuk detail, klik bar untuk melihat daftar paketnya.
+          Setiap bar menunjukkan jumlah paket berkategori risiko <strong>Tinggi</strong> per satuan kerja (Top {SATKER_TOP_N}). Arahkan kursor untuk detail.
+          {canSeePaketDetail
+            ? ' Klik bar untuk melihat daftar paketnya.'
+            : ' Detail per-paket hanya tersedia pada lingkup Satuan Kerja Saya.'}
         </p>
         {loading ? (
           <div className={styles.loading}><Loader2 className={styles.spin} /> Memuat...</div>
@@ -291,7 +300,7 @@ export function RisikoInsightPanel({ satker, ppk }: Props) {
           <SatkerRisikoTinggiChart
             data={satkerTinggiRanking}
             selectedSatker={selectedSatkerTinggi}
-            onClick={handleSatkerClick}
+            onClick={canSeePaketDetail ? handleSatkerClick : undefined}
           />
         )}
 
