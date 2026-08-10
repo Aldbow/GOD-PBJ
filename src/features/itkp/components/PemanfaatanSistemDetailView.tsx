@@ -11,6 +11,8 @@ import { Badge, type BadgeVariant } from '@/components/ui/Badge';
 import { SearchableSelect } from '@/components/paket/SearchableSelect';
 import { computeItkpA, type ItkpAInput, type ItkpAResult, type ItkpARowResult } from '@/lib/itkp/calcA';
 import { fetchItkpAData, type ItkpAUnit } from '@/lib/itkp/fetchA';
+import { normSatker } from '@/lib/itkp/crosswalk';
+import { useSession } from '@/components/auth/SessionProvider';
 import { fmtDec, fmtPct, fmtRupiahDetail } from '@/lib/format';
 import styles from './PemanfaatanSistemDetailView.module.css';
 
@@ -67,6 +69,13 @@ export function PemanfaatanSistemDetailView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Berbeda dari Dashboard ITKP (yang memang dinilai untuk satu kementerian),
+  // rincian Pemanfaatan Sistem punya granularitas satker — jadi role PPK dikunci
+  // ke satkernya sendiri: pemilih Eselon I/Satker disembunyikan dan daftar unit
+  // dipangkas ke satu satker itu sebelum dipakai kartu maupun tabel.
+  const { role, satker: profileSatker } = useSession();
+  const isPpkScoped = role === 'ppk';
+
   const [units, setUnits] = useState<ItkpAUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,14 +103,36 @@ export function PemanfaatanSistemDetailView() {
     load();
   }, []);
 
+  // Unit ITKP milik PPK yang sedang login. Nama satker di profil berasal dari
+  // master_data sedangkan nama unit di sini dari data_afirmasi_pdn_perencanaan,
+  // jadi cocokkan ternormalisasi dulu, baru fallback ke pencocokan parsial
+  // (unit afirmasi kerap setingkat KPA, lebih luas dari satker di profil).
+  const lockedUnit = useMemo<ItkpAUnit | null>(() => {
+    if (!isPpkScoped || !profileSatker) return null;
+    const target = normSatker(profileSatker);
+    return (
+      units.find((u) => normSatker(u.name) === target) ??
+      units.find((u) => {
+        const name = normSatker(u.name);
+        return name.includes(target) || target.includes(name);
+      }) ??
+      null
+    );
+  }, [isPpkScoped, profileSatker, units]);
+
+  // Unit yang benar-benar dipakai halaman ini. Untuk PPK nilainya diturunkan dari
+  // scope-nya, bukan dari state — sehingga ?satker= di URL tidak bisa menggeser
+  // tampilan ke satker lain.
+  const effectiveUnit = isPpkScoped ? lockedUnit?.name ?? '' : selectedUnit;
+
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
-    if (selectedUnit) params.set('satker', selectedUnit);
+    if (effectiveUnit) params.set('satker', effectiveUnit);
     else params.delete('satker');
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUnit]);
+  }, [effectiveUnit]);
 
   const eselon1Options = useMemo(() => {
     const set = new Set(units.map((u) => u.eselon1));
@@ -109,18 +140,19 @@ export function PemanfaatanSistemDetailView() {
   }, [units]);
 
   const unitsInEselon1 = useMemo(() => {
+    if (isPpkScoped) return lockedUnit ? [lockedUnit] : [];
     if (!selectedEselon1 || selectedEselon1 === SEMUA_ESELON1) return units;
     return units.filter((u) => u.eselon1 === selectedEselon1);
-  }, [units, selectedEselon1]);
+  }, [units, selectedEselon1, isPpkScoped, lockedUnit]);
 
   const satkerOptions = useMemo(() => unitsInEselon1.map((u) => u.name), [unitsInEselon1]);
 
   const currentInput = useMemo<ItkpAInput>(() => {
-    if (selectedUnit) {
-      return units.find((u) => u.name === selectedUnit)?.input ?? emptyInput();
+    if (effectiveUnit) {
+      return units.find((u) => u.name === effectiveUnit)?.input ?? emptyInput();
     }
     return sumInputs(unitsInEselon1);
-  }, [selectedUnit, unitsInEselon1, units]);
+  }, [effectiveUnit, unitsInEselon1, units]);
 
   const result = useMemo(() => computeItkpA(currentInput), [currentInput]);
 
@@ -184,34 +216,48 @@ export function PemanfaatanSistemDetailView() {
       <div className={styles.header}>
         <div>
           <h2 className={styles.headerTitle}>Detail Pemanfaatan Sistem</h2>
-          <p className={styles.headerSub}>Penilaian Sementara ITKP 2026 — Satuan Kerja Kemnaker</p>
+          <p className={styles.headerSub}>
+            {isPpkScoped
+              ? `Penilaian Sementara ITKP 2026 — ${lockedUnit?.name ?? profileSatker ?? 'Satuan Kerja Anda'}`
+              : 'Penilaian Sementara ITKP 2026 — Satuan Kerja Kemnaker'}
+          </p>
         </div>
       </div>
 
       {error && <ErrorBox className={styles.sectionSpacer}>{error}</ErrorBox>}
+      {isPpkScoped && !loading && !lockedUnit && (
+        <ErrorBox className={styles.sectionSpacer}>
+          Satuan kerja pada profil Anda{profileSatker ? ` (${profileSatker})` : ''} belum terpetakan ke unit penilaian
+          ITKP, sehingga rincian Pemanfaatan Sistem tidak dapat ditampilkan. Hubungi admin UKPBJ.
+        </ErrorBox>
+      )}
 
       <div className={styles.filterBar}>
-        <div className={styles.filterCol}>
-          <span className={styles.filterLabel}>Eselon I</span>
-          <Select
-            options={eselon1Options.map((e) => ({ value: e === SEMUA_ESELON1 ? '' : e, label: e }))}
-            value={selectedEselon1}
-            onChange={(e) => {
-              setSelectedEselon1(e.target.value);
-              setSelectedUnit('');
-            }}
-          />
-        </div>
-        <div className={`${styles.filterCol} ${styles.filterColWide}`}>
-          <span className={styles.filterLabel}>Satuan Kerja</span>
-          <SearchableSelect
-            value={selectedUnit}
-            onChange={setSelectedUnit}
-            options={satkerOptions}
-            placeholder={selectedEselon1 && selectedEselon1 !== SEMUA_ESELON1 ? `Semua di ${selectedEselon1}` : KEMENTERIAN_LABEL}
-            ariaLabel="Pilih satuan kerja"
-          />
-        </div>
+        {!isPpkScoped && (
+          <>
+            <div className={styles.filterCol}>
+              <span className={styles.filterLabel}>Eselon I</span>
+              <Select
+                options={eselon1Options.map((e) => ({ value: e === SEMUA_ESELON1 ? '' : e, label: e }))}
+                value={selectedEselon1}
+                onChange={(e) => {
+                  setSelectedEselon1(e.target.value);
+                  setSelectedUnit('');
+                }}
+              />
+            </div>
+            <div className={`${styles.filterCol} ${styles.filterColWide}`}>
+              <span className={styles.filterLabel}>Satuan Kerja</span>
+              <SearchableSelect
+                value={selectedUnit}
+                onChange={setSelectedUnit}
+                options={satkerOptions}
+                placeholder={selectedEselon1 && selectedEselon1 !== SEMUA_ESELON1 ? `Semua di ${selectedEselon1}` : KEMENTERIAN_LABEL}
+                ariaLabel="Pilih satuan kerja"
+              />
+            </div>
+          </>
+        )}
         <div className={styles.filterMeta}>
           <CalendarDays size={14} />
           <span>Update data terakhir: {updatedLabel}</span>
@@ -283,12 +329,15 @@ export function PemanfaatanSistemDetailView() {
       <div className={styles.tableSection}>
         <div className={styles.sectionHead}>
           <h3 className={styles.sectionTitle}>
-            Nilai ITKP Pemanfaatan Sistem — Seluruh Satuan Kerja
-            {selectedEselon1 && selectedEselon1 !== SEMUA_ESELON1 ? ` (${selectedEselon1})` : ''}
+            {isPpkScoped
+              ? 'Nilai ITKP Pemanfaatan Sistem — Satuan Kerja Anda'
+              : 'Nilai ITKP Pemanfaatan Sistem — Seluruh Satuan Kerja'}
+            {!isPpkScoped && selectedEselon1 && selectedEselon1 !== SEMUA_ESELON1 ? ` (${selectedEselon1})` : ''}
           </h3>
           <span className={styles.sectionCaption}>
-            {satkerRows.length} satuan kerja, diurutkan berdasarkan skor total tertinggi secara default — klik header
-            kolom untuk mengurutkan, klik baris untuk melihat rincian satker tersebut di atas.
+            {isPpkScoped
+              ? 'Rincian per subindikator A1–A7 untuk satuan kerja Anda, dengan komposisi skor yang sama seperti kartu di atas.'
+              : `${satkerRows.length} satuan kerja, diurutkan berdasarkan skor total tertinggi secara default — klik header kolom untuk mengurutkan, klik baris untuk melihat rincian satker tersebut di atas.`}
           </span>
         </div>
 
@@ -326,8 +375,8 @@ export function PemanfaatanSistemDetailView() {
                 {sortedSatkerRows.map((u, idx) => (
                   <tr
                     key={u.name}
-                    className={`${styles.rowClickable} ${selectedUnit === u.name ? styles.rowActive : ''}`}
-                    onClick={() => setSelectedUnit(u.name === selectedUnit ? '' : u.name)}
+                    className={`${isPpkScoped ? '' : styles.rowClickable} ${effectiveUnit === u.name ? styles.rowActive : ''}`}
+                    onClick={isPpkScoped ? undefined : () => setSelectedUnit(u.name === selectedUnit ? '' : u.name)}
                   >
                     <td className={styles.td}>{idx + 1}</td>
                     <td className={`${styles.td} ${styles.tdSatker}`}>{u.name}</td>

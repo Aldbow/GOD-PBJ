@@ -20,20 +20,23 @@ interface PaketDetailModalProps {
   rekomendasiKurasi?: string;
   kdRup?: string;
   onCurationSuccess?: (newData: any) => void;
+  /** Aksi tetap di dasar panel — dipakai halaman Notifikasi untuk tautan ke halaman Realisasi. */
+  footer?: React.ReactNode;
 }
 
-export function PaketDetailModal({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
-  historyData, 
+export function PaketDetailModal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  historyData,
   loadingHistory,
   statusKurasi: initialStatus,
   catatanKurasi: initialCatatan,
   rekomendasiKurasi: initialRekomendasi,
   kdRup,
-  onCurationSuccess
+  onCurationSuccess,
+  footer
 }: PaketDetailModalProps) {
   const { role } = useSession();
   const [isCurating, setIsCurating] = React.useState(false);
@@ -77,7 +80,7 @@ export function PaketDetailModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title}>
+    <Modal isOpen={isOpen} onClose={onClose} title={title} footer={footer}>
       <div className={styles.body}>
         {statusKurasi && (
           <div style={{

@@ -3,12 +3,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { motion, Variants } from 'framer-motion';
-import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge, Sparkles, ShieldAlert, ExternalLink } from 'lucide-react';
+import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge, Sparkles, ShieldAlert, ExternalLink, Landmark, Lock, SlidersHorizontal } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ErrorBox } from '@/components/ui/ErrorBox';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
+import { useSession } from '@/components/auth/SessionProvider';
 import { fmtInt, fmtPct, fmtRupiah } from '@/lib/format';
 import {
   fetchGabunganRows,
@@ -74,6 +75,86 @@ const item: Variants = {
 
 const EMPTY_FILTER: RingkasanFilterValue = { satker: '', ppk: '' };
 
+/** Lingkup data yang boleh dipilih role PPK pada halaman Ringkasan. */
+type PpkScope = 'satker' | 'kementerian';
+
+/**
+ * Pemilih lingkup untuk role PPK — menempati slot yang sama dengan
+ * RingkasanFilter milik admin. Memakai kelas segmented control halaman ini
+ * (dipakai juga oleh toggle Persentase/Jumlah Paket) supaya kontrol paling
+ * menentukan di halaman ini tidak memperkenalkan bahasa visual baru.
+ *
+ * Penjelasan batas per-paket sengaja hanya muncul di lingkup Kementerian, dan
+ * hanya di sini: dijelaskan sekali pada kontrol yang menyebabkannya, bukan
+ * diulang sebagai placeholder di setiap section yang menghilang.
+ */
+function PpkScopeBar({
+  scope,
+  onChange,
+  satkerName,
+  disabled,
+}: {
+  scope: PpkScope;
+  onChange: (scope: PpkScope) => void;
+  satkerName: string;
+  disabled?: boolean;
+}) {
+  const hasSatker = Boolean(satkerName);
+  const noSatkerHint = 'Profil Anda belum memiliki Satuan Kerja. Hubungi admin UKPBJ.';
+
+  return (
+    <div className={styles.scopeBar}>
+      <div className={styles.scopeBarRow}>
+        <span className={styles.scopeBarLabel}>
+          <SlidersHorizontal size={15} /> Lingkup data
+        </span>
+
+        <div className={styles.segmentedControl} role="group" aria-label="Lingkup data">
+          <div
+            className={styles.segmentedBg}
+            style={{ transform: scope === 'kementerian' ? 'translateX(100%)' : 'translateX(0)' }}
+          />
+          <button
+            type="button"
+            className={`${styles.segmentedBtn} ${scope === 'satker' ? styles.active : ''}`}
+            onClick={() => onChange('satker')}
+            disabled={disabled || !hasSatker}
+            aria-pressed={scope === 'satker'}
+            title={hasSatker ? undefined : noSatkerHint}
+          >
+            <Building2 size={13} />
+            Satuan Kerja Saya
+          </button>
+          <button
+            type="button"
+            className={`${styles.segmentedBtn} ${scope === 'kementerian' ? styles.active : ''}`}
+            onClick={() => onChange('kementerian')}
+            disabled={disabled}
+            aria-pressed={scope === 'kementerian'}
+          >
+            <Landmark size={13} />
+            Kementerian
+          </button>
+        </div>
+      </div>
+
+      {scope === 'kementerian' ? (
+        <p className={styles.scopeNote}>
+          <Lock size={13} className={styles.scopeNoteIcon} />
+          <span>
+            Menampilkan agregat seluruh kementerian. export dan laporan tetap terbatas pada satuan kerja Anda.
+            {!hasSatker && ` ${noSatkerHint}`}
+          </span>
+        </p>
+      ) : (
+        <p className={styles.scopeInfo}>
+          Menampilkan data: <b>{satkerName}</b>
+        </p>
+      )}
+    </div>
+  );
+}
+
 // Getter label stabil (identitas referensi tetap sama antar-render) supaya
 // CategoryDonutChart/CategoryBarChart tidak recompute chart data tiap render.
 const getMetodeLabel = (m: MetodeAggregate) => m.metode;
@@ -81,11 +162,32 @@ const getJenisLabel = (j: JenisAggregate) => j.jenis;
 const getSumberLabel = (s: SumberAggregate) => s.kategori;
 
 export function RingkasanView() {
+  // Role PPK punya DUA lingkup: satkernya sendiri, atau agregat se-kementerian.
+  // Yang dibatasi bukan datasetnya melainkan granularitasnya — angka rollup
+  // terbuka di kedua lingkup, sedangkan identitas paket (nama paket, kode RUP,
+  // nama PPK, catatan kurasi AI) hanya boleh terlihat untuk satkernya sendiri.
+  const { role, satker: profileSatker } = useSession();
+  const isPpk = role === 'ppk';
+  const hasSatker = Boolean(profileSatker);
+  const [ppkScope, setPpkScope] = useState<PpkScope>(hasSatker ? 'satker' : 'kementerian');
+
   const [rows, setRows] = useState<GabunganRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [applied, setApplied] = useState<RingkasanFilterValue>(EMPTY_FILTER);
+  // Filter tersimpan hanya milik admin/sekjend. Untuk PPK, `applied` DITURUNKAN
+  // dari lingkup aktif — bukan disimpan — supaya tidak bisa digeser ke satker
+  // lain lewat ?satker= atau lewat state di devtools.
+  const [appliedState, setApplied] = useState<RingkasanFilterValue>(EMPTY_FILTER);
+  const applied = useMemo<RingkasanFilterValue>(() => {
+    if (!isPpk) return appliedState;
+    return ppkScope === 'satker' ? { satker: profileSatker ?? '', ppk: '' } : EMPTY_FILTER;
+  }, [isPpk, ppkScope, profileSatker, appliedState]);
+
+  // SATU gerbang untuk semua permukaan per-paket (tabel anomali, tabel kurasi
+  // tidak akurat, export). Peran lain tidak terpengaruh.
+  const canSeePaketDetail = !isPpk || (ppkScope === 'satker' && hasSatker);
+
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isExportPrintMenuOpen, setIsExportPrintMenuOpen] = useState(false);
 
@@ -187,6 +289,9 @@ export function RingkasanView() {
     setLoading(true);
     setError(null);
     try {
+      // Baris dimuat utuh untuk semua peran — agregat kementerian butuh itu.
+      // Pembatasan role PPK ditegakkan pada tingkat tampilan (canSeePaketDetail)
+      // dan pada baris export, bukan dengan memotong dataset di sini.
       const data = await fetchGabunganRows();
       setRows(data);
       setLastUpdate(new Date());
@@ -229,9 +334,16 @@ export function RingkasanView() {
     []
   );
 
+  // Baris export role PPK selalu terkunci ke satkernya, di lingkup manapun —
+  // termasuk opsi "Semua Data" yang mengabaikan filter aktif. Profil tanpa
+  // satker WAJIB dijaga eksplisit: filterRows(rows, { satker: '' }) justru
+  // mengembalikan seluruh baris, jadi tanpa guard ini satker kosong malah
+  // membuka satu kementerian.
   const buildExportRows = useCallback(
-    (f: RingkasanFilterValue) =>
-      filterRows(rows, f).map((r) => {
+    (f: RingkasanFilterValue) => {
+      if (isPpk && !profileSatker) return [];
+      const base = isPpk ? filterRows(rows, { satker: profileSatker!, ppk: '' }) : rows;
+      return filterRows(base, f).map((r) => {
         const pagu = Number(r.pagu) || 0;
         const total = Number(r.total) || 0;
         return {
@@ -248,8 +360,9 @@ export function RingkasanView() {
           catatan_kurasi: r.catatan_kurasi || '-',
           rekomendasi_kurasi: r.rekomendasi_kurasi || '-',
         };
-      }),
-    [rows]
+      });
+    },
+    [rows, isPpk, profileSatker]
   );
 
   const allExport = useMemo(() => buildExportRows(EMPTY_FILTER), [buildExportRows]);
@@ -325,6 +438,10 @@ export function RingkasanView() {
   // untuk satu satker/ppk) dan pecah ITKP+Kurasi jadi stack penuh + tabel awareness.
   const isFiltered = !!applied.satker || !!applied.ppk;
 
+  // Di lingkup Kementerian `applied.satker` kosong sehingga tak ada baris yang
+  // tersorot — padahal justru di situlah PPK perlu tahu posisi satkernya.
+  const highlightSatker = isPpk ? profileSatker : applied.satker;
+
   return (
     <motion.div variants={container} initial="hidden" animate="show" id="report-snapshot" style={{ padding: '4px' }}>
       {/* Baris 1 — Header */}
@@ -334,9 +451,10 @@ export function RingkasanView() {
             {applied.satker || 'Kementerian Ketenagakerjaan'}
           </h1>
           <p className={styles.pageSub}>
-            Gambaran umum pelaksanaan pengadaan, realisasi, pemanfaatan sistem, dan hasil kurasi paket.
+            {isPpk && ppkScope === 'satker'
+              ? 'Gambaran umum pengadaan, realisasi, pemanfaatan sistem, dan hasil kurasi paket pada satuan kerja Anda.'
+              : 'Gambaran umum pelaksanaan pengadaan, realisasi, pemanfaatan sistem, dan hasil kurasi paket.'}
           </p>
-          <p className={styles.pagePeriod}>Data terakhir diperbarui {updatedLabel}</p>
         </div>
         <div className={styles.headerActions} data-exclude-print="true">
           <button className={styles.ghostBtn} onClick={handleDownloadPdf} disabled={loading || downloadingPdf}>
@@ -353,16 +471,29 @@ export function RingkasanView() {
 
       {error && <ErrorBox className={styles.spacer}>{error}</ErrorBox>}
 
-      {/* Baris 2 — Filter (disembunyikan dari hasil cetak/PDF) */}
+      {/* Baris 2 — Kontrol lingkup data (disembunyikan dari hasil cetak/PDF).
+          Slot yang sama untuk semua peran: admin/sekjend mendapat pemilih
+          Satker/PPK, PPK mendapat pemilih lingkup 2-state. Pemilih penuh tidak
+          diberikan ke PPK karena dropdown-nya memuat daftar lengkap nama satker
+          dan nama SELURUH PPK — data yang tidak dibutuhkan untuk membaca agregat. */}
       <motion.div variants={item} data-exclude-print="true">
-        <RingkasanFilter
-          satkerOptions={satkerOptions}
-          getPpkOptions={getPpkOptions}
-          getSatkerByPpk={getSatkerByPpk}
-          applied={applied}
-          onApply={setApplied}
-          disabled={loading}
-        />
+        {isPpk ? (
+          <PpkScopeBar
+            scope={ppkScope}
+            onChange={setPpkScope}
+            satkerName={profileSatker ?? ''}
+            disabled={loading}
+          />
+        ) : (
+          <RingkasanFilter
+            satkerOptions={satkerOptions}
+            getPpkOptions={getPpkOptions}
+            getSatkerByPpk={getSatkerByPpk}
+            applied={applied}
+            onApply={setApplied}
+            disabled={loading}
+          />
+        )}
       </motion.div>
 
       {/* Baris 3 — KPI Cards */}
@@ -677,7 +808,7 @@ export function RingkasanView() {
                   {paginatedSatker.map((s) => (
                     <tr
                       key={s.satker}
-                      className={`${styles.interactiveRow} ${s.satker === applied.satker ? styles.rowHighlight : ''}`}
+                      className={`${styles.interactiveRow} ${s.satker === highlightSatker ? styles.rowHighlight : ''}`}
                       onClick={() => setSelectedSatkerForDetail(s.satker)}
                       style={{ cursor: 'pointer' }}
                       title="Klik untuk melihat detail satuan kerja"
@@ -760,14 +891,19 @@ export function RingkasanView() {
         <SectionHeader title={<span className={styles.sectionEyebrow}><Sparkles size={16} /> Kurasi Paket Pengadaan</span>} />
         <div className={styles.stackedFull}>
           <KurasiAkurasi kurasi={agg.kurasi} metode={agg.metode} onRefresh={load} isFullWidth />
-          <KurasiTidakAkuratTable rows={agg.kurasiTidakAkurat} />
+          {/* Rincian per-paket: identitas paket + nama PPK. Disembunyikan bagi
+              PPK di lingkup Kementerian; ringkasan akurasi di atasnya tetap ada
+              sehingga section tidak pernah kosong. */}
+          {canSeePaketDetail && <KurasiTidakAkuratTable rows={agg.kurasiTidakAkurat} />}
         </div>
       </motion.div>
 
       {/* Baris 8 — Deteksi Anomali */}
       <motion.div variants={item} className={styles.sectionGroup}>
         <AnomaliPanel summary={agg.anomali} />
-        <AnomaliTable rows={agg.anomaliRows} printMode={isPrintExporting} />
+        {/* Idem — dan karena tabel ini yang dibentangkan penuh oleh printMode,
+            menyembunyikannya di sini juga yang menjaga hasil Cetak Laporan. */}
+        {canSeePaketDetail && <AnomaliTable rows={agg.anomaliRows} printMode={isPrintExporting} />}
       </motion.div>
       
       <ExportDataModal
@@ -778,6 +914,12 @@ export function RingkasanView() {
         columns={exportColumns}
         allData={allExport}
         filteredData={filteredExport}
+        scopeLocked={isPpk}
+        scopeNotice={
+          hasSatker
+            ? `Seluruh paket ${profileSatker}. Export rincian paket dibatasi pada satuan kerja Anda.`
+            : 'Profil Anda belum memiliki Satuan Kerja, sehingga tidak ada rincian paket yang bisa diexport. Hubungi admin UKPBJ.'
+        }
       />
       
       <SatkerDetailModal 

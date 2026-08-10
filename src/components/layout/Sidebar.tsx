@@ -7,8 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import styles from './Sidebar.module.css';
 import { ChevronDown, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionProvider';
-import { canAccess } from '@/lib/auth/access';
-import { NAV_GROUPS } from '@/lib/nav';
+import { navGroupsFor } from '@/lib/nav';
 
 const COLLAPSE_KEY = 'dewa-pbj:sidebar-collapsed';
 const CLOSED_GROUPS_KEY = 'dewa-pbj:sidebar-closed-groups';
@@ -47,10 +46,7 @@ export function Sidebar() {
     });
   };
 
-  const visibleGroups = NAV_GROUPS.map((group) => ({
-    ...group,
-    links: group.links.filter((link) => canAccess(role, link.href)),
-  })).filter((group) => group.links.length > 0);
+  const visibleGroups = navGroupsFor(role);
 
   return (
     <aside

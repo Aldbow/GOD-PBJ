@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Wallet, TrendingUp, Hourglass, Package, CircleCheckBig, Clock } from 'lucide-react';
+import { Wallet, TrendingUp, Hourglass, Package, CircleCheckBig, Clock, AlertTriangle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { RingkasanKpi } from '../lib/ringkasanData';
 import { fmtInt, fmtPct } from '@/lib/format';
@@ -19,14 +19,25 @@ function fmtRupiahKpi(m: number): string {
   return `Rp${fmtInt(n)}`;
 }
 
-type Variant = 'brand' | 'good' | 'warn' | 'neutral';
+// Target realisasi kumulatif per triwulan (persen dari pagu). Dinilai dari
+// pctRealisasi dan ditandai pada kartu Total Realisasi — kartu yang angkanya
+// memang dinilai. Indeks 0 = TW1.
+const TARGET_TRIWULAN = [20, 50, 80, 100] as const;
+
+// Triwulan berjalan menurut tanggal saat ini. Halaman Ringkasan tidak punya
+// pemilih periode, jadi acuannya kalender.
+function triwulanBerjalan(now: Date = new Date()): 1 | 2 | 3 | 4 {
+  return (Math.floor(now.getMonth() / 3) + 1) as 1 | 2 | 3 | 4;
+}
+
+type Variant = 'brand' | 'good' | 'warn' | 'neutral' | 'danger';
 
 interface KpiItem {
   key: string;
   label: string;
   value: string;
   icon: LucideIcon;
-  hint: string;
+  hint: React.ReactNode;
   progress?: number;
   variant: Variant;
   tooltip: string;
@@ -51,6 +62,18 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
   const sudahPaketPct = kpi.totalPaket > 0 ? (kpi.paketSudah / kpi.totalPaket) * 100 : 0;
   const belumPaketPct = kpi.totalPaket > 0 ? (kpi.paketBelum / kpi.totalPaket) * 100 : 0;
 
+  // Triwulan berjalan belum selesai, jadi yang dinilai adalah triwulan terakhir
+  // yang sudah tuntas: di TW3 yang dilihat capaian target TW2. Selama TW1 belum
+  // ada satu pun triwulan yang selesai pada tahun anggaran berjalan, sehingga
+  // belum ada target yang jatuh tempo.
+  const triwulan = triwulanBerjalan();
+  const triwulanDinilai = triwulan > 1 ? triwulan - 1 : null;
+  const targetDinilai = triwulanDinilai !== null ? TARGET_TRIWULAN[triwulanDinilai - 1] : null;
+  // Tanpa pagu tidak ada yang bisa dinilai, jadi jangan tandai merah hanya
+  // karena filter aktif tidak mengembalikan paket.
+  const adaPagu = kpi.totalPagu > 0;
+  const dibawahTarget = adaPagu && targetDinilai !== null && kpi.pctRealisasi < targetDinilai;
+
   const items: KpiItem[] = [
     {
       key: 'pagu',
@@ -65,11 +88,34 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
       key: 'realisasi',
       label: 'Total Realisasi',
       value: fmtRupiahKpi(kpi.totalRealisasi),
-      icon: TrendingUp,
-      hint: `${fmtPct(kpi.pctRealisasi)} dari pagu`,
+      icon: dibawahTarget ? AlertTriangle : TrendingUp,
+      hint: (
+        <>
+          {fmtPct(kpi.pctRealisasi)} dari pagu
+          {targetDinilai === null ? (
+            <> · penilaian target mulai TW2</>
+          ) : (
+            adaPagu && (
+              <>
+                {' · '}
+                <span className={styles.flag}>
+                  {dibawahTarget
+                    ? `di bawah target TW${triwulanDinilai} (${targetDinilai}%)`
+                    : `target TW${triwulanDinilai} (${targetDinilai}%) tercapai`}
+                </span>
+              </>
+            )
+          )}
+        </>
+      ),
       progress: kpi.pctRealisasi,
-      variant: 'good',
-      tooltip: 'Total nilai realisasi/kontrak yang sudah terserap dibanding pagu.',
+      variant: dibawahTarget ? 'danger' : 'good',
+      tooltip:
+        `Total nilai realisasi/kontrak yang sudah terserap dibanding pagu. ` +
+        `Target realisasi kumulatif: TW1 20%, TW2 50%, TW3 80%, TW4 100%. ` +
+        (targetDinilai === null
+          ? `Yang dinilai selalu triwulan terakhir yang sudah selesai; TW1 masih berjalan sehingga belum ada target yang jatuh tempo.`
+          : `Yang dinilai triwulan terakhir yang sudah selesai. Kini TW${triwulan} berjalan, jadi acuannya target TW${triwulanDinilai} (${targetDinilai}%). Realisasi saat ini ${fmtPct(kpi.pctRealisasi)}.`),
     },
     {
       key: 'belum',
@@ -79,7 +125,7 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
       hint: `${fmtPct(belumPct)} dari pagu`,
       progress: belumPct,
       variant: 'warn',
-      tooltip: 'Selisih pagu dikurangi realisasi — anggaran yang belum terserap.',
+      tooltip: 'Selisih pagu dikurangi realisasi, yaitu anggaran yang belum terserap.',
     },
     {
       key: 'totalPaket',
@@ -127,7 +173,10 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
             <div className={styles.value}>{it.value}</div>
             {it.progress !== undefined && (
               <div className={styles.track}>
-                <div className={styles.fill} style={{ width: `${Math.max(0, Math.min(it.progress, 100))}%` }} />
+                <div
+                  className={styles.fill}
+                  style={{ '--fill': Math.max(0, Math.min(it.progress, 100)) / 100 } as React.CSSProperties}
+                />
               </div>
             )}
             <div className={styles.hint}>{it.hint}</div>

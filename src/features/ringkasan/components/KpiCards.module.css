@@ -39,6 +39,7 @@
 .brand::before { background: linear-gradient(180deg, #163B63, #27B6D6); }
 .good::before { background: #0ca30c; }
 .warn::before { background: #eda100; }
+.danger::before { background: var(--kpi-danger); }
 .neutral::before { background: var(--border-strong, #cbd5e1); }
 
 /* Kartu prioritas pakai gradient halus sesuai warna aksen */
@@ -58,6 +59,18 @@
   background:
     radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, #eda100 12%, transparent), transparent 55%),
     var(--surface);
+}
+
+/* Realisasi di bawah target triwulan yang sudah selesai. Merahnya memakai warna
+   yang sama dengan badge "% Capaian" di tabel peringkat satker pada halaman ini
+   (.badgeRed di RingkasanView.module.css), supaya satu halaman satu merah.
+   Border ikut ditegaskan karena ini satu-satunya keadaan alarm di baris KPI. */
+.danger {
+  --kpi-danger: var(--error-600, #dc2626);
+  background:
+    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--kpi-danger) 12%, transparent), transparent 55%),
+    var(--surface);
+  border-color: color-mix(in srgb, var(--kpi-danger) 32%, var(--border));
 }
 
 .neutral {
@@ -93,6 +106,7 @@
 }
 .good .icon { color: #0a7d0a; background: color-mix(in srgb, #0ca30c 12%, transparent); }
 .warn .icon { color: #b07a00; background: color-mix(in srgb, #eda100 14%, transparent); }
+.danger .icon { color: var(--red-700); background: color-mix(in srgb, var(--kpi-danger) 14%, transparent); }
 .brand .icon { color: #1A5D91; background: color-mix(in srgb, #1A5D91 12%, transparent); }
 
 :global([data-theme='dark']) .good .icon { color: #4ade80; }
@@ -117,13 +131,23 @@
   margin-top: 10px;
 }
 
+/* Diisi lewat scaleX, bukan width: width memicu layout tiap frame, transform
+   dikomposit GPU. --fill diisi komponen sebagai angka 0..1. */
 .fill {
+  width: 100%;
   height: 100%;
   border-radius: 999px;
-  transition: width 0.6s ease;
+  transform: scaleX(var(--fill, 0));
+  transform-origin: left center;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill { transition: none; }
 }
 .good .fill { background: #0ca30c; }
 .warn .fill { background: #eda100; }
+.danger .fill { background: var(--kpi-danger); }
 .brand .fill { background: linear-gradient(90deg, #1A5D91, #27B6D6); }
 .neutral .fill { background: var(--info-600); }
 
@@ -133,3 +157,16 @@
   margin-top: auto;
   padding-top: 8px;
 }
+
+/* Status terhadap target triwulan. Warnanya mengikuti varian kartu, tapi teksnya
+   sendiri sudah menyebut lulus/tidaknya, jadi warna bukan satu-satunya sinyal. */
+.flag {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+/* Flag menempel di kartu Total Realisasi, jadi variannya good (target tercapai)
+   atau danger (di bawah target) — warnanya disamakan dengan .good/.danger .icon. */
+.good .flag { color: #0a7d0a; }
+.danger .flag { color: var(--red-700); }
+
+:global([data-theme='dark']) .good .flag { color: #4ade80; }

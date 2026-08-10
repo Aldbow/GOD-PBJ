@@ -1,8 +1,15 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap, ListChecks, Star, Database, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap, ListChecks, Star, Database, ShieldAlert, Bell } from 'lucide-react';
+import type { Role } from '@/types';
+import { canAccess } from '@/lib/auth/access';
 
-export type NavLink = { name: string; href: string; icon: React.ReactNode };
-export type NavGroup = { id: string; label: string | null; links: NavLink[] };
+/**
+ * `roles` = allowlist role eksplisit untuk entri yang TIDAK bisa dinilai oleh
+ * `canAccess` — yaitu tautan eksternal (absolute URL), yang selalu lolos gate
+ * berbasis prefix path. Tanpa `roles`, visibilitas murni ditentukan ROUTE_ACCESS.
+ */
+export type NavLink = { name: string; href: string; icon: React.ReactNode; roles?: Role[] };
+export type NavGroup = { id: string; label: string | null; links: NavLink[]; roles?: Role[] };
 
 /**
  * SATU sumber kebenaran struktur navigasi — dipakai oleh Sidebar (menu),
@@ -14,6 +21,15 @@ export const NAV_GROUPS: NavGroup[] = [
     label: null,
     links: [
       { name: 'Ringkasan', href: '/ringkasan', icon: React.createElement(LayoutDashboard, { size: 18 }) },
+      // Khusus PPK — halaman ini menampilkan paket milik PPK ybs, jadi tidak ada
+      // artinya untuk role lain. Terdaftar di sini (bukan hanya sebagai rute lepas)
+      // supaya breadcrumb Topbar lewat findActiveEntry mengenali /notifikasi.
+      {
+        name: 'Notifikasi',
+        href: '/notifikasi',
+        icon: React.createElement(Bell, { size: 18 }),
+        roles: ['ppk'],
+      },
     ],
   },
   {
@@ -52,12 +68,30 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: 'prioritas-nasional',
     label: 'Program Prioritas Nasional',
+    // Tautan eksternal (bukan rute aplikasi ini) → tidak tertangkap ROUTE_ACCESS.
+    // Khusus admin/UKPBJ; disembunyikan dari PPK & Sekretariat Jenderal.
+    roles: ['admin'],
     links: [
       { name: 'Prioritas Nasional', href: 'https://god-pbj.vercel.app/prioritas-nasional', icon: React.createElement(Star, { size: 18 }) },
       { name: 'Master Data PN', href: 'https://god-pbj.vercel.app/program-prioritas', icon: React.createElement(Database, { size: 18 }) },
     ],
   },
 ];
+
+/**
+ * Grup + link yang boleh dilihat `role`. SATU tempat penyaringan menu — dipakai
+ * Sidebar dan CommandPalette supaya keduanya tidak pernah berbeda isi.
+ */
+export function navGroupsFor(role: Role): NavGroup[] {
+  return NAV_GROUPS.filter((group) => !group.roles || group.roles.includes(role))
+    .map((group) => ({
+      ...group,
+      links: group.links.filter(
+        (link) => (!link.roles || link.roles.includes(role)) && canAccess(role, link.href)
+      ),
+    }))
+    .filter((group) => group.links.length > 0);
+}
 
 /** Cari grup + link yang cocok dengan path aktif (untuk breadcrumb & auto-expand grup). */
 export function findActiveEntry(pathname: string): { group: NavGroup; link: NavLink } | null {

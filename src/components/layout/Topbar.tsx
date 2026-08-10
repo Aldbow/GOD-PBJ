@@ -11,6 +11,7 @@ import { ROLE_LABEL } from '@/lib/auth/access';
 import { logout } from '@/lib/auth/actions';
 import { findActiveEntry } from '@/lib/nav';
 import { CommandPalette } from './CommandPalette';
+import { PpkNotificationBell } from './PpkNotificationBell';
 
 export function Topbar() {
   const pathname = usePathname();
@@ -85,6 +86,7 @@ export function Topbar() {
           <Search size={16} />
         </button>
 
+        <PpkNotificationBell />
         <ThemeToggle />
 
         <div className={styles.divider} />

@@ -17,17 +17,19 @@ import { fmtRupiahDetail, fmtInt, countRup } from '@/lib/format';
 import { useRisikoPaketDetail } from '@/hooks/useRisikoPaketDetail';
 import styles from './RisikoInsightPanel.module.css';
 
-const SCORE_KEYS = ['3', '2', '1', '0'];
+const SCORE_KEYS = ['3', '2', '1', '0', 'NULL'];
 const SCORE_LABELS: Record<string, string> = {
   '3': 'Skor 3',
   '2': 'Skor 2',
   '1': 'Skor 1',
-  '0': 'Data Tidak Lengkap / Skor 0',
+  '0': 'Skor 0',
+  'NULL': 'Data Tidak Lengkap',
 };
 const SCORE_COLORS = (key: string, isDark: boolean) => {
   if (key === '3') return riskKategoriColor('TINGGI', isDark);
   if (key === '2') return riskKategoriColor('SEDANG', isDark);
   if (key === '1') return riskKategoriColor('RENDAH', isDark);
+  if (key === '0') return isDark ? '#334155' : '#e2e8f0';
   return riskKategoriColor('DATA_TIDAK_LENGKAP', isDark);
 };
 
@@ -107,37 +109,62 @@ export function RisikoInsightPanel({ satker, ppk }: Props) {
   // Risk Driver Stacked (Bar) berdasarkan Skor Spesifik (1-3)
   const distRiskDriverStacked = useMemo(() => {
     const map = new Map<string, StackedBucket>();
-    const FALLBACK_LABEL = 'Tidak Diketahui';
+    const allLabels = new Set<string>();
+    
     for (const row of data) {
-      const rawLabel = row.main_risk_driver;
-      const label = rawLabel && rawLabel.trim() ? rawLabel : FALLBACK_LABEL;
-      let bucket = map.get(label);
-      if (!bucket) {
-        bucket = {
-          label,
-          totalCount: 0,
-          counts: { '3': 0, '2': 0, '1': 0, '0': 0 },
-        };
-        map.set(label, bucket);
+      if (row.components_json) {
+        for (const comp of row.components_json) {
+          if (comp.applicable !== false) {
+            allLabels.add(comp.label);
+          }
+        }
       }
-      bucket.totalCount += 1;
+    }
 
-      let scoreStr = '0';
-      if (row.components_json && rawLabel) {
-        const comp = row.components_json.find((c: any) => c.label === rawLabel);
-        if (comp && comp.score != null) {
-          scoreStr = comp.score.toString();
+    for (const label of allLabels) {
+      map.set(label, { label, totalCount: 0, counts: { '3': 0, '2': 0, '1': 0, '0': 0, 'NULL': 0 } });
+    }
+
+    for (const row of data) {
+      const c = 1;
+      const seen = new Set<string>();
+
+      if (row.components_json) {
+        for (const comp of row.components_json) {
+          seen.add(comp.label);
+          const bucket = map.get(comp.label);
+          if (bucket) {
+            bucket.totalCount += c;
+            let scoreStr = 'NULL';
+            if (comp.score != null) {
+              scoreStr = comp.score.toString();
+            }
+            if (bucket.counts[scoreStr] !== undefined) {
+              bucket.counts[scoreStr] += c;
+            } else {
+              bucket.counts['NULL'] += c;
+            }
+          }
         }
       }
 
-      if (bucket.counts[scoreStr] !== undefined) {
-        bucket.counts[scoreStr] += 1;
+      for (const label of allLabels) {
+        if (!seen.has(label)) {
+          const bucket = map.get(label);
+          if (bucket) {
+            bucket.totalCount += c;
+            bucket.counts['0'] += c;
+          }
+        }
       }
     }
-    // Sort by total count descending, take top 5
-    return Array.from(map.values())
-      .sort((a, b) => b.totalCount - a.totalCount)
-      .slice(0, 5);
+
+    // Sort by highest risk score first, take top 5
+    return Array.from(map.values()).sort((a, b) => {
+      if (b.counts['3'] !== a.counts['3']) return b.counts['3'] - a.counts['3'];
+      if (b.counts['2'] !== a.counts['2']) return b.counts['2'] - a.counts['2'];
+      return a.label.localeCompare(b.label);
+    }).slice(0, 5);
   }, [data]);
 
   // Ranking satker berdasarkan jumlah paket berkategori TINGGI — sumber untuk chart baru.
@@ -226,7 +253,7 @@ export function RisikoInsightPanel({ satker, ppk }: Props) {
            )}
         </div>
         <div className={styles.right}>
-           <h4 className={styles.chartTitle}>Top 5 Pemicu Risiko Utama</h4>
+           <h4 className={styles.chartTitle}>Top 5 Sebaran Risiko</h4>
            {loading ? (
              <div className={styles.loading}><Loader2 className={styles.spin} /> Memuat...</div>
            ) : (

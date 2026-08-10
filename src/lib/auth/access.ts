@@ -13,8 +13,14 @@ import type { Role } from '@/types';
 export const ROUTE_ACCESS: Record<Role, string[] | '*'> = {
   admin: '*',
   sekjend: ['/ringkasan', '/rencana-pengadaan', '/itkp', '/risiko-pengadaan'],
-  // PPK: fitur Perencanaan & Realisasi, data ter-scope ke PPK ybs.
+  // PPK: Ringkasan + ITKP + fitur Perencanaan & Realisasi, data ter-scope ke
+  // satker/PPK ybs. Pengecualian ruang lingkup: '/itkp' (Dashboard Penilaian)
+  // tetap tingkat Kementerian karena ITKP dinilai untuk satu K/L, sedangkan
+  // '/itkp/pemanfaatan-sistem' terkunci ke satker PPK ybs.
   ppk: [
+    '/ringkasan',
+    '/notifikasi',
+    '/itkp',
     '/epurchasing',
     '/tender',
     '/pengadaan-langsung',
@@ -29,9 +35,9 @@ export const ROUTE_ACCESS: Record<Role, string[] | '*'> = {
 export const LANDING: Record<Role, string> = {
   admin: '/ringkasan',
   sekjend: '/ringkasan',
-  // Halaman '/ppk' dihapus; PPK mendarat di Rencana Umum Pengadaan,
-  // entri pertama yang masih ada di allowlist-nya.
-  ppk: '/rencana-pengadaan',
+  // PPK mendarat di Ringkasan — sama seperti role lain, hanya datanya sudah
+  // ter-scope ke satker ybs (lihat RingkasanView).
+  ppk: '/ringkasan',
 };
 
 /** Label ramah untuk role (UI). */

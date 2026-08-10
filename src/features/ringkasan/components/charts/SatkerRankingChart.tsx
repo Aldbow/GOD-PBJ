@@ -53,6 +53,14 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
     return list;
   }, [satker, selectedSatker, cfg]);
 
+  const rowsRef = React.useRef(rows);
+  const cfgRef = React.useRef(cfg);
+  const inkRef = React.useRef(ink);
+
+  rowsRef.current = rows;
+  cfgRef.current = cfg;
+  inkRef.current = ink;
+
   // Plugin ringan: tulis nilai metrik aktif di ujung tiap bar.
   const endLabelPlugin = useMemo<Plugin<'bar'>>(
     () => ({
@@ -62,17 +70,17 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
         const meta = chart.getDatasetMeta(0);
         ctx.save();
         ctx.font = '600 11px system-ui, sans-serif';
-        ctx.fillStyle = ink.valueText;
+        ctx.fillStyle = inkRef.current.valueText;
         ctx.textBaseline = 'middle';
         meta.data.forEach((bar, i) => {
-          const val = cfg.getValue(rows[i]);
+          const val = cfgRef.current.getValue(rowsRef.current[i]);
           ctx.textAlign = 'left';
-          ctx.fillText(cfg.format(val), bar.x + 6, bar.y);
+          ctx.fillText(cfgRef.current.format(val), bar.x + 6, bar.y);
         });
         ctx.restore();
       },
     }),
-    [rows, cfg, ink.valueText, ink.tick]
+    []
   );
 
   const { data, options } = useMemo(() => {
