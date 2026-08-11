@@ -55,6 +55,17 @@
 .spin { animation: ringkasanSpin 1s linear infinite; }
 @keyframes ringkasanSpin { to { transform: rotate(360deg); } }
 
+/* Tombol aksi di slot `action` SectionHeader — berbagi baris dengan caption,
+   yang panjangnya bisa membungkus di layar sempit. Tanpa ini caption menekan
+   tombol sampai labelnya pecah dua baris. */
+.sectionAction {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .sectionAction { padding: 7px 11px; font-size: 12.5px; }
+}
+
 .spacer { margin-bottom: 20px; }
 
 /* Pemisah antar-section Sumber/Metode/Jenis Pengadaan — garis + jarak lebih
