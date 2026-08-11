@@ -456,13 +456,14 @@ export function RingkasanView() {
         searchQuery,
         highlightSatker: highlightSatker || '',
         scopeLabel: applied.satker || 'Kementerian Ketenagakerjaan',
+        exclusion: agg.satkerExclusion,
       });
     } catch (err) {
       console.error('Gagal mencetak peringkat satuan kerja', err);
     } finally {
       setPrintingPeringkat(false);
     }
-  }, [searchedSatker, searchQuery, highlightSatker, applied.satker]);
+  }, [searchedSatker, searchQuery, highlightSatker, applied.satker, agg.satkerExclusion]);
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" id="report-snapshot" style={{ padding: '4px' }}>
@@ -896,6 +897,29 @@ export function RingkasanView() {
                   Selanjutnya
                 </button>
               </div>
+            )}
+            {agg.satkerExclusion.jumlahPaket > 0 && (
+              <p className={styles.tableFootnote}>
+                <ShieldAlert size={13} />
+                <span>
+                  {fmtInt(agg.satkerExclusion.jumlahPaket)} paket realisasi tanpa RUP terumumkan
+                  ({fmtRupiah(agg.satkerExclusion.realisasi)}) tidak masuk peringkat: pagunya nol,
+                  sehingga persentase capaiannya tidak dapat dihitung. Nilainya tetap terhitung di
+                  KPI atas dan rinciannya ada di panel Anomali.
+                  {agg.satkerExclusion.satkerHilang.length > 0 && (
+                    <>
+                      {' '}Termasuk{' '}
+                      {agg.satkerExclusion.satkerHilang.map((nama, i) => (
+                        <React.Fragment key={nama}>
+                          {i > 0 && ', '}
+                          <strong>{nama}</strong>
+                        </React.Fragment>
+                      ))}
+                      {' '}yang seluruh paketnya tanpa RUP sehingga tidak muncul sama sekali di tabel ini.
+                    </>
+                  )}
+                </span>
+              </p>
             )}
           </div>
         </motion.div>

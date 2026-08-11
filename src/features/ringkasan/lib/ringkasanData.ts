@@ -74,6 +74,16 @@ export interface SatkerAggregate {
   pctRealisasi: number;
 }
 
+// Apa yang TIDAK ikut dihitung di peringkat satker, supaya bisa dinyatakan
+// terbuka di layar dan di cetakan — angka yang hilang tanpa keterangan lebih
+// berbahaya daripada angka yang aneh.
+export interface SatkerExclusion {
+  jumlahPaket: number;
+  realisasi: number;
+  /** Satker yang SELURUH barisnya tanpa RUP → hilang sama sekali dari peringkat. */
+  satkerHilang: string[];
+}
+
 export interface KurasiAggregate {
   totalDikurasi: number; // Akurat + Tidak Akurat (punya keputusan)
   akurat: number;
@@ -123,6 +133,7 @@ export interface RingkasanAggregate {
   jenis: JenisAggregate[];
   sumber: SumberAggregate[];
   satker: SatkerAggregate[];
+  satkerExclusion: SatkerExclusion;
   kurasi: KurasiAggregate;
   anomali: AnomaliSummary;
   anomaliRows: AnomaliDetail[];
@@ -206,6 +217,10 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
   const sumberMap = new Map<SumberAggregate['kategori'], SumberAggregate>();
   const satkerMap = new Map<string, SatkerAggregate>();
 
+  let excludedPaket = 0;
+  let excludedRealisasi = 0;
+  const excludedSatkerNames = new Set<string>();
+
   for (const r of data) {
     const pagu = num(r.pagu);
     const realisasi = num(r.total);
@@ -265,14 +280,26 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
       else sm.paketBelum += 1;
     }
 
-    let s = satkerMap.get(satkerName);
-    if (!s) {
-      s = { satker: satkerName, jumlahPaket: 0, pagu: 0, realisasi: 0, belum: 0, pctRealisasi: 0 };
-      satkerMap.set(satkerName, s);
+    // Peringkat satker DARI RUP saja — aturan yang sama dengan `sumber` di atas.
+    // Baris "realisasi tanpa RUP" selalu berpagu 0, sehingga % capaian-nya tak
+    // bisa dihitung dan jatuh ke 0%; di tabel yang diurut berdasarkan capaian,
+    // baris itu terlempar ke dasar peringkat seolah kinerjanya paling buruk —
+    // padahal justru uangnya terbelanjakan, hanya perencanaannya yang tak
+    // tercatat di SIRUP. Realisasinya tetap utuh di KPI atas dan panel Anomali.
+    if (r.is_from_sirup === true) {
+      let s = satkerMap.get(satkerName);
+      if (!s) {
+        s = { satker: satkerName, jumlahPaket: 0, pagu: 0, realisasi: 0, belum: 0, pctRealisasi: 0 };
+        satkerMap.set(satkerName, s);
+      }
+      s.jumlahPaket += 1;
+      s.pagu += pagu;
+      s.realisasi += realisasi;
+    } else {
+      excludedPaket += 1;
+      excludedRealisasi += realisasi;
+      excludedSatkerNames.add(satkerName);
     }
-    s.jumlahPaket += 1;
-    s.pagu += pagu;
-    s.realisasi += realisasi;
   }
 
   const metode = Array.from(metodeMap.values())
@@ -314,6 +341,14 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
     }))
     .sort((a, b) => b.realisasi - a.realisasi);
 
+  // Satker yang tak punya satu pun baris ber-RUP menghilang total dari peringkat
+  // (mis. paket E-Purchasing yang kode satkernya hanya bisa dipetakan sampai
+  // tingkat Eselon I). Namanya disebut supaya ketiadaannya terlihat, bukan
+  // diam-diam.
+  const satkerHilang = Array.from(excludedSatkerNames)
+    .filter((nama) => !satkerMap.has(nama))
+    .sort((a, b) => a.localeCompare(b, 'id-ID'));
+
   const totalPaket = data.length;
   const paketBelum = totalPaket - paketSudah;
   const belumDikurasi = Math.max(totalPaket - akurat - perluKoreksi, 0);
@@ -333,6 +368,11 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
     jenis,
     sumber,
     satker,
+    satkerExclusion: {
+      jumlahPaket: excludedPaket,
+      realisasi: excludedRealisasi,
+      satkerHilang,
+    },
     kurasi: {
       totalDikurasi,
       akurat,

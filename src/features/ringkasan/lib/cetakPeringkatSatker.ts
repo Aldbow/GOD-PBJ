@@ -1,5 +1,5 @@
 import { fmtDec, fmtInt, fmtRupiahDetail } from '@/lib/format';
-import type { SatkerAggregate } from './ringkasanData';
+import type { SatkerAggregate, SatkerExclusion } from './ringkasanData';
 
 /** Satu baris peringkat: agregat satker + nomor peringkat dasar (by % capaian). */
 export type SatkerRankRow = SatkerAggregate & { baseRank: number };
@@ -12,6 +12,8 @@ export interface CetakPeringkatOptions {
   highlightSatker?: string;
   /** Judul lingkup data — mis. 'Kementerian Ketenagakerjaan'. */
   scopeLabel?: string;
+  /** Baris tanpa RUP yang dikeluarkan dari peringkat — dicetak sebagai catatan. */
+  exclusion?: SatkerExclusion;
 }
 
 /** Ambang warna % capaian — identik dengan badge di tabel layar. */
@@ -55,6 +57,7 @@ export async function cetakPeringkatSatker({
   searchQuery = '',
   highlightSatker = '',
   scopeLabel = 'Kementerian Ketenagakerjaan',
+  exclusion,
 }: CetakPeringkatOptions): Promise<void> {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import('jspdf'),
@@ -107,13 +110,36 @@ export async function cetakPeringkatSatker({
     MARGIN + 49
   );
 
+  // Catatan pengecualian ikut tercetak supaya berkas ini tidak bertentangan
+  // dengan yang dibaca di layar: pembaca cetakan harus tahu ada realisasi yang
+  // sengaja tidak masuk peringkat, dan berapa nilainya.
+  let cursorY = MARGIN + 58;
+  if (exclusion && exclusion.jumlahPaket > 0) {
+    const catatan = [
+      `Catatan: ${fmtInt(exclusion.jumlahPaket)} paket realisasi tanpa RUP terumumkan`,
+      `(${fmtRupiahDetail(exclusion.realisasi)}) tidak masuk peringkat karena pagunya nol,`,
+      'sehingga persentase capaiannya tidak dapat dihitung.',
+      exclusion.satkerHilang.length > 0
+        ? `Termasuk ${exclusion.satkerHilang.join(', ')} yang seluruh paketnya tanpa RUP.`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    doc.setFontSize(8);
+    doc.setTextColor(...INK.muted);
+    const baris = doc.splitTextToSize(catatan, pageWidth - MARGIN * 2) as string[];
+    doc.text(baris, MARGIN, cursorY + 5);
+    cursorY += 5 + baris.length * 10;
+  }
+
   doc.setDrawColor(...INK.rule);
   doc.setLineWidth(0.5);
-  doc.line(MARGIN, MARGIN + 58, pageWidth - MARGIN, MARGIN + 58);
+  doc.line(MARGIN, cursorY, pageWidth - MARGIN, cursorY);
 
   // ── Tabel ─────────────────────────────────────────────────────────────────
   autoTable(doc, {
-    startY: MARGIN + 70,
+    startY: cursorY + 12,
     margin: { left: MARGIN, right: MARGIN, bottom: MARGIN + 12 },
     head: [['Peringkat', 'Satuan Kerja', 'Jumlah Paket', 'Pagu', 'Realisasi', '% Capaian']],
     body: rows.map((r) => [
