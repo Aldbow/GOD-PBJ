@@ -55,6 +55,26 @@
 .spin { animation: ringkasanSpin 1s linear infinite; }
 @keyframes ringkasanSpin { to { transform: rotate(360deg); } }
 
+/* Catatan kaki tabel: keterangan audit, bukan peringatan. Sengaja tenang —
+   tanpa kotak berwarna atau border tebal — karena ini konteks yang dibaca
+   sekali, bukan masalah yang menuntut tindakan. */
+.tableFootnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 20px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.tableFootnote svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--text-tertiary);
+}
+
 /* Tombol aksi di slot `action` SectionHeader — berbagi baris dengan caption,
    yang panjangnya bisa membungkus di layar sempit. Tanpa ini caption menekan
    tombol sampai labelnya pecah dua baris. */
