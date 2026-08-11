@@ -201,6 +201,7 @@ export function RingkasanView() {
   const [selectedSatkerForDetail, setSelectedSatkerForDetail] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [isPrintExporting, setIsPrintExporting] = useState(false);
+  const [printingPeringkat, setPrintingPeringkat] = useState(false);
   const [barChartMode, setBarChartMode] = useState<'keuangan' | 'paket'>('keuangan');
   const [jenisChartMode, setJenisChartMode] = useState<'keuangan' | 'paket'>('keuangan');
   const [sumberChartMode, setSumberChartMode] = useState<'keuangan' | 'paket'>('keuangan');
@@ -441,6 +442,27 @@ export function RingkasanView() {
   // Di lingkup Kementerian `applied.satker` kosong sehingga tak ada baris yang
   // tersorot — padahal justru di situlah PPK perlu tahu posisi satkernya.
   const highlightSatker = isPpk ? profileSatker : applied.satker;
+
+  // Mencetak seluruh baris hasil pencarian (bukan hanya halaman yang tampak),
+  // dalam urutan sort yang sedang aktif — jadi PDF-nya sama dengan yang dibaca
+  // di layar, hanya tanpa batas paginasi.
+  const handleCetakPeringkat = useCallback(async () => {
+    if (searchedSatker.length === 0) return;
+    setPrintingPeringkat(true);
+    try {
+      const { cetakPeringkatSatker } = await import('../lib/cetakPeringkatSatker');
+      await cetakPeringkatSatker({
+        rows: searchedSatker,
+        searchQuery,
+        highlightSatker: highlightSatker || '',
+        scopeLabel: applied.satker || 'Kementerian Ketenagakerjaan',
+      });
+    } catch (err) {
+      console.error('Gagal mencetak peringkat satuan kerja', err);
+    } finally {
+      setPrintingPeringkat(false);
+    }
+  }, [searchedSatker, searchQuery, highlightSatker, applied.satker]);
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" id="report-snapshot" style={{ padding: '4px' }}>
@@ -755,6 +777,27 @@ export function RingkasanView() {
           <SectionHeader
             title={<span className={styles.sectionEyebrow}><Trophy size={16} /> Peringkat Realisasi Satuan Kerja</span>}
             caption="Peringkat satker berdasarkan realisasi anggaran (dari RUP terumumkan)"
+            action={
+              <button
+                type="button"
+                className={`${styles.ghostBtn} ${styles.sectionAction}`}
+                onClick={handleCetakPeringkat}
+                disabled={loading || printingPeringkat || searchedSatker.length === 0}
+                data-exclude-print="true"
+                title={
+                  searchedSatker.length === 0
+                    ? 'Tidak ada satuan kerja untuk dicetak'
+                    : `Cetak ${fmtInt(searchedSatker.length)} satuan kerja ke PDF`
+                }
+              >
+                {printingPeringkat ? (
+                  <RefreshCw size={15} className={styles.spin} />
+                ) : (
+                  <Printer size={15} />
+                )}
+                {printingPeringkat ? 'Menyiapkan...' : 'Cetak Peringkat'}
+              </button>
+            }
           />
           <div className={styles.panel}>
             <SatkerRankingChart satker={agg.satker} selectedSatker={applied.satker} />
