@@ -45,6 +45,7 @@ untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak d
 | 62 | 62_view_swakelola_penyelenggara.sql | swakelola(final) | tambah kd/nama_klpd_penyelenggara + nama_satker_penyelenggara |
 | 63 | 63_view_epurchasing_status_filter.sql | epurchasing(final) | filter status realisasi -> hanya ON_PROCESS/ON_ADDENDUM/COMPLETED/PAYMENT_OUTSIDE_SYSTEM |
 | 64 | 64_table_risiko_pengadaan.sql | risiko_pengadaan | tabel baru — hasil agregat modul Risiko Pengadaan, diisi oleh API recalculate |
+| 65 | 65_alter_tender_selesai_nilai_kolom_lokasi.sql | tender_selesai_nilai | tambah kolom provinsi, lokasi_pekerjaan, kabkota (CSV 2026) |
 
 ## Kenapa view realisasi (40–44) dijalankan berlapis?
 

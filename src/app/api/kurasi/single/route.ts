@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getApiSupabase } from '@/lib/supabase/apiClient';
 import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
+import { detectStatusConflict } from '@/lib/kurasi/statusConsistency';
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || '',
@@ -9,11 +10,14 @@ const ai = new GoogleGenAI({
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 
+// PENTING: catatan_kurasi diletakkan SEBELUM status_kurasi dengan sengaja — lihat
+// komentar sama di src/app/api/kurasi/route.ts. Urutan ini memaksa AI menulis alasan
+// dulu baru menyimpulkan status, supaya keduanya tidak saling bertentangan.
 const KurasiResponseSchema = z.object({
   hasil: z.array(z.object({
     kd_rup: z.string(),
-    status_kurasi: z.enum(['Akurat', 'Tidak Akurat', 'Belum Dikurasi']),
     catatan_kurasi: z.string(),
+    status_kurasi: z.enum(['Akurat', 'Tidak Akurat', 'Belum Dikurasi']),
     rekomendasi_kurasi: z.string(),
   }))
 });
@@ -37,11 +41,11 @@ Meskipun batas nilainya tepat, metode ini memiliki risiko pemecahan paket atau t
 Maka WAJIB tambahkan kalimat ini di akhir rekomendasi_kurasi: "Catatan: Pengadaan Langsung ini wajib menggunakan SPSE fitur transaksional sesuai Perpres 46/2025." (walaupun status_kurasi nya Akurat).
 
 Anda akan menerima data berupa JSON array.
-Kembalikan respon DALAM FORMAT JSON SESUAI SCHEMA:
+Kembalikan respon DALAM FORMAT JSON SESUAI SCHEMA, IKUTI URUTAN INI (jangan menyimpulkan status_kurasi sebelum selesai menulis catatan_kurasi):
 - hasil (array dari object):
 - kd_rup: kode unik paket (string)
-- status_kurasi: salah satu dari nilai di atas.
-- catatan_kurasi: alasan singkat berbasis aturan (sebutkan pagu, metode, dan jenis bila relevan).
+- catatan_kurasi: TULIS DULU — alasan singkat berbasis aturan (sebutkan pagu, metode, dan jenis bila relevan).
+- status_kurasi: TULIS BELAKANGAN, dan HARUS merupakan kesimpulan langsung dari catatan_kurasi yang baru saja Anda tulis — jangan pernah bertentangan dengannya.
 - rekomendasi_kurasi: saran metode yang seharusnya bila "Tidak Akurat" (atau pengingat SPSE bila relevan). Jika "Belum Dikurasi", sarankan "Perlu reviu manual dokumen pemilihan". Isi "-" HANYA bila murni "Akurat" dan tidak butuh pengingat SPSE.`;
 
 export async function POST(req: Request) {
@@ -133,11 +137,11 @@ export async function POST(req: Request) {
                   type: "OBJECT",
                   properties: {
                     kd_rup: { type: "STRING" },
-                    status_kurasi: { type: "STRING", enum: ["Akurat", "Tidak Akurat", "Belum Dikurasi"] },
                     catatan_kurasi: { type: "STRING" },
+                    status_kurasi: { type: "STRING", enum: ["Akurat", "Tidak Akurat", "Belum Dikurasi"] },
                     rekomendasi_kurasi: { type: "STRING" },
                   },
-                  required: ["kd_rup", "status_kurasi", "catatan_kurasi", "rekomendasi_kurasi"]
+                  required: ["kd_rup", "catatan_kurasi", "status_kurasi", "rekomendasi_kurasi"]
                 }
               }
             },
@@ -165,6 +169,16 @@ export async function POST(req: Request) {
     const finalStatus = forceAkurat ? 'Akurat' : forceTidakAkurat ? 'Tidak Akurat' : item.status_kurasi;
     const finalCatatan = (forceAkurat || forceTidakAkurat) ? fallbackCatatan : item.catatan_kurasi;
     const finalRekomendasi = (forceAkurat || forceTidakAkurat) ? fallbackRekomendasi : item.rekomendasi_kurasi;
+
+    // Jaring pengaman: kalau bukan hasil override deterministik (Swakelola) dan kesimpulan
+    // yang ditulis AI sendiri di catatan_kurasi bertentangan dengan tag status_kurasi-nya,
+    // jangan simpan hasil yang salah — minta user coba kurasi ulang.
+    if (!forceAkurat && !forceTidakAkurat && detectStatusConflict(item.catatan_kurasi, item.status_kurasi)) {
+      return NextResponse.json(
+        { error: 'Hasil AI tidak konsisten (catatan dan status bertentangan). Silakan coba "Kurasi Ulang" sekali lagi.' },
+        { status: 409 }
+      );
+    }
 
     const { error: upsertError } = await supabase
       .from('ai_kurasi_paket')
