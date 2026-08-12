@@ -32,7 +32,12 @@ export function KurasiAkurasi({ kurasi, metode, onRefresh, isFullWidth = false }
     setMessage('Memulai kurasi otomatis...');
     let totalProcessed = 0;
     let consecutiveRateLimits = 0;
+    let consecutiveNoProgress = 0;
     const MAX_CONSECUTIVE_RATE_LIMITS = 3;
+    // Batas ronde tanpa progres berturut-turut (mis. semua hasil AI di ronde itu tidak
+    // konsisten — lihat detectStatusConflict di route.ts) — mencegah loop tak berhenti
+    // kalau ada baris yang terus-menerus gagal konsisten.
+    const MAX_CONSECUTIVE_NO_PROGRESS = 3;
 
     while (!stopRef.current) {
       try {
@@ -43,10 +48,22 @@ export function KurasiAkurasi({ kurasi, metode, onRefresh, isFullWidth = false }
           consecutiveRateLimits = 0;
           const updated = data.updated_count ?? 0;
           totalProcessed += updated;
-          if (updated === 0) {
+
+          if (data.no_more_data) {
             setMessage(`Selesai! Tidak ada lagi data yang perlu dikurasi. (Total berhasil dikurasi: ${totalProcessed} paket)`);
             break;
           }
+
+          if (updated === 0) {
+            consecutiveNoProgress += 1;
+            if (consecutiveNoProgress >= MAX_CONSECUTIVE_NO_PROGRESS) {
+              setMessage(`Dihentikan: ${data.conflicted?.length ?? 0} data terus menghasilkan status yang tidak konsisten (catatan vs tag berbeda). Coba jalankan kurasi lagi nanti. Total berhasil: ${totalProcessed} paket.`);
+              break;
+            }
+          } else {
+            consecutiveNoProgress = 0;
+          }
+
           setMessage(`Telah mengurasi ${totalProcessed} data. Menunggu 5 detik untuk permintaan berikutnya...`);
           await new Promise((r) => setTimeout(r, 5000));
         } else if (res.status === 429) {

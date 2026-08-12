@@ -1419,6 +1419,7 @@ export type Database = {
         Row: {
           hps: number | null
           jenis_klpd: string | null
+          kabkota: string | null
           kd_klpd: string | null
           kd_lpse: string | null
           kd_paket: string | null
@@ -1427,6 +1428,7 @@ export type Database = {
           kd_satker: string | null
           kd_tender: string
           last_update_ref: string | null
+          lokasi_pekerjaan: string | null
           nama_klpd: string | null
           nama_penyedia: string | null
           nama_satker: string | null
@@ -1439,6 +1441,7 @@ export type Database = {
           npwp_16_penyedia: string | null
           npwp_penyedia: string | null
           pagu: number | null
+          provinsi: string | null
           psr_id: string | null
           tahun_anggaran: string | null
           tgl_penetapan_pemenang: string | null
@@ -1447,6 +1450,7 @@ export type Database = {
         Insert: {
           hps?: number | null
           jenis_klpd?: string | null
+          kabkota?: string | null
           kd_klpd?: string | null
           kd_lpse?: string | null
           kd_paket?: string | null
@@ -1455,6 +1459,7 @@ export type Database = {
           kd_satker?: string | null
           kd_tender: string
           last_update_ref?: string | null
+          lokasi_pekerjaan?: string | null
           nama_klpd?: string | null
           nama_penyedia?: string | null
           nama_satker?: string | null
@@ -1467,6 +1472,7 @@ export type Database = {
           npwp_16_penyedia?: string | null
           npwp_penyedia?: string | null
           pagu?: number | null
+          provinsi?: string | null
           psr_id?: string | null
           tahun_anggaran?: string | null
           tgl_penetapan_pemenang?: string | null
@@ -1475,6 +1481,7 @@ export type Database = {
         Update: {
           hps?: number | null
           jenis_klpd?: string | null
+          kabkota?: string | null
           kd_klpd?: string | null
           kd_lpse?: string | null
           kd_paket?: string | null
@@ -1483,6 +1490,7 @@ export type Database = {
           kd_satker?: string | null
           kd_tender?: string
           last_update_ref?: string | null
+          lokasi_pekerjaan?: string | null
           nama_klpd?: string | null
           nama_penyedia?: string | null
           nama_satker?: string | null
@@ -1495,6 +1503,7 @@ export type Database = {
           npwp_16_penyedia?: string | null
           npwp_penyedia?: string | null
           pagu?: number | null
+          provinsi?: string | null
           psr_id?: string | null
           tahun_anggaran?: string | null
           tgl_penetapan_pemenang?: string | null

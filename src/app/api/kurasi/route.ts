@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getApiSupabase } from '@/lib/supabase/apiClient';
 import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
+import { detectStatusConflict } from '@/lib/kurasi/statusConsistency';
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || '',
@@ -13,11 +14,17 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 // Batch (dinaikkan ke 100 agar dapat memproses lebih banyak data per request).
 const BATCH_SIZE = 100;
 
-// Zod Schema for Structured Output
+// Zod Schema for Structured Output.
+// PENTING: catatan_kurasi diletakkan SEBELUM status_kurasi dengan sengaja — Gemini
+// mengisi field structured-output berurutan sesuai definisi schema, jadi urutan ini
+// memaksa model menulis alasannya dulu, baru menyimpulkan status berdasarkan alasan
+// itu. Kalau urutannya dibalik (status dulu), model bisa "commit" ke status sebelum
+// selesai bernalar, lalu catatan_kurasi yang ditulis belakangan malah menyimpulkan hal
+// yang berbeda dari tag yang sudah terlanjur dipilih.
 const KurasiItemSchema = z.object({
   kd_rup: z.string(),
-  status_kurasi: z.enum(['Akurat', 'Tidak Akurat', 'Belum Dikurasi']),
-  catatan_kurasi: z.string().describe('Alasan mengapa data tersebut akurat atau tidak akurat berdasarkan kesesuaian pagu terhadap metode dan jenis pengadaan.'),
+  catatan_kurasi: z.string().describe('Alasan/analisis singkat berbasis aturan (sebutkan pagu, metode, dan jenis bila relevan), ditulis SEBELUM menyimpulkan status.'),
+  status_kurasi: z.enum(['Akurat', 'Tidak Akurat', 'Belum Dikurasi']).describe('Kesimpulan akhir, WAJIB konsisten dengan kesimpulan yang sudah ditulis di catatan_kurasi.'),
   rekomendasi_kurasi: z.string().describe('Saran perbaikan metode pemilihan atau tindakan lainnya jika data tidak akurat.'),
 });
 
@@ -127,9 +134,9 @@ Jika metode adalah "Pengadaan Langsung", dan nilainya memenuhi syarat berikut:
 - ATAU Jasa Konsultansi berapapun nilainya
 Maka WAJIB tambahkan kalimat ini di akhir rekomendasi_kurasi: "Catatan: Pengadaan Langsung ini wajib menggunakan SPSE fitur transaksional sesuai Perpres 46/2025." (walaupun status_kurasi nya Akurat).
 
-Untuk setiap paket berikan:
-- status_kurasi: salah satu dari nilai di atas.
-- catatan_kurasi: alasan singkat berbasis aturan (sebutkan pagu, metode, dan jenis bila relevan). Jika statusnya "Belum Dikurasi", JELASKAN ALASANNYA di sini (misal: "Penunjukan Langsung memerlukan dokumen justifikasi keadaan khusus di luar data RUP", atau "Jenis pengadaan kosong sehingga batas nilai tidak bisa divalidasi").
+WAJIB IKUTI URUTAN INI untuk setiap paket (jangan menyimpulkan status_kurasi sebelum selesai menulis catatan_kurasi):
+- catatan_kurasi: TULIS DULU — alasan singkat berbasis aturan (sebutkan pagu, metode, dan jenis bila relevan). Jika statusnya "Belum Dikurasi", JELASKAN ALASANNYA di sini (misal: "Penunjukan Langsung memerlukan dokumen justifikasi keadaan khusus di luar data RUP", atau "Jenis pengadaan kosong sehingga batas nilai tidak bisa divalidasi").
+- status_kurasi: TULIS BELAKANGAN, dan HARUS merupakan kesimpulan langsung dari catatan_kurasi yang baru saja Anda tulis — jangan pernah bertentangan dengannya (mis. catatan yang menyimpulkan "...maka Akurat" tidak boleh diikuti tag "Tidak Akurat").
 - rekomendasi_kurasi: saran metode yang seharusnya bila "Tidak Akurat" (atau pengingat SPSE bila relevan). Jika "Belum Dikurasi", sarankan "Perlu reviu manual dokumen pemilihan". Isi "-" HANYA bila murni "Akurat" dan tidak butuh pengingat SPSE.`;
 
 export async function POST() {
@@ -164,6 +171,7 @@ export async function POST() {
         message: 'Tidak ada data baru yang perlu dikurasi.',
         total_processed: 0,
         updated_count: 0,
+        no_more_data: true,
       });
     }
 
@@ -202,11 +210,11 @@ export async function POST() {
                     type: "OBJECT",
                     properties: {
                       kd_rup: { type: "STRING" },
-                      status_kurasi: { type: "STRING", enum: ["Akurat", "Tidak Akurat", "Belum Dikurasi"] },
                       catatan_kurasi: { type: "STRING" },
+                      status_kurasi: { type: "STRING", enum: ["Akurat", "Tidak Akurat", "Belum Dikurasi"] },
                       rekomendasi_kurasi: { type: "STRING" },
                     },
-                    required: ["kd_rup", "status_kurasi", "catatan_kurasi", "rekomendasi_kurasi"]
+                    required: ["kd_rup", "catatan_kurasi", "status_kurasi", "rekomendasi_kurasi"]
                   }
                 }
               },
@@ -250,6 +258,7 @@ export async function POST() {
     // 4. Update data ke Supabase (upsert paralel per item).
     let successCount = 0;
     const errors: { kd_rup: string; error: string }[] = [];
+    const conflicted: string[] = [];
 
     // Lookup input asli per kd_rup untuk override deterministik di bawah — urutan
     // aiResult.hasil dari AI tidak dijamin sama posisinya dengan paketList.
@@ -264,12 +273,23 @@ export async function POST() {
       // lebih dulu, mengalahkan kelengkapan data penyelenggara.
       const isHonorAtauUangSaku = isSwakelola && containsHonorAtauUangSaku(input?.rup_name);
       const forceAkurat = !isHonorAtauUangSaku && isSwakelolaDenganPenyelenggara(input);
+      const finalStatus = forceAkurat ? 'Akurat' : isSwakelola ? 'Tidak Akurat' : item.status_kurasi;
+
+      // Jaring pengaman: kalau kesimpulan yang ditulis AI sendiri di catatan_kurasi
+      // ("...Jadi statusnya Akurat") bertentangan dengan tag finalStatus, JANGAN simpan
+      // baris ini sebagai kurasi yang salah — biarkan status_kurasi tetap kosong supaya
+      // otomatis diproses ulang di batch kurasi berikutnya (lihat filter `.is('status_kurasi',
+      // null)` di fetchPenyediaBatch/fetchSwakelolaBatch).
+      if (detectStatusConflict(item.catatan_kurasi, finalStatus)) {
+        conflicted.push(item.kd_rup);
+        return;
+      }
 
       const { error } = await getApiSupabase()
         .from('ai_kurasi_paket')
         .upsert({
           kd_rup: item.kd_rup,
-          status_kurasi: forceAkurat ? 'Akurat' : isSwakelola ? 'Tidak Akurat' : item.status_kurasi,
+          status_kurasi: finalStatus,
           catatan_kurasi: item.catatan_kurasi,
           rekomendasi_kurasi: forceAkurat ? 'Sudah Sesuai' : item.rekomendasi_kurasi,
           updated_at: new Date().toISOString()
@@ -282,9 +302,10 @@ export async function POST() {
       }
     }));
 
-    // Bila AI mengembalikan hasil tapi TIDAK ada satu pun baris yang berhasil disimpan,
-    // hentikan loop dengan error agar tidak memproses ulang batch yang sama tanpa henti.
-    if (aiResult.hasil.length > 0 && successCount === 0) {
+    // Bila AI mengembalikan hasil tapi TIDAK ada satu pun baris yang berhasil disimpan
+    // ATAU dilewati karena konflik (jadi benar-benar nihil progres), hentikan loop dengan
+    // error agar tidak memproses ulang batch yang sama tanpa henti.
+    if (aiResult.hasil.length > 0 && successCount === 0 && conflicted.length === 0) {
       return NextResponse.json(
         {
           error: 'Gagal menyimpan hasil kurasi ke database. Loop dihentikan untuk mencegah pengulangan tanpa henti.',
@@ -297,9 +318,11 @@ export async function POST() {
     }
 
     return NextResponse.json({
-      message: `Berhasil mengurasi ${successCount} data (sumber: ${source}) menggunakan model ${usedModel}.`,
+      message: `Berhasil mengurasi ${successCount} data (sumber: ${source}) menggunakan model ${usedModel}.`
+        + (conflicted.length > 0 ? ` ${conflicted.length} data dilewati karena hasil AI tidak konsisten (akan dicoba ulang otomatis di kurasi berikutnya).` : ''),
       source,
       errors: errors.length > 0 ? errors : undefined,
+      conflicted: conflicted.length > 0 ? conflicted : undefined,
       total_processed: aiResult.hasil.length,
       updated_count: successCount,
     });
