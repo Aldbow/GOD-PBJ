@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getApiSupabase } from '@/lib/supabase/apiClient';
 import { GoogleGenAI } from '@google/genai';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { detectStatusConflict } from '@/lib/kurasi/statusConsistency';
+import { KurasiResponseSchema, KURASI_GEMINI_RESPONSE_SCHEMA, KURASI_SYSTEM_INSTRUCTION } from '@/lib/kurasi/prompt';
+import { resolveDeterministicKurasi, type DeterministicRuleResult } from '@/lib/kurasi/deterministicRules';
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || '',
@@ -14,24 +16,6 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 // Batch (dinaikkan ke 100 agar dapat memproses lebih banyak data per request).
 const BATCH_SIZE = 100;
 
-// Zod Schema for Structured Output.
-// PENTING: catatan_kurasi diletakkan SEBELUM status_kurasi dengan sengaja — Gemini
-// mengisi field structured-output berurutan sesuai definisi schema, jadi urutan ini
-// memaksa model menulis alasannya dulu, baru menyimpulkan status berdasarkan alasan
-// itu. Kalau urutannya dibalik (status dulu), model bisa "commit" ke status sebelum
-// selesai bernalar, lalu catatan_kurasi yang ditulis belakangan malah menyimpulkan hal
-// yang berbeda dari tag yang sudah terlanjur dipilih.
-const KurasiItemSchema = z.object({
-  kd_rup: z.string(),
-  catatan_kurasi: z.string().describe('Alasan/analisis singkat berbasis aturan (sebutkan pagu, metode, dan jenis bila relevan), ditulis SEBELUM menyimpulkan status.'),
-  status_kurasi: z.enum(['Akurat', 'Tidak Akurat', 'Belum Dikurasi']).describe('Kesimpulan akhir, WAJIB konsisten dengan kesimpulan yang sudah ditulis di catatan_kurasi.'),
-  rekomendasi_kurasi: z.string().describe('Saran perbaikan metode pemilihan atau tindakan lainnya jika data tidak akurat.'),
-});
-
-const KurasiResponseSchema = z.object({
-  hasil: z.array(KurasiItemSchema),
-});
-
 type KurasiInput = {
   kd_rup: string;
   rup_name: string | null;
@@ -39,6 +23,7 @@ type KurasiInput = {
   metode_pengadaan: string | null;
   jenis_pengadaan: string | null;
   status_dikecualikan: boolean | null;
+  alasan_dikecualikan: string | null;
   tipe: string | null;
   nama_ppk: string | null;
   satker: string | null;
@@ -51,7 +36,7 @@ type KurasiInput = {
 async function fetchPenyediaBatch(limit: number): Promise<KurasiInput[]> {
   const { data, error } = await getApiSupabase()
     .from('view_paket_penyedia_master_data')
-    .select('kd_rup, rup_name:nama_paket, pagu, metode_pengadaan, jenis_pengadaan, status_dikecualikan, tipe_paket, nama_ppk, satker:"SATUAN KERJA"')
+    .select('kd_rup, rup_name:nama_paket, pagu, metode_pengadaan, jenis_pengadaan, status_dikecualikan, alasan_dikecualikan, tipe_paket, nama_ppk, satker:"SATUAN KERJA"')
     .is('status_kurasi', null)
     .limit(limit);
 
@@ -65,6 +50,7 @@ async function fetchPenyediaBatch(limit: number): Promise<KurasiInput[]> {
     metode_pengadaan: (row.metode_pengadaan as string | null) ?? null,
     jenis_pengadaan: (row.jenis_pengadaan as string | null) ?? null,
     status_dikecualikan: (row.status_dikecualikan as boolean | null) ?? null,
+    alasan_dikecualikan: (row.alasan_dikecualikan as string | null) ?? null,
     tipe: (row.tipe_paket as string | null) ?? null,
     nama_ppk: (row.nama_ppk as string | null) ?? null,
     satker: (row.satker as string | null) ?? null,
@@ -72,7 +58,7 @@ async function fetchPenyediaBatch(limit: number): Promise<KurasiInput[]> {
 }
 
 // Ambil satu batch paket swakelola yang belum dikurasi.
-// Swakelola tidak punya kolom jenis_pengadaan/metode_pengadaan; metode diisi 'Swakelola'.
+// Swakelola tidak punya kolom jenis_pengadaan/metode_pengadaan/dikecualikan; metode diisi 'Swakelola'.
 async function fetchSwakelolaBatch(limit: number): Promise<KurasiInput[]> {
   const { data, error } = await getApiSupabase()
     .from('view_paket_swakelola_master_data')
@@ -90,6 +76,7 @@ async function fetchSwakelolaBatch(limit: number): Promise<KurasiInput[]> {
     metode_pengadaan: 'Swakelola',
     jenis_pengadaan: 'Swakelola',
     status_dikecualikan: null,
+    alasan_dikecualikan: null,
     tipe: row.tipe_swakelola ? String(row.tipe_swakelola) : null,
     nama_ppk: (row.nama_ppk as string | null) ?? null,
     satker: (row.satker as string | null) ?? null,
@@ -97,47 +84,6 @@ async function fetchSwakelolaBatch(limit: number): Promise<KurasiInput[]> {
     nama_klpd_penyelenggara: (row.nama_klpd_penyelenggara as string | null) ?? null,
   }));
 }
-
-const SYSTEM_INSTRUCTION = `Anda adalah AI Auditor Pengadaan yang memvalidasi akurasi METODE PEMILIHAN pada Rencana Umum Pengadaan (RUP).
-
-DATA YANG TERSEDIA untuk tiap paket: kd_rup, rup_name (nama paket), pagu (nilai anggaran dalam Rupiah), metode_pengadaan, jenis_pengadaan (Barang / Pekerjaan Konstruksi / Jasa Konsultansi / Jasa Lainnya / Swakelola), status_dikecualikan, dan tipe. Khusus paket Swakelola, tersedia juga nama_satker_penyelenggara dan nama_klpd_penyelenggara (bisa kosong).
-
-PENTING — BATASAN DATA:
-- Data KODE AKUN / mata anggaran TIDAK tersedia. JANGAN menilai kesesuaian kode akun.
-- Fokus penilaian HANYA pada kesesuaian nilai pagu terhadap metode_pengadaan dan jenis_pengadaan.
-- Jika data tidak cukup untuk menilai (mis. jenis_pengadaan kosong/tidak jelas, atau butuh informasi yang tidak ada), tandai "Belum Dikurasi". JANGAN menebak, namun Anda WAJIB memberikan alasan spesifik di catatan_kurasi.
-
-STATUS:
-- "Akurat": metode pemilihan sesuai dengan pagu dan jenis pengadaannya.
-- "Tidak Akurat": metode melanggar batas nilai untuk jenis pengadaannya.
-- "Belum Dikurasi": data tidak cukup untuk dinilai secara meyakinkan.
-
-ATURAN BATAS NILAI (Perpres No. 46 Tahun 2025):
-- E-Purchasing: tidak dibatasi nilai (wajib bila tersedia di katalog elektronik).
-- Pengadaan Langsung — Barang & Jasa Lainnya: pagu maksimal Rp200.000.000.
-- Pengadaan Langsung — Pekerjaan Konstruksi: pagu maksimal Rp400.000.000.
-- Pengadaan Langsung — Jasa Konsultansi: pagu maksimal Rp100.000.000.
-- Tender — Barang & Jasa Lainnya: pagu di atas Rp200.000.000.
-- Tender — Pekerjaan Konstruksi: pagu di atas Rp400.000.000.
-- Seleksi — Jasa Konsultansi: pagu di atas Rp100.000.000.
-- Tender Cepat: tidak dibatasi nilai (untuk spesifikasi standar, penyedia terkualifikasi).
-- Penunjukan Langsung: tidak dibatasi nilai, HANYA untuk kondisi khusus (Keadaan Kahar / Hanya 1 Penyedia yang mampu / Instruksi Presiden / sesuai Pasal 38 (5) dan Pasal 41 (5) Perpres No.46/2025). Karena info ini tidak ada di data, tandai "Belum Dikurasi" — jangan otomatis "Tidak Akurat".
-- Swakelola: tidak dinilai dari batas nilai penyedia, melainkan dari kesesuaian objek paket dan kelengkapan data instansi/satker penyelenggara sebagai acuan pelaksanaannya. Cek urutan berikut:
-  - JIKA rup_name (nama paket) mengandung kata "Honor" atau "Uang Saku" (termasuk variasinya, mis. "Honorarium", "Uang Saku Peserta") — ATURAN INI BERLAKU LEBIH DULU, SEKALIPUN data penyelenggara sudah lengkap: status_kurasi = "Tidak Akurat", karena Honorarium/Uang Saku adalah komponen belanja pegawai/kompensasi personal, BUKAN objek Pengadaan Barang/Jasa (Barang, Pekerjaan Konstruksi, Jasa Konsultansi, atau Jasa Lainnya) sebagaimana ruang lingkup PBJ menurut Perpres No. 46 Tahun 2025, sehingga tidak tepat dicatat sebagai paket Swakelola. Tulis catatan_kurasi yang menjelaskan dasar ini secara spesifik dan sesuai regulasi (boleh bervariasi kalimatnya), dan isi rekomendasi_kurasi dengan saran yang tepat (mis. "Honorarium/Uang Saku sebaiknya dibayarkan melalui mekanisme belanja pegawai, bukan dicatat sebagai paket Swakelola pada RUP").
-  - SELAIN itu (nama paket tidak mengandung Honor/Uang Saku), JIKA nama_satker_penyelenggara DAN nama_klpd_penyelenggara terisi (menandakan Swakelola Tipe III/IV yang dilaksanakan oleh instansi/satker lain): status_kurasi = "Akurat" karena skema pelaksanaan sudah tercatat jelas melalui instansi penyelenggara. Tulis catatan_kurasi yang menjelaskan hal ini (boleh bervariasi kalimatnya, sebutkan nama instansi penyelenggaranya), dan isi rekomendasi_kurasi dengan "Sudah Sesuai".
-  - SELAIN itu, JIKA nama_satker_penyelenggara ATAU nama_klpd_penyelenggara kosong (salah satu atau keduanya): status_kurasi = "Tidak Akurat", karena paket belum memiliki satker/K-L-D penyelenggara yang menjadi acuan pelaksanaan Swakelola-nya. Tulis catatan_kurasi yang menjelaskan bahwa data penyelenggara belum ada/lengkap sehingga skema pelaksanaan Swakelola tidak bisa divalidasi (boleh bervariasi kalimatnya), dan isi rekomendasi_kurasi dengan saran konkret & masuk akal (mis. "Lengkapi data Satker dan K/L/D Penyelenggara pada RUP agar skema pelaksanaan Swakelola dapat divalidasi").
-- Jika status_dikecualikan bernilai true: perlakukan sebagai pengadaan yang dikecualikan; umumnya "Akurat" selama pagu wajar.
-
-TUGAS TAMBAHAN (SPSE Transaksional): 
-Jika metode adalah "Pengadaan Langsung", dan nilainya memenuhi syarat berikut:
-- Barang/Pekerjaan Konstruksi/Jasa Lainnya dengan pagu >= Rp 50.000.000
-- ATAU Jasa Konsultansi berapapun nilainya
-Maka WAJIB tambahkan kalimat ini di akhir rekomendasi_kurasi: "Catatan: Pengadaan Langsung ini wajib menggunakan SPSE fitur transaksional sesuai Perpres 46/2025." (walaupun status_kurasi nya Akurat).
-
-WAJIB IKUTI URUTAN INI untuk setiap paket (jangan menyimpulkan status_kurasi sebelum selesai menulis catatan_kurasi):
-- catatan_kurasi: TULIS DULU — alasan singkat berbasis aturan (sebutkan pagu, metode, dan jenis bila relevan). Jika statusnya "Belum Dikurasi", JELASKAN ALASANNYA di sini (misal: "Penunjukan Langsung memerlukan dokumen justifikasi keadaan khusus di luar data RUP", atau "Jenis pengadaan kosong sehingga batas nilai tidak bisa divalidasi").
-- status_kurasi: TULIS BELAKANGAN, dan HARUS merupakan kesimpulan langsung dari catatan_kurasi yang baru saja Anda tulis — jangan pernah bertentangan dengannya (mis. catatan yang menyimpulkan "...maka Akurat" tidak boleh diikuti tag "Tidak Akurat").
-- rekomendasi_kurasi: saran metode yang seharusnya bila "Tidak Akurat" (atau pengingat SPSE bila relevan). Jika "Belum Dikurasi", sarankan "Perlu reviu manual dokumen pemilihan". Isi "-" HANYA bila murni "Akurat" dan tidak butuh pengingat SPSE.`;
 
 export async function POST() {
   try {
@@ -153,7 +99,7 @@ export async function POST() {
     let paketPenyedia = await fetchPenyediaBatch(halfBatch);
     let paketSwakelola = await fetchSwakelolaBatch(halfBatch);
 
-    // Jika salah satu tipe kurang dari setengah batch (karena sudah hampir habis di database), 
+    // Jika salah satu tipe kurang dari setengah batch (karena sudah hampir habis di database),
     // alokasikan sisa kuotanya ke tipe yang lain agar jumlah data yang diproses tetap optimal sebesar BATCH_SIZE.
     if (paketPenyedia.length < halfBatch) {
       const sisaKuota = BATCH_SIZE - paketPenyedia.length;
@@ -175,142 +121,156 @@ export async function POST() {
       });
     }
 
-    // 2. Panggil Gemini API dengan mekanisme Fallback Model
-    let response;
-    let usedModel = '';
-    
-    // Daftar model prioritas fallback jika terkena rate limit
-    const fallbackModels = Array.from(new Set([
-      GEMINI_MODEL,
-      'gemini-2.5-flash',
-      'gemini-3.0-flash',
-      'gemini-3.5-flash-lite',
-      'gemini-3.1-flash-lite'
-    ]));
-
-    let lastError: unknown;
-    for (const model of fallbackModels) {
-      try {
-        usedModel = model;
-        response = await ai.models.generateContent({
-          model: model,
-          contents: [
-            { role: 'user', parts: [{ text: `Berikut adalah ${paketList.length} baris data JSON pengadaan (sumber: ${source}) yang harus Anda audit:\n${JSON.stringify(paketList)}` }] }
-          ],
-          config: {
-            systemInstruction: SYSTEM_INSTRUCTION,
-            temperature: 0.1, // Rendah agar konsisten dengan aturan
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "OBJECT",
-              properties: {
-                hasil: {
-                  type: "ARRAY",
-                  items: {
-                    type: "OBJECT",
-                    properties: {
-                      kd_rup: { type: "STRING" },
-                      catatan_kurasi: { type: "STRING" },
-                      status_kurasi: { type: "STRING", enum: ["Akurat", "Tidak Akurat", "Belum Dikurasi"] },
-                      rekomendasi_kurasi: { type: "STRING" },
-                    },
-                    required: ["kd_rup", "catatan_kurasi", "status_kurasi", "rekomendasi_kurasi"]
-                  }
-                }
-              },
-              required: ["hasil"]
-            },
-          }
-        });
-        
-        // Berhasil, keluar dari loop pencarian model fallback
-        break;
-      } catch (error) {
-        lastError = error;
-        if (isRateLimitOrModelError(error)) {
-          console.warn(`[Kurasi] Model ${model} terkena limit atau tidak tersedia. Mencoba model fallback...`);
-          continue;
-        } else {
-          // Jika error bukan rate limit, langsung lemparkan
-          throw error;
-        }
+    // 2. Pisahkan paket yang sudah bisa diputuskan tanpa AI (Swakelola & item non-PBJ
+    // seperti Honor/Uang Saku — lihat resolveDeterministicKurasi) dari paket yang
+    // benar-benar butuh penalaran AI (ambang nilai per metode, "Dikecualikan", dst).
+    // Ini menghemat kuota/biaya Gemini secara signifikan karena SEMUA paket Swakelola
+    // sebelumnya tetap dikirim ke AI hanya untuk kemudian statusnya ditimpa kode.
+    const deterministicResults = new Map<string, DeterministicRuleResult>();
+    const paketForAi: KurasiInput[] = [];
+    for (const p of paketList) {
+      const override = resolveDeterministicKurasi({
+        metode_pengadaan: p.metode_pengadaan,
+        nama_paket: p.rup_name,
+        nama_satker_penyelenggara: p.nama_satker_penyelenggara,
+        nama_klpd_penyelenggara: p.nama_klpd_penyelenggara,
+      });
+      if (override) {
+        deterministicResults.set(p.kd_rup, override);
+      } else {
+        paketForAi.push(p);
       }
     }
 
-    if (!response) {
-      // Jika semua model gagal (karena limit), lempar error terakhir yang tertangkap
-      throw lastError;
+    // 3. Panggil Gemini API (hanya untuk paket yang butuh penalaran) dengan mekanisme Fallback Model.
+    let aiResult: z.infer<typeof KurasiResponseSchema> = { hasil: [] };
+
+    if (paketForAi.length > 0) {
+      let response;
+      let usedModel = '';
+
+      // Daftar model prioritas fallback jika terkena rate limit
+      const fallbackModels = Array.from(new Set([
+        GEMINI_MODEL,
+        'gemini-2.5-flash',
+        'gemini-3.0-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-flash-lite'
+      ]));
+
+      let lastError: unknown;
+      for (const model of fallbackModels) {
+        try {
+          usedModel = model;
+          response = await ai.models.generateContent({
+            model: model,
+            contents: [
+              { role: 'user', parts: [{ text: `Berikut adalah ${paketForAi.length} baris data JSON pengadaan (sumber: ${source}) yang harus Anda audit:\n${JSON.stringify(paketForAi)}` }] }
+            ],
+            config: {
+              systemInstruction: KURASI_SYSTEM_INSTRUCTION,
+              temperature: 0.1, // Rendah agar konsisten dengan aturan
+              responseMimeType: "application/json",
+              responseSchema: KURASI_GEMINI_RESPONSE_SCHEMA,
+            }
+          });
+
+          // Berhasil, keluar dari loop pencarian model fallback
+          break;
+        } catch (error) {
+          lastError = error;
+          if (isRateLimitOrModelError(error)) {
+            console.warn(`[Kurasi] Model ${model} terkena limit atau tidak tersedia. Mencoba model fallback...`);
+            continue;
+          } else {
+            // Jika error bukan rate limit, langsung lemparkan
+            throw error;
+          }
+        }
+      }
+
+      if (!response) {
+        // Jika semua model gagal (karena limit), lempar error terakhir yang tertangkap
+        throw lastError;
+      }
+
+      if (!response.text) {
+        throw new Error(`Gemini API mengembalikan respons kosong (model: ${usedModel}).`);
+      }
+
+      // Parse hasil JSON dari Gemini dengan penanganan error khusus (mis. respons terpotong).
+      try {
+        aiResult = KurasiResponseSchema.parse(JSON.parse(response.text));
+      } catch (parseErr) {
+        const detail = parseErr instanceof Error ? parseErr.message : String(parseErr);
+        throw new Error(`Gagal memproses respons AI (kemungkinan JSON terpotong). Coba kurangi BATCH_SIZE. Detail: ${detail}`);
+      }
     }
 
-    if (!response.text) {
-      throw new Error(`Gemini API mengembalikan respons kosong (model: ${usedModel}).`);
-    }
-
-    // 3. Parse hasil JSON dari Gemini dengan penanganan error khusus (mis. respons terpotong).
-    let aiResult: z.infer<typeof KurasiResponseSchema>;
-    try {
-      aiResult = KurasiResponseSchema.parse(JSON.parse(response.text));
-    } catch (parseErr) {
-      const detail = parseErr instanceof Error ? parseErr.message : String(parseErr);
-      throw new Error(`Gagal memproses respons AI (kemungkinan JSON terpotong). Coba kurangi BATCH_SIZE. Detail: ${detail}`);
-    }
-
-    // 4. Update data ke Supabase (upsert paralel per item).
+    // 4. Update data ke Supabase (upsert paralel per item) — gabungkan hasil deterministik + hasil AI.
     let successCount = 0;
     const errors: { kd_rup: string; error: string }[] = [];
     const conflicted: string[] = [];
 
-    // Lookup input asli per kd_rup untuk override deterministik di bawah — urutan
-    // aiResult.hasil dari AI tidak dijamin sama posisinya dengan paketList.
-    const paketByKdRup = new Map(paketList.map((p) => [p.kd_rup, p]));
+    const aiByKdRup = new Map(aiResult.hasil.map((item) => [item.kd_rup, item]));
 
-    await Promise.all(aiResult.hasil.map(async (item) => {
-      const input = paketByKdRup.get(item.kd_rup);
-      // Setiap paket Swakelola SELALU diputuskan lewat aturan deterministik di
-      // bawah — bukan lagi diserahkan ke AI sebagai "Belum Dikurasi".
-      const isSwakelola = input?.metode_pengadaan === 'Swakelola';
-      // Honor/Uang Saku bukan objek PBJ yang sah untuk Swakelola — berlaku
-      // lebih dulu, mengalahkan kelengkapan data penyelenggara.
-      const isHonorAtauUangSaku = isSwakelola && containsHonorAtauUangSaku(input?.rup_name);
-      const forceAkurat = !isHonorAtauUangSaku && isSwakelolaDenganPenyelenggara(input);
-      const finalStatus = forceAkurat ? 'Akurat' : isSwakelola ? 'Tidak Akurat' : item.status_kurasi;
+    await Promise.all(paketList.map(async (p) => {
+      const override = deterministicResults.get(p.kd_rup);
+      const item = aiByKdRup.get(p.kd_rup);
 
-      // Jaring pengaman: kalau kesimpulan yang ditulis AI sendiri di catatan_kurasi
-      // ("...Jadi statusnya Akurat") bertentangan dengan tag finalStatus, JANGAN simpan
-      // baris ini sebagai kurasi yang salah — biarkan status_kurasi tetap kosong supaya
-      // otomatis diproses ulang di batch kurasi berikutnya (lihat filter `.is('status_kurasi',
-      // null)` di fetchPenyediaBatch/fetchSwakelolaBatch).
-      if (detectStatusConflict(item.catatan_kurasi, finalStatus)) {
-        conflicted.push(item.kd_rup);
+      let finalStatus: string;
+      let finalCatatan: string;
+      let finalRekomendasi: string;
+
+      if (override) {
+        finalStatus = override.status_kurasi;
+        finalCatatan = override.catatan_kurasi;
+        finalRekomendasi = override.rekomendasi_kurasi;
+      } else if (item) {
+        // Jaring pengaman: kalau kesimpulan yang ditulis AI sendiri di catatan_kurasi
+        // ("...Jadi statusnya Akurat") bertentangan dengan status_kurasi yang dipilihnya,
+        // JANGAN simpan baris ini sebagai kurasi yang salah — biarkan status_kurasi tetap
+        // kosong supaya otomatis diproses ulang di batch kurasi berikutnya (lihat filter
+        // `.is('status_kurasi', null)` di fetchPenyediaBatch/fetchSwakelolaBatch). Tidak
+        // relevan untuk hasil override deterministik di atas — itu konsisten by construction.
+        if (detectStatusConflict(item.catatan_kurasi, item.status_kurasi)) {
+          conflicted.push(p.kd_rup);
+          return;
+        }
+        finalStatus = item.status_kurasi;
+        finalCatatan = item.catatan_kurasi;
+        finalRekomendasi = item.rekomendasi_kurasi;
+      } else {
+        // AI tidak mengembalikan baris ini (mis. terpotong) — biarkan untuk dicoba lagi nanti.
         return;
       }
 
       const { error } = await getApiSupabase()
         .from('ai_kurasi_paket')
         .upsert({
-          kd_rup: item.kd_rup,
+          kd_rup: p.kd_rup,
           status_kurasi: finalStatus,
-          catatan_kurasi: item.catatan_kurasi,
-          rekomendasi_kurasi: forceAkurat ? 'Sudah Sesuai' : item.rekomendasi_kurasi,
+          catatan_kurasi: finalCatatan,
+          rekomendasi_kurasi: finalRekomendasi,
           updated_at: new Date().toISOString()
         }, { onConflict: 'kd_rup' });
 
       if (error) {
-        errors.push({ kd_rup: item.kd_rup, error: error.message });
+        errors.push({ kd_rup: p.kd_rup, error: error.message });
       } else {
         successCount++;
       }
     }));
 
-    // Bila AI mengembalikan hasil tapi TIDAK ada satu pun baris yang berhasil disimpan
+    // Bila ada paket yang butuh diproses tapi TIDAK ada satu pun baris yang berhasil disimpan
     // ATAU dilewati karena konflik (jadi benar-benar nihil progres), hentikan loop dengan
     // error agar tidak memproses ulang batch yang sama tanpa henti.
-    if (aiResult.hasil.length > 0 && successCount === 0 && conflicted.length === 0) {
+    if (paketList.length > 0 && successCount === 0 && conflicted.length === 0) {
       return NextResponse.json(
         {
           error: 'Gagal menyimpan hasil kurasi ke database. Loop dihentikan untuk mencegah pengulangan tanpa henti.',
           details: errors,
-          total_processed: aiResult.hasil.length,
+          total_processed: paketList.length,
           updated_count: 0,
         },
         { status: 500 }
@@ -318,12 +278,12 @@ export async function POST() {
     }
 
     return NextResponse.json({
-      message: `Berhasil mengurasi ${successCount} data (sumber: ${source}) menggunakan model ${usedModel}.`
+      message: `Berhasil mengurasi ${successCount} data (sumber: ${source}; ${deterministicResults.size} otomatis via aturan, ${paketForAi.length} via AI).`
         + (conflicted.length > 0 ? ` ${conflicted.length} data dilewati karena hasil AI tidak konsisten (akan dicoba ulang otomatis di kurasi berikutnya).` : ''),
       source,
       errors: errors.length > 0 ? errors : undefined,
       conflicted: conflicted.length > 0 ? conflicted : undefined,
-      total_processed: aiResult.hasil.length,
+      total_processed: paketList.length,
       updated_count: successCount,
     });
 
@@ -349,29 +309,6 @@ export async function POST() {
       { status: 500 }
     );
   }
-}
-
-// Aturan bisnis deterministik untuk Swakelola: kelengkapan data penyelenggara
-// (satker & K/L/D) menentukan status_kurasi, terlepas dari keputusan AI —
-// terisi keduanya -> "Akurat" & "Sudah Sesuai"; salah satu/kedua kosong ->
-// "Tidak Akurat" (lihat pemakaian `isSwakelola` di POST()). catatan_kurasi &
-// rekomendasi_kurasi untuk kasus "Tidak Akurat" tetap ditulis AI.
-function isSwakelolaDenganPenyelenggara(input: KurasiInput | undefined): boolean {
-  return (
-    input?.metode_pengadaan === 'Swakelola' &&
-    !!input.nama_satker_penyelenggara?.trim() &&
-    !!input.nama_klpd_penyelenggara?.trim()
-  );
-}
-
-// Honorarium/Uang Saku adalah komponen belanja pegawai/kompensasi personal,
-// bukan objek Pengadaan Barang/Jasa (Perpres No. 46/2025) — paket Swakelola
-// dengan nama mengandung kata ini selalu "Tidak Akurat", mengalahkan aturan
-// kelengkapan penyelenggara di atas.
-function containsHonorAtauUangSaku(rupName: string | null | undefined): boolean {
-  if (!rupName) return false;
-  const lower = rupName.toLowerCase();
-  return lower.includes('honor') || lower.includes('uang saku');
 }
 
 // Cek apakah error dari Gemini adalah 429 (Rate Limit) atau 404/400 (Model Not Found/Invalid/Deprecated).
