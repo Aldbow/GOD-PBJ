@@ -5,14 +5,14 @@ import type { Role } from '@/types';
  * Dipakai oleh proxy.ts (gate optimistik), DAL/page guard, Sidebar, dan API.
  *
  *   admin   → '*'  akses semua route
- *   sekjend → hanya Ringkasan '/ringkasan'
+ *   sekjend → Ringkasan, Perencanaan, ITKP, Risiko Pengadaan, Prioritas Nasional
  *   ppk     → fitur Realisasi & Perencanaan, data ter-scope ke PPK ybs
  *
  * Nilai adalah prefix path yang diizinkan (match persis atau sub-path).
  */
 export const ROUTE_ACCESS: Record<Role, string[] | '*'> = {
   admin: '*',
-  sekjend: ['/ringkasan', '/rencana-pengadaan', '/itkp', '/risiko-pengadaan'],
+  sekjend: ['/ringkasan', '/rencana-pengadaan', '/itkp', '/risiko-pengadaan', '/program-prioritas-nasional'],
   // PPK: Ringkasan + ITKP + fitur Perencanaan & Realisasi, data ter-scope ke
   // satker/PPK ybs. Pengecualian ruang lingkup: '/itkp' (Dashboard Penilaian)
   // tetap tingkat Kementerian karena ITKP dinilai untuk satu K/L, sedangkan

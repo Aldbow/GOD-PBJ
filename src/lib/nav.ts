@@ -68,12 +68,13 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: 'prioritas-nasional',
     label: 'Program Prioritas Nasional',
-    // Tautan eksternal (bukan rute aplikasi ini) → tidak tertangkap ROUTE_ACCESS.
-    // Khusus admin/UKPBJ; disembunyikan dari PPK & Sekretariat Jenderal.
-    roles: ['admin'],
+    // Grup ini campur: 2 tautan eksternal (admin-only, lolos gate via canAccess
+    // http/https) + 1 rute internal baru yang dibuka juga untuk sekjend lewat
+    // `roles` di link itu sendiri (lihat ROUTE_ACCESS di auth/access.ts).
     links: [
-      { name: 'Prioritas Nasional', href: 'https://god-pbj.vercel.app/prioritas-nasional', icon: React.createElement(Star, { size: 18 }) },
-      { name: 'Master Data PN', href: 'https://god-pbj.vercel.app/program-prioritas', icon: React.createElement(Database, { size: 18 }) },
+      { name: 'Prioritas Nasional', href: 'https://god-pbj.vercel.app/prioritas-nasional', icon: React.createElement(Star, { size: 18 }), roles: ['admin'] },
+      { name: 'Master Data PN', href: 'https://god-pbj.vercel.app/program-prioritas', icon: React.createElement(Database, { size: 18 }), roles: ['admin'] },
+      { name: 'Realisasi Program Prioritas Nasional', href: '/program-prioritas-nasional', icon: React.createElement(ListChecks, { size: 18 }), roles: ['admin', 'sekjend'] },
     ],
   },
 ];

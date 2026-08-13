@@ -96,6 +96,15 @@ export function sumberColor(kategori: string, isDark: boolean): string {
   return pick(SUMBER_SLOT[kategori] ?? OTHER, isDark);
 }
 
+// Urutan generik untuk kategori dinamis yang belum punya pemetaan per-entitas
+// sendiri (mis. skema/jenis pengadaan Program Prioritas Nasional) — daur ulang
+// SLOT yang sama, tervalidasi lolos gate CVD adjacent di atas.
+const CATEGORICAL_ORDER: ColorPair[] = [SLOT.blue, SLOT.orange, SLOT.aqua, SLOT.yellow, SLOT.magenta, SLOT.green, SLOT.violet, SLOT.red];
+
+export function categoricalColor(index: number, isDark: boolean): string {
+  return pick(CATEGORICAL_ORDER[index % CATEGORICAL_ORDER.length], isDark);
+}
+
 // Warna seri semantik (bukan kategori metode).
 export const SERIES = {
   pagu: { light: '#94a3b8', dark: '#5b6472' } as ColorPair, // netral (konteks)
