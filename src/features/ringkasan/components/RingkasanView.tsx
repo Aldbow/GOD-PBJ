@@ -777,7 +777,7 @@ export function RingkasanView() {
         <motion.div variants={item} className={styles.sectionGroup}>
           <SectionHeader
             title={<span className={styles.sectionEyebrow}><Trophy size={16} /> Peringkat Realisasi Satuan Kerja</span>}
-            caption="Peringkat satker berdasarkan realisasi anggaran (dari RUP terumumkan)"
+            caption="Peringkat satker berdasarkan realisasi di SPSE"
             action={
               <button
                 type="button"
