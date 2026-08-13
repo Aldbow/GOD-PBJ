@@ -1,0 +1,251 @@
+id;No;Kode/ID paket;Nama paket;Jenis Pengadaan (barang/jasa/konstruksi/lainnya);Nilai Paket (Rp);Lokasi;Waktu pengadaan (bulan/triwulan);Skema (tender/e-purchasing/katalog/lainnya);Kendala;Mitigasi;RO;REALISASI
+251;1;42092570;Pemberian Bantuan Tenaga Kerja Mandiri Pemula - Bantuan Tenaga Kerja Mandiri (TKM) Pemula;Barang;32500000000;DKI Jakarta, Jakarta Selatan (Kota);Januari;Swakelola;;;Bantuan Tenaga Kerja Mandiri (TKM) Pemula;0
+252;2;63512366;Belanja Bahan, SCREENING TUBERKULOSIS BAGI TENAGA KERJA;Barang;17700000;DKI Jakarta, Jakarta Selatan (Kota) Jl. Jendral Gatot Subroto Kav. 51;Januari;Pengadaan Langsung;;;Layanan Penanggulangan Tuberkulosis di Tempat Kerja;0
+253;3;63607948;Belanja Bahan Kegiatan Rapat Koordinasi LSP;Barang;7750000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Juli;E-Purchasing;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+254;4;63607949;Belanja Bahan Pelaporan Rapat Koordinasi LSP;Barang;365000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Juli;Pengadaan Langsung;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+255;5;62638330;Belanja Bahan Pelaporan Pengelolaan dan Pengembangan Website;Barang;300000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Juli;Pengadaan Langsung;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+256;;63607743;Belanja Bahan Pelaporan Penyusunan Buku Datin;Barang;375000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Oktober;Pengadaan Langsung;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+257;;63602916;Belanja Bahan Pelaporan Pameran;Barang;300000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Juli;Pengadaan Langsung;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+258;;62638218;Belanja Bahan Pengiriman Surat Dinas Pos Pusat;Jasa Lainnya;120000000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;April;Dikecualikan;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+259;;63607740;Belanja Bahan Pencetakan Buku Informasi BNSP;Barang;10000000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Juni;Pengadaan Langsung;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+260;;63607741;Belanja Jasa Lainnya Pembuatan Buku Laporan Kinerja Tahunan BNSP;Jasa Lainnya;40000000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Juli;Pengadaan Langsung;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+261;;63607741;Belanja Bahan Kegiatan Penyusunan Buku Datin Sertifikasi;Barang;13380000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Juli;E-Purchasing;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+262;;63607742;Belanja Jasa Lainnya Pengelolaan dan Pengembangan Website;Jasa Lainnya;172600000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Februari;E-Purchasing;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+263;;63607740;Belanja Bahan Pencetakan Buku Informasi BNSP;Barang;10000000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Juni;Pengadaan Langsung;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+264;;63607741;Belanja Jasa Lainnya Pembuatan Buku Laporan Kinerja Tahunan BNSP;Jasa Lainnya;40000000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Juli;Pengadaan Langsung;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+265;;63607741;Belanja Bahan Kegiatan Penyusunan Buku Datin Sertifikasi;Barang;13380000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Juli;E-Purchasing;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+266;;63607743;Belanja Bahan Pelaporan Penyusunan Buku Datin;Barang;375000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Oktober;Pengadaan Langsung;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+267;;63607948;Belanja Bahan Kegiatan Rapat Koordinasi LSP;Barang;7750000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Juli;E-Purchasing;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+268;;63607949;Belanja Bahan Pelaporan Rapat Koordinasi LSP;Barang;365000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Juli;Pengadaan Langsung;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+269;;66017231;Belanja Jasa Lainnya Pengelolaan dan Pengembangan Website;Jasa Lainnya;172600000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Februari;E-Purchasing;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+270;;67244012;Belanja Barang Persediaan Pencetakan Blanko Sertifikat Kompetensi Tahap I;Barang;976800000;DKI Jakarta, Jakarta Selatan (Kota) Gd. BNSP, Jl. MT. Haryono Kav. 52, Cikoko, Pancoran, Jakarta Selatan;Februari;E-Purchasing;;;Tenaga kerja yang mendapatkan Sertifikat Kompetensi Kerja;0
+271;;63365897;Konsumsi Dalam Rangka Rekrutmen;Barang;1750000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+272;;63365896;Bahan Pelatihan Menjahit Pakaian Sesuai dengan Mesin 260 JP;Barang;22000000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+273;;63365895;Konsumsi Peserta 180 JP;Barang;17280000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+274;;63365894;Reproduksi Modul;Barang;24640000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+275;;63365884;Bahan Pelatihan Tukang Pasang Rangka Atap Baja Ringan 180 JP;Barang;50000000;Selong;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+276;;63365891;Sertifikat;Barang;1120000;Selong;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+277;;63365887;Konsumsi Peserta 260 JP;Barang;49920000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+278;;63365888;Bahan Pelatihan Junior Make Up Artist 160 JP;;26000000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+279;;63365890;Konsumsi Pembukaan Penutupan;Barang;1750000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+280;;63365880;ATK;Barang;1250000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+281;;63365879;Spanduk;Barang;350000;Selong;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+282;;63365883;Belanja Bahan;Barang;1050000;Selong;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+283;;63365886;Bahan Pelatihan Pemeliharaan Berkala Kendaraan Ringan Sistem Injeksi 260 JP;Barang;24000000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+284;;63365892;Konsumsi Peserta 240 JP;Barang;11520000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+285;;63365889;Pakaian Kerja;Barang;22400000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+286;;63365882;Penggandaan Bahan Materi Uji;Barang;1250000;Selong;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+287;;63365885;Bahan Bahan Pelatihan Tukang Taman pada bangunan gedung 180 JP;Barang;24000000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+288;;63365893;Bahan Pelatihan Pembuatan Roti dan Kue 140 JP;Barang;18000000;Selong;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+289;;63365881;Komputer Supplies;Barang;1250000;Selong;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+290;;63391661;Bahan Pelatihan Pengelola Administrasi Perkantoran 260 JP;Barang;18000000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+291;;63391660;Bahan Pelatihan Barista Kafe 180JP;Barang;30000000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+292;;63391659;Bahan Pelatihan Tour Leader 180JP;Barang;17000000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+293;;63391658;Komputer Supplies;Barang;2500000;Mataram;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+294;;63391657;Reproduksi Modul;Barang;28160000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+295;;63391656;Spanduk;Barang;800000;Mataram;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+296;;63391674;Konsumsi Dalam Rangka Rekrutmen;Barang;4000000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+297;;63391673;ATK;Barang;1250000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+298;;63391671;Sertifikat;Barang;1280000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+299;;63391670;Pakaian Kerja;Barang;25600000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+300;;63391669;Bahan Pelatihan English For Front Liner 260 JP;Barang;15649000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+301;;63391668;Bahan Pelatihan Computer Operator Assistant 260 JP;Barang;18000000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+302;;63391667;Konsumsi Peserta 260 JP;Barang;62400000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+303;;63391666;Konsumsi Peserta 240 JP;Barang;11520000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+304;;63391665;Konsumsi Peserta 180 JP;Barang;17280000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+305;;63391664;Bahan Pelatihan Practical Office Advanced 260 JP;Barang;18000000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+306;;63391663;Bahan Pelatihan Tekhnisi Perawatan AC Residential 240 JP;Barang;24000000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+307;;63391662;Bahan Pelatihan Junior Administrative Assistant (JAA) 260 JP;Barang;18000000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+308;;63391655;Konsumsi Pembukaan Penutupan;Barang;4000000;Mataram;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+309;;63391654;Penggandaan;Barang;1250000;Mataram;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+310;;63391672;Dokumentasi dan Pelaporan;Barang;2400000;Mataram;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+311;;63365075;Pakaian Kerja;Barang;19200000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+312;;63365074;Dokumentasi dan Pelaporan;Barang;900000;Bima;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+313;;63365085;Bahan Pelatihan Teknisi Telepon Seluler Perangkat Lunak 260JP;Barang;44000000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+314;;63365084;Bahan Pelatihan Operator Komputer Muda 260 JP;Barang;30000000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+315;;63365082;Reproduksi Modul;Barang;21120000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+316;;63365081;Sertifikat;Barang;960000;Bima;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+317;;63365080;Bahan Pelatihan Pembuatan Roti dan Kue 140 JP;Barang;18000000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+318;;63365079;Spanduk;Barang;300000;Bima;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+319;;63365078;Konsumsi Pembukaan Penutupan;Barang;1500000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+320;;63365077;Konsumsi Dalam Rangka Rekrutmen;Barang;1500000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+321;;63365076;Komputer Supplies;Barang;1000000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+322;;63365070;Konsumsi Peserta 260 JP;Barang;49920000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+323;;63365072;Bahan Pelatihan Perawat AC Residential 180 JP;Barang;24000000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+324;;63365073;ATK;Barang;1000000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+325;;63365068;Konsumsi Peserta 140 JP;Barang;6720000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+326;;63365071;Penggandaan;Barang;1000000;Bima;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+327;;63365069;Konsumsi Peserta 180 JP;Barang;8640000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+328;;63368047;Bahan Pelatihan Barista Kafe180 JP;Barang;30000000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+329;;63368046;Dokumentasi dan Pelaporan;Barang;1200000;Praya;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+330;;63368045;Reproduksi Modul;Barang;28160000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+331;;63368043;Komputer Supplies;Barang;1500000;Praya;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+332;;63368042;Bahan Pelatihan Pembudidayaan Hidroponik (Buah dan Sayuran) 140 JP;Barang;20000000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+333;;63368040;ATK;Barang;1500000;Praya;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+334;;63368039;Bahan Pelatihan Jajanan Pasar 140 JP;Barang;18000000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+335;;63368038;Bahan Pelatihan Konstruksi Baja Ringan 180 JP;Barang;30000000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+336;;63368037;Konsumsi Peserta 160 JP;Barang;15360000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+337;;63368036;Penggandaan;Barang;1500000;Praya;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+338;;63368035;Sertifikat;Barang;1280000;Praya;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+339;;63368034;Konsumsi Peserta Pelatihan 180 JP;Barang;25920000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+340;;63368033;Bahan Pelatihan Digital Marketing 160 JP;Barang;15000000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+341;;63368032;Bahan pelatihan Tata rias Kecantikan 160 JP;Barang;15000000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+342;;63368031;Bahan Pelatihan Pembuatan Roti dan Kue 140 JP;Barang;18000000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+343;;63368030;Konsumsi Dalam Rangka Rekrutmen;Barang;2000000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+344;;63368029;Spanduk;Barang;400000;Praya;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+345;;63368028;Pakaian Kerja;Barang;25600000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+346;;63368027;Bahan Pelatihan SPA Terapis 180 JP;Barang;15000000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+347;;63368026;Konsumsi Pembukaan Penutupan;Barang;2000000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+348;;63368025;Konsumsi Peserta 140 JP;Barang;20160000;Praya;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+349;;63392478;Dokumentasi dan Pelaporan;Barang;375000;Sumbawa;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+350;;63392487;Konsumsi Pembukaan Penutupan;Barang;1250000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+351;;63392486;ATK;Barang;1000000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+352;;63392485;Bahan Pelatihan Barista 180JP;Barang;30000000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+353;;63392484;Konsumsi Dalam Rangka Rekrutmen;Barang;1250000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+354;;63392483;Bahan Pelatihan Menjahit Pakaian dengan Mesin 260JP;Barang;22000000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+355;;63392481;Bahan Pelatihan Pemasangan Instalasi Listrik Bangunan Sederhana 260 JP;Barang;25000000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+356;;63392480;Spanduk;Barang;250000;Sumbawa;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+357;;63392479;Penggandaan;Barang;2000000;Sumbawa;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+358;;63392477;Sertifikat;Barang;800000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+359;;63392476;Konsumsi Peserta 260 JP;Barang;12480000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+360;;63392475;Konsumsi Peserta 240 JP;Barang;11520000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+361;;63392474;Konsumsi Peserta 180 JP;Barang;8640000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+362;;63392473;Bahan Pelatihan Pembuatan Roti dan Kue 140 JP;Barang;36000000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+363;;63392472;Konsumsi Peserta 140 JP;Barang;13440000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+364;;63392471;Pakaian Kerja;Barang;16000000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+365;;63392470;Reproduksi Modul;Barang;17600000;Sumbawa;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+366;;63392482;Komputer Supplies;Barang;2000000;Sumbawa;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+367;;63395614;Komputer Supplies;Barang;1500000;Sumbawa Barat;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+368;;63395613;Dokumentasi dan Pelaporan;Barang;1200000;Sumbawa Barat;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+369;;63395612;ATK;Barang;750000;Sumbawa Barat;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+370;;63395611;Bahan Pelatihan Pemasangan Instalasi Listrik Bangunan Sederhana 260 JP;Barang;22000000;Sumbawa Barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+371;;63395610;Spanduk;Barang;220000;Sumbawa Barat;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+372;;63395609;Konsumsi Pembukaan Penutupan;Barang;2000000;Sumbawa Barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+373;;63395608;Konsumsi Dalam Rangka Rekrutmen;Barang;2000000;Sumbawa Barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+374;;63395607;Sertifikat;Barang;640000;Sumbawa Barat;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+375;;63395606;Konsumsi Peserta 340 JP;Barang;16320000;Sumbawa Barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+376;;63395605;Konsumsi Peserta 260 JP;Barang;37440000;Sumbawa Barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+377;;63395604;Bahan Pelatihan Juru Las SMAW 3G 340 JP;Barang;52367000;Sumbawa Barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+378;;63395603;Operator Komputer Muda 260 JP;Barang;30000000;Sumbawa Barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+379;;63395601;Reproduksi Modul;Barang;14080000;Sumbawa Barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+380;;63395615;Penggandaan;Barang;750000;Sumbawa Barat;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+381;;63395600;Pakaian Kerja;Barang;12800000;Sumbawa Barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+382;;63391875;ATK;Barang;750000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+383;;63391874;Bahan Pelatihan Tata Rias Pengantin Modifikasi Bali 180JP;Barang;20000000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+384;;63391873;Konsumsi Peserta 140 JP;Barang;6720000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+385;;63391872;Konsumsi Peserta Pelatihan 180 JP;Barang;17280000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+386;;63391871;Bahan Pelatihan Pembuatan Roti dan Kue 140 JP;Barang;18000000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+387;;63391870;Penggandaan Bahan Materi Uji;Barang;1500000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+388;;63391869;Bahan Pelatihan Room Attendant 220 JP;Barang;25000000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+389;;63391868;Bahan Pelatihan Commercial Cookery 180JP;Barang;25000000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+390;;63391867;Sertifikat;Barang;640000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+391;;63391866;Dokumentasi dan Pelaporan;Barang;1200000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+392;;63391864;Reproduksi Modul;Barang;14080000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+393;;63391863;Pakaian Kerja;Barang;12800000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+394;;63391861;Spanduk;Barang;220000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+395;;63391858;Konsumsi Pembukaan Penutupan;Barang;2000000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+396;;63391857;Konsumsi Dalam Rangka Rekrutmen;Barang;2000000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+397;;63391856;Komputer Supplies;Barang;1500000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+398;;63391862;Konsumsi Peserta Pelatihan 220 JP;Barang;10560000;Gondang, Kec. Gangga, Kabupaten Lombok Utara, Nusa Tenggara Bar;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+399;;63392328;Junior Maka Up Artist 160 JP;Barang;20336000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+400;;63392340;Spanduk;Barang;200000;Bima;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+401;;63392339;Konsumsi Pembukaan Penutupan;Barang;1000000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+402;;63392338;Konsumsi Dalam Rangka Rekrutmen;Barang;1000000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+403;;63392337;Komputer Supplies;Barang;750000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+404;;63392336;ATK;Barang;750000;Bima;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+405;;63392335;Penggandaan;Barang;1500000;Bima;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+406;;63392334;Dokumentasi dan Pelaporan;Barang;1200000;Bima;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+407;;63392333;Sertifikat;Barang;640000;Bima;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+408;;63392332;Konsumsi Peserta Pelatihan 240 JP;Barang;12480000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+409;;63392331;Konsumsi Peserta 140 JP;Barang;6720000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+410;;63392330;Bahan Pelatihan Service Sepeda Motor konvensional 260 JP;Barang;24000000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+411;;63392329;Reproduksi Modul;Barang;14080000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+412;;63392327;Teknisi Telepon Seluler 160JP;Barang;20000000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+413;;63392326;Konsumsi Peserta 160 JP;Barang;15360000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+414;;63392325;Bahan Pelatihan Pembuatan Roti dan Kue 140 JP;Barang;18000000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+415;;63392324;Pakaian Kerja;Barang;12800000;Bima;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Barat;0
+416;;63391235;Konsumsi Pembukaan Penutupan;Barang;1750000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+417;;63391234;Bahan Pelatihan Plate Welder SMAW 3G UP-PF 340 JP;Barang;34572000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+418;;63391217;Reproduksi Modul;Barang;24640000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+419;;63391233;Penggandaan;Barang;1250000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+420;;63391232;Bahan Pelatihan Pemeliharaan Kendaraan Ringan Sistem Konvensional 260 JP;Barang;20000000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+421;;63391231;Pakaian Kerja;Barang;22400000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+422;;63391230;Komputer Supplies;Barang;1250000;ende;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+423;;63391229;Konsumsi Peserta 340 JP;Barang;16320000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+424;;63391228;Bahan Pelatihan Teknisi Audio Video 260 JP;Barang;15000000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+425;;63391227;Dokumentasi dan Pelaporan;Barang;1050000;ende;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+426;;63391225;ATK;Barang;1250000;ende;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+427;;63391224;Bahan Pelatihan Tata Rias Kecantikan 260 JP;Barang;18000000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+428;;63391223;Spanduk;Barang;350000;ende;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+429;;63391222;Konsumsi Peserta 260 JP;Barang;74880000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+430;;63391221;Bahan Pelatihan menjahit Pakaian dengan Mesin 260 JP;Barang;22000000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+431;;63391220;Konsumsi Dalam Rangka Rekrutmen;Barang;1750000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+432;;63391219;Sertifikat;Barang;1120000;ende;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+433;;63391218;Bahan Pelatihan Mengerjakan proses Furniture kayu 260JP;Barang;40000000;ende;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+434;;63391095;Penggandaan;Barang;1500000;Manggarai barat;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+435;;63391094;Konsumsi Peserta 260 JP;Barang;12480000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+436;;63391093;Bahan Pelatihan Basic Office 180JP;Barang;18000000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+437;;63391092;Dokumentasi dan Pelaporan;Barang;1200000;Manggarai barat;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+438;;63391082;Bahan Pelatihan Housekeeping 180 JP;Barang;20206000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+439;;63391081;Bahan Pelatihan Junior Make Up Artis 160 JP;Barang;17000000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+440;;63391091;Bahan Pelatihan Pembuatan Roti dan Kue 140 JP;Barang;36000000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+441;;63391103;Konsumsi Peserta 140 JP;Barang;6720000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+442;;63391102;Komputer Supplies;Barang;1500000;Manggarai barat;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+443;;63391101;Bahan Pelatihan Pemeliharaan dan Perbaikan AC untuk rumah tangga 240 JP;Barang;25000000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+444;;63391100;ATK;Barang;1500000;Manggarai barat;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+445;;63391099;Konsumsi Peserta 280 JP;Barang;13440000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+446;;63391098;Konsumsi Peserta 240 JP;Barang;11520000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+447;;63391097;Reproduksi Modul;Barang;28160000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+448;;63391096;Bahan Pelatihan Service Sepeda Motor Injeksi 280JP;Barang;24000000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+449;;63391090;Konsumsi Pembukaan Penutupan;Barang;2000000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+450;;63391089;Pakaian Kerja;Barang;25600000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+451;;63391088;Konsumsi Dalam Rangka Rekrutmen;Barang;2000000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+452;;63391087;Spanduk;Barang;400000;Manggarai barat;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+453;;63391086;Sertifikat;Barang;1280000;Manggarai barat;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+454;;63391085;Konsumsi Peserta Pelatihan 180 JP;Barang;17280000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+455;;63391084;Konsumsi Peserta 160 JP;Barang;15360000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+456;;63391083;Bahan Pelatihan Instlasi Listrik bangunan Sederhana 260 JP;Barang;25560000;Manggarai barat;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+457;;63393817;Bahan Pelatihan Service Sepeda Motor Injeksi 280 JP;Barang;24000000;Kupang;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+458;;63393818;Komputer Supplies;Barang;750000;Kupang;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+459;;63393819;Konsumsi Pembukaan Penutupan;Barang;1000000;Kupang;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+460;;63393820;Konsumsi Dalam Rangka Rekrutmen;Barang;1000000;Kupang;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+461;;63393804;Bahan Pelatihan Pembuatan Roti dan Kue 140 JP;Barang;18000000;Kupang;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+462;;63393805;Bahan Pelatihan Pengolahan Ikan 140 JP;Barang;15000000;Kupang;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+463;;63393806;Konsumsi Peserta Pelatihan 280 JP;Barang;13440000;Kupang;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+464;;63393807;Bahan Pelatihan Menyiapkan Produk Roti 180 JP;Barang;20017000;Kupang;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+465;;63393808;Spanduk;Barang;200000;Kupang;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+466;;63393809;Reproduksi Modul;Barang;14080000;Kupang;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+467;;63393810;Dokumentasi dan Pelaporan;Barang;600000;Kupang;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+468;;63393811;Konsumsi Peserta 180 JP;Barang;8640000;Kupang;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+469;;63393812;Sertifikat;Barang;640000;Kupang;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+470;;63393813;ATK;Barang;750000;Kupang;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+471;;63393814;Penggandaan Bahan Materi Uji;Barang;750000;Kupang;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+472;;63393815;Pakaian Kerja;Barang;12800000;Kupang;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+473;;63393816;Konsumsi Peserta 140 JP;Barang;13440000;Kupang;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+474;;63390475;Konsumsi Peserta 140 JP;Barang;13440000;timor tengah utara;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+475;;63390474;Komputer Supplies;Barang;1500000;timor tengah utara;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+476;;63390473;Konsumsi Dalam Rangka Rekrutmen;Barang;2000000;timor tengah utara;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+477;;63390472;Bahan Pelatihan Menjahit Pakaian Dasar Pria dan Wanita 260 JP;Barang;22000000;timor tengah utara;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+478;;63390482;Konsumsi Pembukaan Penutupan;Barang;2000000;timor tengah utara;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+479;;63390481;Bahan Pelatihan Pembuatan Roti dan Kue 140 JP;Barang;36000000;timor tengah utara;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+480;;63390480;Konsumsi Peserta 260 JP;Barang;24960000;timor tengah utara;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+481;;63390479;Bahan Pelatihan Practical Office Advance 260 JP;Barang;18000000;timor tengah utara;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+482;;63390478;Penggandaan;Barang;750000;timor tengah utara;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+483;;63390477;Pakaian Kerja;Barang;12800000;timor tengah utara;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+484;;63390468;Sertifikat;Barang;640000;timor tengah utara;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+485;;63390469;Spanduk;Barang;220000;timor tengah utara;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+486;;63390476;Reproduksi Modul;Barang;14080000;timor tengah utara;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+487;;63390470;Dokumentasi dan Pelaporan;Barang;1200000;timor tengah utara;Februari;Pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+488;;63390471;ATK;Barang;750000;timor tengah utara;Februari;pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+489;;63369447;Konsumsi Dalam Rangka Rekrutmen;Barang;2000000;Larantuka;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+490;;63369448;Bahan Pelatihan Pembuatan Roti dan Kue 140 JP;Barang;72000000;Larantuka;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+491;;63369449;Konsumsi Peserta 140 JP;Barang;26880000;Larantuka;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+492;;63369450;Reproduksi Modul;Barang;14080000;Larantuka;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+493;;63369451;Dokumentasi dan Pelaporan;Barang;1200000;Larantuka;Februari;pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+494;;63369452;Pakaian Kerja;Barang;12800000;Larantuka;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+495;;63369453;Sertifikat;Barang;640000;Larantuka;Februari;pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+496;;63369454;ATK;Barang;750000;Larantuka;Februari;pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+497;;63369455;Penggandaan;Barang;1500000;Larantuka;Februari;pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+498;;63369444;Komputer Supplies;Barang;1500000;Larantuka;Februari;pengadaan Langsung;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+499;;63369445;Konsumsi Pembukaan Penutupan;Barang;2000000;Larantuka;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0
+500;;63369446;Spanduk;Barang;220000;Larantuka;Februari;E-Purchasing;;;Pelatihan Vokasi di Provinsi Nusa Tenggara Timur;0

@@ -696,32 +696,50 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          jenis_pengadaan: string | null
           kd_rup: string | null
+          kendala: string | null
+          lokasi: string | null
+          mitigasi: string | null
           nama_paket: string | null
           nama_ro: string | null
           nilai_paket: string | null
           no: string | null
+          realisasi: string | null
           skema: string | null
+          waktu_pengadaan: string | null
         }
         Insert: {
           created_at?: string
           id?: string
+          jenis_pengadaan?: string | null
           kd_rup?: string | null
+          kendala?: string | null
+          lokasi?: string | null
+          mitigasi?: string | null
           nama_paket?: string | null
           nama_ro?: string | null
           nilai_paket?: string | null
           no?: string | null
+          realisasi?: string | null
           skema?: string | null
+          waktu_pengadaan?: string | null
         }
         Update: {
           created_at?: string
           id?: string
+          jenis_pengadaan?: string | null
           kd_rup?: string | null
+          kendala?: string | null
+          lokasi?: string | null
+          mitigasi?: string | null
           nama_paket?: string | null
           nama_ro?: string | null
           nilai_paket?: string | null
           no?: string | null
+          realisasi?: string | null
           skema?: string | null
+          waktu_pengadaan?: string | null
         }
         Relationships: []
       }
