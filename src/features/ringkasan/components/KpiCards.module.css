@@ -1,105 +1,108 @@
-/* Satu papan, tiga kolom — bukan enam kartu.
-   Angka rupiah dan jumlah paket untuk satu keadaan anggaran (Total / Sudah /
-   Belum) harus bisa dibandingkan sekali lihat, jadi keduanya ditumpuk di kolom
-   yang sama: rupiah di atas, paket tepat di bawahnya. Membaca menyamping
-   membandingkan ketiga keadaan; membaca ke bawah membandingkan uang dengan
-   jumlah paketnya.
+/* Tiga kartu terpisah berukuran sama, sejajar mendatar.
+   Tiap kartu memuat satu keadaan anggaran dengan dua ukuran yang ditumpuk:
+   rupiah di atas, paket di bawah — supaya uang dan jumlah paketnya terbandingkan
+   sekali lihat, dan ketiga kartu terbandingkan menyamping.
 
-   Pemisahnya garis rambut dan jarak, bukan enam kotak berbingkai: kotak hanya
-   dipakai kalau elevasi memang menyampaikan hierarki, dan di sini tidak. */
+   Pembedanya rona latar yang sangat pudar + bayangan tipis, bukan garis tegas. */
 
 .papan {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  gap: var(--space-6);
   margin-bottom: var(--space-6);
+  align-items: stretch;
 }
 
 .kolom {
   display: flex;
   flex-direction: column;
-  padding: var(--space-5);
-  border-left: 1px solid var(--border);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl, 16px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px -4px rgba(15, 23, 42, 0.08);
+  transition: box-shadow var(--dur-fast, 0.15s) ease, transform var(--dur-fast, 0.15s) ease;
   min-width: 0;
 }
-.kolom:first-child { border-left: none; }
 
-/* ── Judul kolom ─────────────────────────────────────────────────────────── */
+.kolom:hover {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 22px -6px rgba(15, 23, 42, 0.13);
+}
+
+/* Rona status — sangat pudar supaya angka tetap jadi yang paling menonjol,
+   cukup untuk membedakan ketiga kartu tanpa garis pemisah. */
+.good { background: color-mix(in srgb, var(--success-600, #059669) 5%, var(--surface)); }
+.warn { background: color-mix(in srgb, var(--warn-600, #d97706) 6%, var(--surface)); }
+.danger { background: color-mix(in srgb, var(--error-600, #dc2626) 5%, var(--surface)); }
+
+.good { border-color: color-mix(in srgb, var(--success-600, #059669) 16%, var(--border)); }
+.warn { border-color: color-mix(in srgb, var(--warn-600, #d97706) 18%, var(--border)); }
+.danger { border-color: color-mix(in srgb, var(--error-600, #dc2626) 18%, var(--border)); }
+
+/* ── Judul metrik ────────────────────────────────────────────────────────── */
 
 .label {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin: 0;
-  /* Dua baris disediakan supaya baseline nilai di ketiga kolom tetap sejajar
-     walau salah satu judulnya membungkus. Perbandingan menyamping bergantung
-     pada kesejajaran itu. */
-  min-height: 32px;
-  font-size: 12px;
+  margin: 0 0 var(--space-4);
+  /* Dua baris disediakan supaya baseline angka di ketiga kartu tetap sejajar
+     walau salah satu judulnya membungkus. */
+  min-height: 20px;
+  font-size: 13px;
   font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: 0.02em;
+  line-height: 1.35;
   color: var(--text-secondary);
 }
 .label svg { flex-shrink: 0; color: var(--text-tertiary); }
 
-/* Ikon mewarisi warna status kolom — satu-satunya tempat warna dipakai sebagai
-   penanda keadaan, selain bar dan flag target. */
 .good .label svg { color: var(--success-600, #059669); }
 .warn .label svg { color: var(--warn-700, #b45309); }
 .danger .label svg { color: var(--error-600, #dc2626); }
 
-/* ── Ukuran utama (rupiah) & pendamping (paket) ──────────────────────────── */
+/* ── Kelompok ukuran ─────────────────────────────────────────────────────── */
 
-.blokUtama {
-  padding-bottom: var(--space-4);
-}
-
-/* Garis rambut memisahkan uang dari jumlah paket: dua satuan berbeda untuk
-   keadaan yang sama, jadi dipisah tipis — bukan dijauhkan. */
+/* Jarak vertikal antar kelompok dibuat sama di ketiga kartu: rupiah di atas,
+   paket didorong ke dasar kartu supaya barisnya selalu sejajar menyamping. */
 .blokPendamping {
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border);
   margin-top: auto;
+  padding-top: var(--space-6);
 }
 
 .nilaiUtama {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Jumlah paket juga angka utama — sedikit lebih kecil dari rupiah supaya urutan
+   bacanya jelas, tapi tetap tebal dan menonjol. */
+.nilaiPendamping {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.15;
   letter-spacing: -0.02em;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
-/* Jelas lebih kecil dari rupiah supaya urutan bacanya tidak ambigu, tapi tetap
-   angka penuh: ini ukuran kedua, bukan catatan kaki. */
-.nilaiPendamping {
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
 .keterangan {
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
   font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--text-secondary);
+  line-height: 1.5;
+  color: var(--text-tertiary);
 }
 
-/* ── Bar pembanding ──────────────────────────────────────────────────────── */
+/* ── Bar progres ─────────────────────────────────────────────────────────── */
 
 .track {
-  height: 4px;
-  margin-top: 10px;
-  background: var(--track-bg, var(--surface-2));
-  border-radius: var(--radius-pill, 999px);
+  height: 7px;
+  margin-top: var(--space-3);
+  background: var(--track-bg, rgba(15, 23, 42, 0.06));
+  border-radius: 999px;
   overflow: hidden;
 }
 
@@ -108,7 +111,7 @@
 .fill {
   width: 100%;
   height: 100%;
-  border-radius: inherit;
+  border-radius: 999px;
   transform: scaleX(var(--fill, 0));
   transform-origin: left center;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
@@ -120,39 +123,61 @@
 .good .fill { background: var(--success-600, #059669); }
 .warn .fill { background: var(--warn-600, #d97706); }
 .danger .fill { background: var(--error-600, #dc2626); }
-/* Cukup gelap supaya terbaca sebagai bar penuh, bukan garis pemisah: bedanya
-   dengan warna track harus jelas, karena justru bar inilah tolok ukur yang
-   membuat dua bar berwarna di sebelahnya punya arti. */
+/* Kartu acuan: barnya penuh dan netral — tolok ukur yang membuat dua bar
+   berwarna di kartu sebelahnya terbaca sebagai bagian dari keseluruhan. */
 .base .fill { background: var(--text-tertiary); }
 
-/* Kolom yang sedang menyimpang dari target diberi latar sangat tipis. Ini
-   satu-satunya keadaan alarm di baris ini, jadi boleh menonjol — tapi teksnya
-   sendiri sudah menyebut "di bawah target", warna bukan satu-satunya sinyal. */
-.danger {
-  background: color-mix(in srgb, var(--error-600, #dc2626) 4%, transparent);
+/* ── Badge peringatan target ─────────────────────────────────────────────── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: var(--space-2);
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.005em;
+  background: color-mix(in srgb, var(--error-600, #dc2626) 13%, transparent);
+  color: var(--error-700, #b91c1c);
+}
+.badgeAman {
+  background: color-mix(in srgb, var(--success-600, #059669) 13%, transparent);
+  color: var(--success-700, #047857);
 }
 
-.flag {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.good .flag { color: var(--success-700, #047857); }
-.danger .flag { color: var(--error-600, #dc2626); }
+/* ── Mode gelap ──────────────────────────────────────────────────────────── */
 
-:global([data-theme='dark']) .good .label svg,
-:global([data-theme='dark']) .good .flag { color: #4ade80; }
+:global([data-theme='dark']) .kolom {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px -6px rgba(0, 0, 0, 0.55);
+}
+:global([data-theme='dark']) .kolom:hover {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 26px -8px rgba(0, 0, 0, 0.65);
+}
+:global([data-theme='dark']) .good { background: color-mix(in srgb, #4ade80 7%, var(--surface)); }
+:global([data-theme='dark']) .warn { background: color-mix(in srgb, #f0c34d 8%, var(--surface)); }
+:global([data-theme='dark']) .danger { background: color-mix(in srgb, #f87171 8%, var(--surface)); }
+:global([data-theme='dark']) .good .label svg { color: #4ade80; }
 :global([data-theme='dark']) .warn .label svg { color: #f0c34d; }
-:global([data-theme='dark']) .danger .label svg,
-:global([data-theme='dark']) .danger .flag { color: #f87171; }
-:global([data-theme='dark']) .danger { background: color-mix(in srgb, #f87171 7%, transparent); }
+:global([data-theme='dark']) .danger .label svg { color: #f87171; }
+:global([data-theme='dark']) .badge {
+  background: color-mix(in srgb, #f87171 18%, transparent);
+  color: #fca5a5;
+}
+:global([data-theme='dark']) .badgeAman {
+  background: color-mix(in srgb, #4ade80 18%, transparent);
+  color: #86efac;
+}
 
 /* ── Adaptasi ────────────────────────────────────────────────────────────── */
 
-/* Tiga kolom mulai sempit sebelum benar-benar pecah: pindah ke tiga baris, dan
-   di tiap baris rupiah & paket berdampingan — ruang mendatar yang tadinya
-   terpakai memisahkan konsep kini dipakai menyandingkan dua ukuran. */
-@media (max-width: 960px) {
-  .papan { grid-template-columns: 1fr; }
+/* Tiga kartu mulai sempit sebelum benar-benar pecah: turun ke satu kolom, dan
+   di tiap kartu rupiah & paket berdampingan — ruang mendatar yang tadinya
+   memisahkan kartu kini dipakai menyandingkan dua ukuran. */
+@media (max-width: 1100px) {
+  .papan { grid-template-columns: 1fr; gap: var(--space-4); }
   .kolom {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -160,44 +185,21 @@
       'label label'
       'utama pendamping';
     column-gap: var(--space-6);
-    border-left: none;
-    border-top: 1px solid var(--border);
   }
-  .kolom:first-child { border-top: none; }
-  .label { grid-area: label; min-height: 0; margin-bottom: var(--space-3); }
-  /* Rupiah & paket kini berdampingan, jadi bar keduanya harus mulai pada garis
-     yang sama — kalau tidak, perbandingan menyampingnya justru terganggu oleh
-     selisih tinggi angka. Angka kecil diturunkan agar dasarnya sejajar. */
-  .nilaiPendamping {
-    min-height: 29px;
-    display: flex;
-    align-items: flex-end;
-  }
-  .blokUtama { grid-area: utama; padding-bottom: 0; }
-  .blokPendamping {
-    grid-area: pendamping;
-    padding-top: 0;
-    margin-top: 0;
-    border-top: none;
-    border-left: 1px solid var(--border);
-    padding-left: var(--space-6);
-  }
+  .label { grid-area: label; min-height: 0; }
+  .blokUtama { grid-area: utama; }
+  .blokPendamping { grid-area: pendamping; margin-top: 0; padding-top: 0; }
+  /* Berdampingan, jadi dasar kedua angka disejajarkan supaya barnya satu garis. */
+  .nilaiPendamping { min-height: 33px; display: flex; align-items: flex-end; }
 }
 
 @media (max-width: 560px) {
   .kolom {
     grid-template-columns: 1fr;
     grid-template-areas: 'label' 'utama' 'pendamping';
-    padding: var(--space-4);
+    padding: var(--space-5);
   }
-  .blokUtama { padding-bottom: var(--space-3); }
-  .blokPendamping {
-    padding-top: var(--space-3);
-    padding-left: 0;
-    border-left: none;
-    border-top: 1px solid var(--border);
-  }
-  .nilaiUtama { font-size: 23px; }
-  /* Kembali bertumpuk — tak ada lagi yang perlu disejajarkan menyamping. */
-  .nilaiPendamping { min-height: 0; display: block; }
+  .blokPendamping { padding-top: var(--space-5); }
+  .nilaiUtama { font-size: 26px; }
+  .nilaiPendamping { font-size: 22px; min-height: 0; display: block; }
 }

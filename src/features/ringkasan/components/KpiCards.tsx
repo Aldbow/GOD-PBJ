@@ -32,16 +32,18 @@ function triwulanBerjalan(now: Date = new Date()): 1 | 2 | 3 | 4 {
 
 type Tone = 'base' | 'good' | 'warn' | 'danger';
 
-/** Satu ukuran di dalam kolom: nilai + persentase pembandingnya. */
+/** Satu ukuran di dalam kartu: nilai + persentase pembandingnya. */
 interface UkuranData {
   nilai: string;
   /**
-   * Kolom acuan memakai 100: barnya penuh dan netral. Bukan sekadar penyelaras
-   * tinggi — bar penuh itulah tolok ukur yang membuat dua bar di sebelahnya
+   * Kartu acuan memakai 100: barnya penuh dan netral. Bukan sekadar penyelaras
+   * tinggi — bar penuh itulah tolok ukur yang membuat dua bar di kartu sebelahnya
    * terbaca sebagai bagian dari keseluruhan, bukan angka yang berdiri sendiri.
    */
   pct: number;
   keterangan: React.ReactNode;
+  /** Penanda status target, ditempel di bawah keterangan sebagai badge. */
+  badge?: { teks: string; aman: boolean };
 }
 
 interface Kolom {
@@ -71,6 +73,14 @@ function Ukuran({ data, size }: { data: UkuranData; size: 'utama' | 'pendamping'
         />
       </div>
       <div className={styles.keterangan}>{data.keterangan}</div>
+      {data.badge && (
+        <div>
+          <span className={`${styles.badge} ${data.badge.aman ? styles.badgeAman : ''}`}>
+            {data.badge.aman ? <CircleCheckBig size={11} /> : <AlertTriangle size={11} />}
+            {data.badge.teks}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -141,25 +151,19 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
       rupiah: {
         nilai: fmtRupiahKpi(kpi.totalRealisasi),
         pct: kpi.pctRealisasi,
-        keterangan: (
-          <>
-            {fmtPct(kpi.pctRealisasi)} dari pagu
-            {targetDinilai === null ? (
-              <> · penilaian target mulai TW2</>
-            ) : (
-              adaPagu && (
-                <>
-                  {' · '}
-                  <span className={styles.flag}>
-                    {dibawahTarget
-                      ? `di bawah target TW${triwulanDinilai} (${targetDinilai}%)`
-                      : `target TW${triwulanDinilai} (${targetDinilai}%) tercapai`}
-                  </span>
-                </>
-              )
-            )}
-          </>
-        ),
+        keterangan:
+          targetDinilai === null
+            ? `${fmtPct(kpi.pctRealisasi)} dari pagu · penilaian target mulai TW2`
+            : `${fmtPct(kpi.pctRealisasi)} dari pagu`,
+        badge:
+          targetDinilai !== null && adaPagu
+            ? {
+                teks: dibawahTarget
+                  ? `Di bawah target TW${triwulanDinilai} (${targetDinilai}%)`
+                  : `Target TW${triwulanDinilai} (${targetDinilai}%) tercapai`,
+                aman: !dibawahTarget,
+              }
+            : undefined,
       },
       paket: {
         nilai: `${fmtInt(kpi.paketSudah)} paket`,
