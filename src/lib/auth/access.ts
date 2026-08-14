@@ -12,13 +12,17 @@ import type { Role } from '@/types';
  */
 export const ROUTE_ACCESS: Record<Role, string[] | '*'> = {
   admin: '*',
-  sekjend: ['/ringkasan', '/rencana-pengadaan', '/itkp', '/risiko-pengadaan', '/program-prioritas-nasional'],
+  // '/daftar-paket' ada di sini karena jadi tujuan drill-down dari Ringkasan:
+  // sekjend tidak berhak membuka halaman Realisasi mana pun, jadi tanpa halaman
+  // ini setiap klik pada donut/tabel Ringkasan berakhir di penolakan akses.
+  sekjend: ['/ringkasan', '/daftar-paket', '/rencana-pengadaan', '/itkp', '/risiko-pengadaan', '/program-prioritas-nasional'],
   // PPK: Ringkasan + ITKP + fitur Perencanaan & Realisasi, data ter-scope ke
   // satker/PPK ybs. Pengecualian ruang lingkup: '/itkp' (Dashboard Penilaian)
   // tetap tingkat Kementerian karena ITKP dinilai untuk satu K/L, sedangkan
   // '/itkp/pemanfaatan-sistem' terkunci ke satker PPK ybs.
   ppk: [
     '/ringkasan',
+    '/daftar-paket',
     '/notifikasi',
     '/itkp',
     '/epurchasing',

@@ -22,6 +22,12 @@ interface OrgFilterBarProps {
   onPpkChange: (value: string | null) => void;
   onSearchChange: (value: string) => void;
   searchPlaceholder?: string;
+  /**
+   * Set false bila sumber datanya tidak punya kolom Eselon I sama sekali (mis.
+   * view_dashboard_gabungan_satker). Tanpa ini pemilihnya tetap tampil tapi
+   * isinya cuma "Tidak Diketahui" — pilihan yang tidak menyaring apa pun.
+   */
+  showEselon1?: boolean;
 }
 
 function uniqueSorted(data: any[], field: string, filterFn: (row: any) => boolean): string[] {
@@ -47,6 +53,7 @@ export function OrgFilterBar({
   onPpkChange,
   onSearchChange,
   searchPlaceholder = 'Cari nama paket, kode RUP, penyedia...',
+  showEselon1 = true,
 }: OrgFilterBarProps) {
   const eselon1Options = useMemo(
     () => uniqueSorted(data, eselon1Field, () => true),
@@ -79,14 +86,16 @@ export function OrgFilterBar({
     <div className={styles.bar}>
       {!hideEselonSatker && (
         <>
-          <SearchableSelect
-            ariaLabel="Filter Eselon I"
-            className={styles.select}
-            value={eselon1 ?? ''}
-            onChange={(v) => onEselon1Change(v || null)}
-            options={eselon1Options}
-            placeholder="Semua Eselon I"
-          />
+          {showEselon1 && (
+            <SearchableSelect
+              ariaLabel="Filter Eselon I"
+              className={styles.select}
+              value={eselon1 ?? ''}
+              onChange={(v) => onEselon1Change(v || null)}
+              options={eselon1Options}
+              placeholder="Semua Eselon I"
+            />
+          )}
           <SearchableSelect
             ariaLabel="Filter Satuan Kerja"
             className={styles.select}

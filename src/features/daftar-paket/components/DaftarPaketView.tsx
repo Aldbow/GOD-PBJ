@@ -3,9 +3,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Wallet, TrendingUp, ListTodo, Package, CheckCircle2, Clock } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { fmtRupiah, fmtRupiahDetail, countRup } from '@/lib/format';
+import { fmtRupiah, fmtRupiahDetail } from '@/lib/format';
 import { fetchRupHistory, type RupHistoryEntry } from '@/lib/paket/rupHistory';
+import { fetchGabunganRows, type GabunganRow } from '@/features/ringkasan/lib/ringkasanData';
+import { jenisOf, metodeOf, JENIS_ANOMALI } from '@/lib/drilldown';
 import { useOrgFilters } from '@/hooks/useOrgFilters';
 import { useUrlPillFilter } from '@/hooks/useUrlPillFilter';
 import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
@@ -20,22 +21,47 @@ import { ErrorBox } from '@/components/ui/ErrorBox';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
 import styles from '@/components/paket/paketView.module.css';
 
+/**
+ * Daftar seluruh paket lintas metode — tujuan drill-down dari Ringkasan.
+ *
+ * Halaman Realisasi lain dipecah menurut METODE, sedangkan Jenis Pengadaan
+ * memotong melintang: 5.909 paket "Barang" tersebar di kelima halaman itu
+ * sekaligus. Halaman ini yang menampung keduanya, dan sengaja mengambil data
+ * dari fetchGabunganRows() — fungsi yang SAMA dengan yang dipakai Ringkasan —
+ * supaya jumlah paket yang muncul di sini identik dengan angka yang barusan
+ * diklik pengguna, bukan sekadar mirip.
+ */
+
 const METODE_OPTIONS = [
+  { value: 'Pengadaan Langsung', label: 'Pengadaan Langsung' },
+  { value: 'E-Purchasing', label: 'E-Purchasing' },
+  { value: 'Dikecualikan', label: 'Dikecualikan' },
+  { value: 'Penunjukan Langsung', label: 'Penunjukan Langsung' },
+  { value: 'Swakelola', label: 'Swakelola' },
   { value: 'Tender', label: 'Tender' },
   { value: 'Seleksi', label: 'Seleksi' },
-  { value: 'Tender Cepat', label: 'Tender Cepat' },
   { value: 'Pembayaran untuk Kontrak Tahun Jamak', label: 'Pembayaran Kontrak Tahun Jamak' },
+];
+
+const JENIS_OPTIONS = [
+  { value: 'Barang', label: 'Barang' },
+  { value: 'Jasa Lainnya', label: 'Jasa Lainnya' },
+  { value: 'Pekerjaan Konstruksi', label: 'Pekerjaan Konstruksi' },
+  { value: 'Jasa Konsultansi', label: 'Jasa Konsultansi' },
+  { value: 'Barang;Jasa Lainnya', label: 'Barang & Jasa Lainnya' },
+  { value: 'Swakelola', label: 'Swakelola' },
+  { value: JENIS_ANOMALI, label: JENIS_ANOMALI },
+];
+
+const STATUS_OPTIONS = [
+  { value: 'SUDAH', label: 'Terdapat Realisasi' },
+  { value: 'BELUM', label: 'Belum Terealisasi' },
 ];
 
 const KURASI_OPTIONS = [
   { value: 'Akurat', label: 'Akurat' },
   { value: 'Tidak Akurat', label: 'Tidak Akurat' },
-  { value: 'Belum Dikurasi', label: 'Belum Dikurasi' }
-];
-
-const TIPE_RUP_OPTIONS = [
-  { value: 'Single RUP', label: 'Single RUP' },
-  { value: 'Multiple RUP', label: 'Multiple RUP' },
+  { value: 'Belum Dikurasi', label: 'Belum Dikurasi' },
 ];
 
 const SORT_OPTIONS = [
@@ -45,87 +71,85 @@ const SORT_OPTIONS = [
   { value: 'REAL_ASC', label: 'Realisasi Terendah' },
 ];
 
-export function TenderView() {
-  const [data, setData] = useState<any[]>([]);
+const num = (v: unknown): number => Number(v) || 0;
+
+export function DaftarPaketView() {
+  const [data, setData] = useState<GabunganRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { eselon1, satker, ppk, search, setEselon1, setSatker, setPpk, setSearch } = useOrgFilters();
+  const { satker, ppk, search, setEselon1, setSatker, setPpk, setSearch } = useOrgFilters();
 
-  // Metode hidup di URL (?m=), bukan useState: halaman ini dituju dari Ringkasan
-  // lewat tautan yang sudah membawa metodenya (Tender / Seleksi / Pembayaran
-  // Kontrak Tahun Jamak), jadi pill-nya harus sudah menyala saat halaman terbuka.
+  // Metode & jenis hidup di URL, bukan di useState: keduanya adalah filter yang
+  // DIBAWA dari Ringkasan lewat tautan, jadi nilai awalnya harus bisa datang
+  // dari luar halaman ini.
   const [metodeFilter, setMetodeFilter] = useUrlPillFilter('m');
-  const [tipeRupFilter, setTipeRupFilter] = useState<string[]>([]);
+  const [jenisFilter, setJenisFilter] = useUrlPillFilter('j');
+
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [kurasiFilter, setKurasiFilter] = useState<string[]>([]);
   const [anomaliFilter, setAnomaliFilter] = useState<AnomaliJenis[]>([]);
   const [sortBy, setSortBy] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [selectedItem, setSelectedItem] = useState<GabunganRow | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [historyData, setHistoryData] = useState<RupHistoryEntry[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  // Riwayat disimpan bersama kode RUP pemiliknya, bukan sebagai daftar telanjang
+  // yang perlu dikosongkan tiap kali panel berganti paket. Dengan begitu riwayat
+  // milik paket lain tidak pernah sempat terlihat, tanpa perlu setState
+  // pembersih di dalam efek (yang memicu render berantai).
+  const [history, setHistory] = useState<{ kd: string; rows: RupHistoryEntry[] } | null>(null);
+  // Kedua nilai ini DITURUNKAN, bukan disimpan: "sedang memuat" persis berarti
+  // "panel terbuka tapi riwayat yang tersimpan belum milik paket ini".
+  const historyCocok = Boolean(selectedItem && history?.kd === selectedItem.kd_rup);
+  const historyData = historyCocok && history ? history.rows : [];
+  const loadingHistory = Boolean(isModalOpen && selectedItem && !historyCocok);
 
   useEffect(() => {
-    if (!isModalOpen || !selectedItem?.kd_rup) {
-      setHistoryData([]);
-      return;
-    }
+    if (!isModalOpen || !selectedItem) return;
+    const kd = selectedItem.kd_rup;
     let cancelled = false;
-    setLoadingHistory(true);
-    fetchRupHistory(selectedItem.kd_rup).then((result) => {
-      if (!cancelled) {
-        setHistoryData(result);
-        setLoadingHistory(false);
-      }
-    });
+    fetchRupHistory(kd)
+      // Kegagalan pun harus dicatat sebagai "riwayat milik kd ini", kalau tidak
+      // loadingHistory yang diturunkan itu akan menyala selamanya.
+      .catch(() => [] as RupHistoryEntry[])
+      .then((rows) => {
+        if (!cancelled) setHistory({ kd, rows });
+      });
     return () => {
       cancelled = true;
     };
   }, [isModalOpen, selectedItem]);
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        let allData: any[] = [];
-        let offset = 0;
-        const limit = 1000;
-        while (true) {
-          const { data, error } = await supabase
-            .from('view_dashboard_tender')
-            .select('*')
-            .range(offset, offset + limit - 1);
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          allData = [...allData, ...data];
-          if (data.length < limit) break;
-          offset += limit;
-        }
-        setData(allData);
-      } catch (e: any) {
-        console.error(e);
-        setError(e.message || 'Gagal memuat data dari Supabase.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
+    let cancelled = false;
+    fetchGabunganRows()
+      .then((rows) => {
+        if (!cancelled) setData(rows);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Gagal memuat data dari Supabase.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const baseData = useMemo(() => {
     let d = data;
-    if (eselon1) d = d.filter((item) => (item.eselon1 || 'Tidak Diketahui') === eselon1);
     if (satker) d = d.filter((item) => (item.satker || 'Tidak Diketahui') === satker);
     if (ppk) d = d.filter((item) => (item.nama_ppk || 'Tidak Diketahui') === ppk);
-    if (tipeRupFilter.length > 0) {
-      d = d.filter((item) => tipeRupFilter.includes(item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP'));
-    }
-    if (metodeFilter.length > 0) d = d.filter((item) => metodeFilter.includes(item.metode_pengadaan));
-    if (kurasiFilter.length > 0) d = d.filter((item) => kurasiFilter.includes(item.status_kurasi || 'Belum Dikurasi'));
+    // metodeOf/jenisOf, bukan kolom mentah — aturan turunannya (mis. swakelola
+    // masuk jenis 'Swakelola', jenis kosong jadi 'Paket Anomali') harus sama
+    // persis dengan Ringkasan, kalau tidak jumlahnya akan meleset.
+    if (metodeFilter.length > 0) d = d.filter((item) => metodeFilter.includes(metodeOf(item)));
+    if (jenisFilter.length > 0) d = d.filter((item) => jenisFilter.includes(jenisOf(item)));
     return d;
-  }, [data, eselon1, satker, ppk, tipeRupFilter, metodeFilter, kurasiFilter]);
+  }, [data, satker, ppk, metodeFilter, jenisFilter]);
 
   const filteredData = useMemo(() => {
     let d = baseData;
@@ -135,59 +159,68 @@ export function TenderView() {
         (p) =>
           (p.rup_name && p.rup_name.toLowerCase().includes(q)) ||
           (p.kd_rup && String(p.kd_rup).toLowerCase().includes(q)) ||
-          (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(q)) ||
           (p.satker && p.satker.toLowerCase().includes(q)) ||
-          (p.eselon1 && p.eselon1.toLowerCase().includes(q)) ||
           (p.nama_ppk && p.nama_ppk.toLowerCase().includes(q))
       );
     }
+    if (statusFilter.length > 0) {
+      d = d.filter((p) => statusFilter.includes(num(p.total) > 0 ? 'SUDAH' : 'BELUM'));
+    }
+    if (kurasiFilter.length > 0) {
+      d = d.filter((p) => kurasiFilter.includes(p.status_kurasi || 'Belum Dikurasi'));
+    }
     if (anomaliFilter.length > 0) d = d.filter((p) => matchesAnomali(p, anomaliFilter));
     return d;
-  }, [baseData, search, anomaliFilter]);
+  }, [baseData, search, statusFilter, kurasiFilter, anomaliFilter]);
 
-  // Ringkasan anomali dihitung dari baseData (sebelum filter anomali) agar angka tile stabil.
   const anomaliSummary = useMemo(() => summarizeAnomali(baseData), [baseData]);
   const toggleAnomali = (j: AnomaliJenis) =>
     setAnomaliFilter((prev) => (prev.includes(j) ? prev.filter((x) => x !== j) : [...prev, j]));
 
-  // contextPagu deliberately NOT gated by is_from_sirup here (matches original TenderView behavior,
-  // which differs from Pengadaan Langsung / Penunjukan Langsung's gated contextPagu).
-  const contextPagu = baseData.reduce((s, d) => s + (Number(d.pagu) || 0), 0);
-  const contextRealisasi = filteredData.reduce((s, d) => s + (Number(d.total) || 0), 0);
+  // Satu baris = satu paket, aturan yang sama dengan aggregate() di Ringkasan
+  // (bukan countRup). Inilah yang membuat "7.742 paket" di donut sama dengan
+  // jumlah baris di sini.
+  const contextPagu = filteredData.reduce((s, d) => s + num(d.pagu), 0);
+  const contextRealisasi = filteredData.reduce((s, d) => s + num(d.total), 0);
   const contextBelumRealisasi = Math.max(0, contextPagu - contextRealisasi);
   const persentase = contextPagu > 0 ? (contextRealisasi / contextPagu) * 100 : 0;
   const persentaseBelumRealisasi = contextPagu > 0 ? (contextBelumRealisasi / contextPagu) * 100 : 0;
 
-  // totalPaket/paketSelesai also NOT gated by is_from_sirup (unlike Pengadaan/Penunjukan Langsung).
-  const totalPaket = filteredData.reduce((sum, p) => sum + countRup(p.kd_rup), 0);
-  const paketSelesai = filteredData.filter((p) => (Number(p.total) || 0) > 0).reduce((sum, p) => sum + countRup(p.kd_rup), 0);
+  const totalPaket = filteredData.length;
+  const paketSelesai = filteredData.filter((p) => num(p.total) > 0).length;
   const paketBelumSelesai = totalPaket - paketSelesai;
 
   const activeSort = sortBy[0];
   const sortedPackages = useMemo(() => {
     const copy = [...filteredData];
     copy.sort((a, b) => {
-      if (activeSort === 'PAGU_DESC') return (Number(b.pagu) || 0) - (Number(a.pagu) || 0);
-      if (activeSort === 'PAGU_ASC') return (Number(a.pagu) || 0) - (Number(b.pagu) || 0);
-      if (activeSort === 'REAL_DESC') return (Number(b.total) || 0) - (Number(a.total) || 0);
-      if (activeSort === 'REAL_ASC') return (Number(a.total) || 0) - (Number(b.total) || 0);
-      const pctA = (Number(a.pagu) || 0) > 0 ? (Number(a.total) || 0) / (Number(a.pagu) || 0) : 0;
-      const pctB = (Number(b.pagu) || 0) > 0 ? (Number(b.total) || 0) / (Number(b.pagu) || 0) : 0;
+      if (activeSort === 'PAGU_DESC') return num(b.pagu) - num(a.pagu);
+      if (activeSort === 'PAGU_ASC') return num(a.pagu) - num(b.pagu);
+      if (activeSort === 'REAL_DESC') return num(b.total) - num(a.total);
+      if (activeSort === 'REAL_ASC') return num(a.total) - num(b.total);
+      const pctA = num(a.pagu) > 0 ? num(a.total) / num(a.pagu) : 0;
+      const pctB = num(b.pagu) > 0 ? num(b.total) / num(b.pagu) : 0;
       return pctB - pctA;
     });
     return copy;
   }, [filteredData, activeSort]);
 
-  const hasActiveExtraFilters = metodeFilter.length > 0 || tipeRupFilter.length > 0 || kurasiFilter.length > 0 || anomaliFilter.length > 0 || sortBy.length > 0;
+  const hasActiveExtraFilters =
+    statusFilter.length > 0 ||
+    kurasiFilter.length > 0 ||
+    anomaliFilter.length > 0 ||
+    metodeFilter.length > 0 ||
+    jenisFilter.length > 0 ||
+    sortBy.length > 0;
 
-  const columns: PaketColumn<any>[] = useMemo(
+  const columns: PaketColumn<GabunganRow>[] = useMemo(
     () => [
       {
         key: 'nama',
         label: 'Nama Paket',
         render: (p) => (
           <div className={styles.nameCell}>
-            <span className={styles.nameText} title={p.rup_name}>
+            <span className={styles.nameText} title={p.rup_name || ''}>
               {p.rup_name}
             </span>
             <span className={styles.rupCode}>RUP: {p.kd_rup || '-'}</span>
@@ -201,41 +234,40 @@ export function TenderView() {
         key: 'metode',
         label: 'Metode',
         render: (p) => (
-          <Badge variant="default" className={styles.metodeDefault}>
-            {p.metode_pengadaan || 'Tender'}
+          <Badge
+            variant="default"
+            className={metodeOf(p) === 'Dikecualikan' ? styles.metodeDikecualikan : styles.metodeDefault}
+          >
+            {metodeOf(p)}
           </Badge>
         ),
       },
-      {
-        key: 'tipe',
-        label: 'Tipe RUP',
-        render: (p) => <span className={styles.mutedCell}>{p.is_multiple_rup ? 'Multiple RUP' : 'Single RUP'}</span>,
-      },
+      { key: 'jenis', label: 'Jenis', render: (p) => <span className={styles.mutedCell}>{jenisOf(p)}</span> },
       {
         key: 'pagu',
         label: 'Pagu',
         align: 'right',
-        sortAccessor: (p) => Number(p.pagu) || 0,
-        render: (p) => <span className={styles.monoCell}>{fmtRupiah(Number(p.pagu))}</span>,
+        sortAccessor: (p) => num(p.pagu),
+        render: (p) => <span className={styles.monoCell}>{fmtRupiah(num(p.pagu))}</span>,
       },
       {
         key: 'realisasi',
         label: 'Realisasi',
         align: 'right',
-        sortAccessor: (p) => Number(p.total) || 0,
+        sortAccessor: (p) => num(p.total),
         render: (p) => {
-          const over = (Number(p.total) || 0) > (Number(p.pagu) || 0);
-          return <span className={`${styles.monoCell} ${over ? styles.overBudget : ''}`}>{fmtRupiah(Number(p.total))}</span>;
+          const over = num(p.total) > num(p.pagu);
+          return <span className={`${styles.monoCell} ${over ? styles.overBudget : ''}`}>{fmtRupiah(num(p.total))}</span>;
         },
       },
       {
         key: 'pct',
         label: '%',
         align: 'right',
-        sortAccessor: (p) => ((Number(p.pagu) || 0) > 0 ? (Number(p.total) || 0) / (Number(p.pagu) || 0) : 0),
+        sortAccessor: (p) => (num(p.pagu) > 0 ? num(p.total) / num(p.pagu) : 0),
         render: (p) => {
-          const pct = (Number(p.pagu) || 0) > 0 ? (Number(p.total) / Number(p.pagu)) * 100 : 0;
-          const over = (Number(p.total) || 0) > (Number(p.pagu) || 0);
+          const pct = num(p.pagu) > 0 ? (num(p.total) / num(p.pagu)) * 100 : 0;
+          const over = num(p.total) > num(p.pagu);
           return <strong className={`${styles.pctBadge} ${over ? styles.pctOver : styles.pctNormal}`}>{pct.toFixed(1)}%</strong>;
         },
       },
@@ -244,23 +276,21 @@ export function TenderView() {
         label: 'Status',
         align: 'center',
         render: (p) => (
-          <Badge variant={(Number(p.total) || 0) > 0 ? 'rendah' : 'sedang'} className={styles.statusBadge}>
-            {(Number(p.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI'}
+          <Badge variant={num(p.total) > 0 ? 'rendah' : 'sedang'} className={styles.statusBadge}>
+            {num(p.total) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI'}
           </Badge>
         ),
       },
       {
-        key: 'status_kurasi',
+        key: 'kurasi',
         label: 'Status Kurasi',
         align: 'center',
         render: (p) => {
-          const sk = p.status_kurasi;
-          let variant: 'rendah' | 'sedang' | 'tinggi' | 'default' = 'default';
-          if (sk === 'Akurat') variant = 'rendah';
-          if (sk === 'Tidak Akurat') variant = 'tinggi';
+          const s = p.status_kurasi || 'Belum Dikurasi';
+          const variant = s === 'Akurat' ? 'rendah' : s === 'Tidak Akurat' ? 'tinggi' : 'sedang';
           return (
             <Badge variant={variant} className={styles.statusBadge}>
-              {sk || 'Belum Dikurasi'}
+              {s}
             </Badge>
           );
         },
@@ -269,31 +299,36 @@ export function TenderView() {
     []
   );
 
-  const exportColumns = useMemo(() => [
-    { key: 'kd_rup', label: 'Kode RUP' },
-    { key: 'rup_name', label: 'Nama Paket', width: 40 },
-    { key: 'satker', label: 'Satker' },
-    { key: 'eselon1', label: 'Eselon I' },
-    { key: 'nama_ppk', label: 'Nama PPK' },
-    { key: 'metode_pengadaan', label: 'Metode' },
-    { key: 'is_multiple_rup', label: 'Tipe RUP' },
-    { key: 'pagu', label: 'Pagu (Rp)', type: 'currency' },
-    { key: 'total', label: 'Realisasi (Rp)', type: 'currency' },
-    { key: 'pct', label: 'Realisasi (%)', type: 'number' },
-    { key: 'status', label: 'Status' },
-    { key: 'status_kurasi', label: 'Status Kurasi AI' },
-    { key: 'catatan_kurasi', label: 'Catatan Kurasi AI', width: 40 },
-    { key: 'rekomendasi_kurasi', label: 'Rekomendasi Kurasi AI', width: 40 },
-  ], []);
+  const exportColumns = useMemo(
+    () => [
+      { key: 'kd_rup', label: 'Kode RUP' },
+      { key: 'rup_name', label: 'Nama Paket', width: 40 },
+      { key: 'satker', label: 'Satker' },
+      { key: 'nama_ppk', label: 'Nama PPK' },
+      { key: 'metode_pengadaan', label: 'Metode Pengadaan' },
+      { key: 'jenis_pengadaan', label: 'Jenis Pengadaan' },
+      { key: 'pagu', label: 'Pagu (Rp)', type: 'currency' },
+      { key: 'total', label: 'Total Realisasi (Rp)', type: 'currency' },
+      { key: 'pct', label: 'Realisasi (%)', type: 'number' },
+      { key: 'status', label: 'Status' },
+      { key: 'status_kurasi', label: 'Status Kurasi AI' },
+      { key: 'catatan_kurasi', label: 'Catatan Kurasi AI', width: 40 },
+      { key: 'rekomendasi_kurasi', label: 'Rekomendasi Kurasi AI', width: 40 },
+    ],
+    []
+  );
 
-  const mapForExport = (item: any) => ({
+  const mapForExport = (item: GabunganRow) => ({
     ...item,
-    is_multiple_rup: item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP',
-    pct: (Number(item.pagu) || 0) > 0 ? ((Number(item.total) || 0) / (Number(item.pagu) || 0)) * 100 : 0,
-    status: (Number(item.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI',
+    // Kolom turunan, bukan mentah — supaya isi berkas ekspor sama dengan yang
+    // terbaca di layar (termasuk 'Paket Anomali' untuk jenis yang kosong).
+    metode_pengadaan: metodeOf(item),
+    jenis_pengadaan: jenisOf(item),
+    pct: num(item.pagu) > 0 ? (num(item.total) / num(item.pagu)) * 100 : 0,
+    status: num(item.total) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI',
     status_kurasi: item.status_kurasi || 'Belum Dikurasi',
     catatan_kurasi: item.catatan_kurasi || '-',
-    rekomendasi_kurasi: item.rekomendasi_kurasi || '-'
+    rekomendasi_kurasi: item.rekomendasi_kurasi || '-',
   });
 
   const exportAllData = useMemo(() => baseData.map(mapForExport), [baseData]);
@@ -334,10 +369,10 @@ export function TenderView() {
           />
 
           <MetricGrid
-            title="Status Paket Tender"
+            title="Status Paket"
             icon={Package}
             cards={[
-              { key: 'total', icon: Package, label: 'Total Seluruh RUP', value: totalPaket, accent: 'neutral' },
+              { key: 'total', icon: Package, label: 'Total Paket', value: totalPaket, accent: 'neutral' },
               { key: 'selesai', icon: CheckCircle2, label: 'Terdapat Realisasi', value: paketSelesai, accent: 'teal' },
               { key: 'belum', icon: Clock, label: 'Belum Terealisasi', value: paketBelumSelesai, accent: 'amber' },
             ]}
@@ -359,9 +394,9 @@ export function TenderView() {
           <div className={styles.filterHead}>
             <span className={styles.filterHeadTitle}>Filter</span>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <button 
-                type="button" 
-                className={styles.advancedToggle} 
+              <button
+                type="button"
+                className={styles.advancedToggle}
                 onClick={() => setIsExportModalOpen(true)}
                 style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
               >
@@ -375,7 +410,7 @@ export function TenderView() {
 
           <OrgFilterBar
             data={data}
-            eselon1={eselon1}
+            eselon1={null}
             satker={satker}
             ppk={ppk}
             search={search}
@@ -383,20 +418,35 @@ export function TenderView() {
             onSatkerChange={setSatker}
             onPpkChange={setPpk}
             onSearchChange={setSearch}
+            searchPlaceholder="Cari nama paket, kode RUP, satker, PPK..."
+            // view_dashboard_gabungan_satker tidak punya kolom Eselon I —
+            // pemilihnya akan berisi satu opsi kosong yang tidak menyaring apa pun.
+            showEselon1={false}
           />
+
+          {/* Metode & Jenis di luar Filter Lanjutan: keduanya adalah filter yang
+              dibawa dari Ringkasan, jadi harus terlihat begitu halaman terbuka —
+              kalau tersembunyi di balik toggle, pengguna melihat daftar yang
+              tersaring tanpa tahu apa yang menyaringnya. */}
+          <div className={styles.advancedPanel}>
+            <div className={styles.filterRow}>
+              <span className={styles.filterLabel}>Metode</span>
+              <FilterPillGroup options={METODE_OPTIONS} selected={metodeFilter} onChange={setMetodeFilter} multi={false} />
+            </div>
+            <div className={styles.filterRow}>
+              <span className={styles.filterLabel}>Jenis</span>
+              <FilterPillGroup options={JENIS_OPTIONS} selected={jenisFilter} onChange={setJenisFilter} multi={false} />
+            </div>
+          </div>
 
           {showAdvanced && (
             <div className={styles.advancedPanel}>
               <div className={styles.filterRow}>
-                <span className={styles.filterLabel}>Metode</span>
-                <FilterPillGroup options={METODE_OPTIONS} selected={metodeFilter} onChange={setMetodeFilter} />
+                <span className={styles.filterLabel}>Status</span>
+                <FilterPillGroup options={STATUS_OPTIONS} selected={statusFilter} onChange={setStatusFilter} />
               </div>
               <div className={styles.filterRow}>
-                <span className={styles.filterLabel}>Tipe RUP</span>
-                <FilterPillGroup options={TIPE_RUP_OPTIONS} selected={tipeRupFilter} onChange={setTipeRupFilter} multi={false} />
-              </div>
-              <div className={styles.filterRow}>
-                <span className={styles.filterLabel}>Status Kurasi AI</span>
+                <span className={styles.filterLabel}>Kurasi AI</span>
                 <FilterPillGroup options={KURASI_OPTIONS} selected={kurasiFilter} onChange={setKurasiFilter} />
               </div>
               <div className={styles.filterRow}>
@@ -408,10 +458,11 @@ export function TenderView() {
                   type="button"
                   className={styles.resetAllBtn}
                   onClick={() => {
-                    setMetodeFilter([]);
-                    setTipeRupFilter([]);
+                    setStatusFilter([]);
                     setKurasiFilter([]);
                     setAnomaliFilter([]);
+                    setMetodeFilter([]);
+                    setJenisFilter([]);
                     setSortBy([]);
                   }}
                 >
@@ -436,23 +487,19 @@ export function TenderView() {
       <PaketDetailModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Detail Tender"
+        title="Detail Paket"
         historyData={historyData}
         loadingHistory={loadingHistory}
-        statusKurasi={selectedItem?.status_kurasi}
-        catatanKurasi={selectedItem?.catatan_kurasi}
-        rekomendasiKurasi={selectedItem?.rekomendasi_kurasi}
+        statusKurasi={selectedItem?.status_kurasi ?? undefined}
+        catatanKurasi={selectedItem?.catatan_kurasi ?? undefined}
+        rekomendasiKurasi={selectedItem?.rekomendasi_kurasi ?? undefined}
         kdRup={selectedItem?.kd_rup}
-        onCurationSuccess={(newData) => setSelectedItem((prev: any) => prev ? { ...prev, ...newData } : null)}
+        onCurationSuccess={(newData) => setSelectedItem((prev) => (prev ? { ...prev, ...newData } : null))}
       >
         {selectedItem && (
           <>
             <div>
               <h3 className={styles.modalTitle}>{selectedItem.rup_name}</h3>
-              <p className={styles.modalSubLabel}>Penyedia (Kontraktor)</p>
-              <div className={styles.modalBox}>
-                <p className={styles.modalBoxText}>{selectedItem.kode_penyedia || 'Tidak Diketahui'}</p>
-              </div>
             </div>
 
             <div className={styles.modalGrid}>
@@ -462,22 +509,25 @@ export function TenderView() {
               </div>
               <div>
                 <span className={styles.modalFieldLabel}>Metode Pengadaan</span>
-                <span className={styles.modalFieldValue}>{selectedItem.metode_pengadaan || 'Tender'}</span>
+                <span className={styles.modalFieldValue}>{metodeOf(selectedItem)}</span>
+              </div>
+              <div>
+                <span className={styles.modalFieldLabel}>Jenis Pengadaan</span>
+                <span className={styles.modalFieldValue}>{jenisOf(selectedItem)}</span>
               </div>
               <div className={styles.modalDivider} />
               <div>
                 <span className={styles.modalFieldLabel}>Total Nilai Pagu</span>
-                <span className={styles.modalFieldValue}>{fmtRupiahDetail(Number(selectedItem.pagu))}</span>
+                <span className={styles.modalFieldValue}>{fmtRupiahDetail(num(selectedItem.pagu))}</span>
               </div>
               <div>
                 <span className={styles.modalFieldLabel}>Total Realisasi</span>
-                <span className={styles.modalFieldValueStrong}>{fmtRupiahDetail(Number(selectedItem.total))}</span>
+                <span className={styles.modalFieldValueStrong}>{fmtRupiahDetail(num(selectedItem.total))}</span>
               </div>
             </div>
 
             <div>
               <h4 className={styles.modalSectionTitle}>Informasi Instansi &amp; Satker</h4>
-              <p className={styles.modalText}>Eselon 1: {selectedItem.eselon1 || '-'}</p>
               <p className={styles.modalText}>Satuan Kerja: {selectedItem.satker || '-'}</p>
               <p className={styles.modalText}>PPK: {selectedItem.nama_ppk || '-'}</p>
             </div>
@@ -487,10 +537,12 @@ export function TenderView() {
               <p className={styles.modalText}>
                 Status Paket:{' '}
                 <strong className={styles.modalStatusStrong}>
-                  {(Number(selectedItem.total) || 0) > 0 ? 'Terdapat Realisasi' : 'Belum Ada Realisasi'}
+                  {num(selectedItem.total) > 0 ? 'Terdapat Realisasi' : 'Belum Ada Realisasi'}
                 </strong>
               </p>
-              <p className={styles.modalText}>Status Aktif RUP: {selectedItem.status_aktif_rup === true ? 'Aktif' : 'Tidak / N/A'}</p>
+              <p className={styles.modalText}>
+                Terumumkan di SIRUP: {selectedItem.is_from_sirup === false ? 'Tidak — realisasi tanpa RUP' : 'Ya'}
+              </p>
             </div>
           </>
         )}
@@ -499,11 +551,11 @@ export function TenderView() {
       <ExportDataModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
-        title="Laporan Realisasi Tender"
-        filename={`Laporan_Tender_${new Date().toISOString().slice(0,10)}`}
-        columns={exportColumns}
         allData={exportAllData}
         filteredData={exportFilteredData}
+        columns={exportColumns}
+        title="Daftar Seluruh Paket"
+        filename="daftar-seluruh-paket"
       />
     </motion.div>
   );

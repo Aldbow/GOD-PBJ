@@ -2,8 +2,9 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, Variants } from 'framer-motion';
-import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge, Sparkles, ShieldAlert, ExternalLink, Landmark, Lock, SlidersHorizontal } from 'lucide-react';
+import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge, Sparkles, ShieldAlert, ExternalLink, Landmark, Lock, SlidersHorizontal, ArrowUpRight } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ErrorBox } from '@/components/ui/ErrorBox';
@@ -11,6 +12,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
 import { useSession } from '@/components/auth/SessionProvider';
 import { fmtInt, fmtPct, fmtRupiah } from '@/lib/format';
+import { metodeDrilldown, jenisDrilldown, type DrilldownContext, type DrilldownTarget } from '@/lib/drilldown';
 import {
   fetchGabunganRows,
   aggregate,
@@ -152,6 +154,40 @@ function PpkScopeBar({
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * Sel kategori di tabel rincian — jalan masuk ke daftar paketnya.
+ *
+ * Isinya tautan sungguhan, bukan sekadar baris ber-onClick: baris tabel tidak
+ * bisa difokuskan keyboard dan tidak bisa dibuka di tab baru. Barisnya tetap
+ * ikut bisa diklik demi kenyamanan, tapi tautan inilah yang menanggung
+ * aksesibilitasnya.
+ */
+function KategoriCell({
+  nama,
+  warna,
+  jumlah,
+  target,
+}: {
+  nama: string;
+  warna: string;
+  jumlah: number;
+  target: DrilldownTarget;
+}) {
+  return (
+    <td>
+      <span className={styles.swatch} style={{ background: warna }} />
+      <Link
+        href={target.href}
+        className={styles.kategoriLink}
+        title={`Buka ${fmtInt(jumlah)} paket ${nama} di ${target.label}`}
+      >
+        {nama}
+        <ArrowUpRight size={13} className={styles.kategoriArrow} aria-hidden="true" />
+      </Link>
+    </td>
   );
 }
 
@@ -443,6 +479,35 @@ export function RingkasanView() {
   // tersorot — padahal justru di situlah PPK perlu tahu posisi satkernya.
   const highlightSatker = isPpk ? profileSatker : applied.satker;
 
+  /* ---------------------------------------------------------------- */
+  /* Drill-down: dari kategori ke daftar paketnya                       */
+  /* ---------------------------------------------------------------- */
+
+  // Lingkup yang sedang dilihat ikut terbawa ke halaman tujuan, supaya yang
+  // terbuka adalah paket pada lingkup yang sama dengan angka yang barusan
+  // diklik — bukan lingkup penuh se-kementerian.
+  const drilldownCtx = useMemo<DrilldownContext>(
+    () => ({ role, satker: applied.satker || null, ppk: applied.ppk || null }),
+    [role, applied.satker, applied.ppk]
+  );
+
+  // Identitas callback dijaga stabil: keduanya jadi dependensi useMemo di dalam
+  // CategoryDonutChart/CategoryBarChart, jadi fungsi baru tiap render akan
+  // membangun ulang seluruh konfigurasi chart tanpa alasan.
+  const linkMetode = useCallback((metode: string) => metodeDrilldown(metode, drilldownCtx), [drilldownCtx]);
+  const linkJenis = useCallback((jenis: string) => jenisDrilldown(jenis, drilldownCtx), [drilldownCtx]);
+
+  const router = useRouter();
+  const bukaBaris = useCallback(
+    (e: React.MouseEvent, href: string) => {
+      // Kalau kliknya mendarat di tautan di dalam baris, biarkan tautan itu yang
+      // bekerja — kalau tidak, navigasinya berjalan dua kali.
+      if ((e.target as HTMLElement).closest('a')) return;
+      router.push(href);
+    },
+    [router]
+  );
+
   // Mencetak seluruh baris hasil pencarian (bukan hanya halaman yang tampak),
   // dalam urutan sort yang sedang aktif — jadi PDF-nya sama dengan yang dibaca
   // di layar, hanya tanpa batas paginasi.
@@ -612,7 +677,7 @@ export function RingkasanView() {
         <div className={styles.methodGrid}>
           <div className={styles.panel}>
             <div className={styles.panelTitle}><PieChart size={15} /> Proporsi Jumlah Paket</div>
-            <CategoryDonutChart data={agg.metode} getLabel={getMetodeLabel} getColor={metodeColor} totalPaket={totalPaketSemua} />
+            <CategoryDonutChart data={agg.metode} getLabel={getMetodeLabel} getColor={metodeColor} totalPaket={totalPaketSemua} getLink={linkMetode} />
           </div>
           <div className={styles.panel}>
             <div className={styles.panelHeaderRow}>
@@ -637,7 +702,7 @@ export function RingkasanView() {
                 </button>
               </div>
             </div>
-            <CategoryBarChart data={agg.metode} getLabel={getMetodeLabel} getColor={metodeColor} mode={barChartMode} />
+            <CategoryBarChart data={agg.metode} getLabel={getMetodeLabel} getColor={metodeColor} mode={barChartMode} getLink={linkMetode} />
           </div>
         </div>
 
@@ -659,18 +724,24 @@ export function RingkasanView() {
                 </tr>
               </thead>
               <tbody>
-                {agg.metode.map((m) => (
-                  <tr key={m.metode}>
-                    <td>
-                      <span className={styles.swatch} style={{ background: metodeColor(m.metode, isDark) }} />
-                      {m.metode}
-                    </td>
+                {agg.metode.map((m) => {
+                  const target = linkMetode(m.metode);
+                  return (
+                  <tr
+                    key={m.metode}
+                    className={styles.interactiveRow}
+                    onClick={(e) => bukaBaris(e, target.href)}
+                    style={{ cursor: 'pointer' }}
+                    title={`Buka ${fmtInt(m.jumlahPaket)} paket ${m.metode} di ${target.label}`}
+                  >
+                    <KategoriCell nama={m.metode} warna={metodeColor(m.metode, isDark)} jumlah={m.jumlahPaket} target={target} />
                     <td className={styles.num}>{fmtInt(m.jumlahPaket)}</td>
                     <td className={styles.num}>{fmtRupiah(m.pagu)}</td>
                     <td className={styles.num}>{fmtRupiah(m.realisasi)}</td>
                     <td className={styles.num}>{fmtPct(m.pctRealisasi)}</td>
                   </tr>
-                ))}
+                  );
+                })}
                 {agg.metode.length === 0 && (
                   <tr>
                     <td colSpan={5} className={styles.tableEmpty}>Tidak ada data untuk filter ini.</td>
@@ -702,7 +773,7 @@ export function RingkasanView() {
         <div className={styles.methodGrid}>
           <div className={styles.panel}>
             <div className={styles.panelTitle}><PieChart size={15} /> Proporsi Jumlah Paket</div>
-            <CategoryDonutChart data={agg.jenis} getLabel={getJenisLabel} getColor={jenisColor} totalPaket={totalPaketSemua} />
+            <CategoryDonutChart data={agg.jenis} getLabel={getJenisLabel} getColor={jenisColor} totalPaket={totalPaketSemua} getLink={linkJenis} />
           </div>
           <div className={styles.panel}>
             <div className={styles.panelHeaderRow}>
@@ -727,7 +798,7 @@ export function RingkasanView() {
                 </button>
               </div>
             </div>
-            <CategoryBarChart data={agg.jenis} getLabel={getJenisLabel} getColor={jenisColor} mode={jenisChartMode} />
+            <CategoryBarChart data={agg.jenis} getLabel={getJenisLabel} getColor={jenisColor} mode={jenisChartMode} getLink={linkJenis} />
           </div>
         </div>
 
@@ -749,18 +820,24 @@ export function RingkasanView() {
                 </tr>
               </thead>
               <tbody>
-                {agg.jenis.map((j) => (
-                  <tr key={j.jenis}>
-                    <td>
-                      <span className={styles.swatch} style={{ background: jenisColor(j.jenis, isDark) }} />
-                      {j.jenis}
-                    </td>
-                    <td className={styles.num}>{fmtInt(j.jumlahPaket)}</td>
-                    <td className={styles.num}>{fmtRupiah(j.pagu)}</td>
-                    <td className={styles.num}>{fmtRupiah(j.realisasi)}</td>
-                    <td className={styles.num}>{fmtPct(j.pctRealisasi)}</td>
-                  </tr>
-                ))}
+                {agg.jenis.map((j) => {
+                  const target = linkJenis(j.jenis);
+                  return (
+                    <tr
+                      key={j.jenis}
+                      className={styles.interactiveRow}
+                      onClick={(e) => bukaBaris(e, target.href)}
+                      style={{ cursor: 'pointer' }}
+                      title={`Buka ${fmtInt(j.jumlahPaket)} paket ${j.jenis} di ${target.label}`}
+                    >
+                      <KategoriCell nama={j.jenis} warna={jenisColor(j.jenis, isDark)} jumlah={j.jumlahPaket} target={target} />
+                      <td className={styles.num}>{fmtInt(j.jumlahPaket)}</td>
+                      <td className={styles.num}>{fmtRupiah(j.pagu)}</td>
+                      <td className={styles.num}>{fmtRupiah(j.realisasi)}</td>
+                      <td className={styles.num}>{fmtPct(j.pctRealisasi)}</td>
+                    </tr>
+                  );
+                })}
                 {agg.jenis.length === 0 && (
                   <tr>
                     <td colSpan={5} className={styles.tableEmpty}>Tidak ada data untuk filter ini.</td>

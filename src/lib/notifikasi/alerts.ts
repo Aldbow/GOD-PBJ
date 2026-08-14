@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { anomaliOf } from '@/lib/anomali';
+import { realisasiPageFor } from '@/lib/drilldown';
 
 /**
  * Sumber tunggal untuk "notifikasi paket PPK" — dipakai lonceng di Topbar
@@ -347,26 +348,11 @@ export async function fetchPpkNotifikasi(ppkName: string): Promise<NotifikasiIte
 export const RISIKO_PATH = '/risiko-pengadaan';
 export const NOTIFIKASI_PATH = '/notifikasi';
 
-/**
- * Nilai metode_pengadaan di bawah ini persis seperti yang tersimpan di database
- * (lihat METODE_SCORE di lib/risiko/mappings.ts — string-nya sudah dikonfirmasi
- * sama dengan yang dipakai view_dashboard_*.sql).
- */
-const METODE_TO_REALISASI: Record<string, { href: string; label: string }> = {
-  Tender: { href: '/tender', label: 'Realisasi Tender' },
-  Seleksi: { href: '/tender', label: 'Realisasi Tender' },
-  'Tender Cepat': { href: '/tender', label: 'Realisasi Tender' },
-  'E-Purchasing': { href: '/epurchasing', label: 'Realisasi E-Purchasing' },
-  'Pengadaan Langsung': { href: '/pengadaan-langsung', label: 'Realisasi Pengadaan Langsung' },
-  'Penunjukan Langsung': { href: '/penunjukan-langsung', label: 'Realisasi Penunjukan Langsung' },
-  Swakelola: { href: '/swakelola', label: 'Realisasi Swakelola' },
-};
+const SWAKELOLA_TARGET = realisasiPageFor('Swakelola')!;
 
-const SWAKELOLA_TARGET = METODE_TO_REALISASI.Swakelola;
-
-/** Fallback untuk metode yang bukti pelaksanaannya hanya lewat pencatatan
- * (Dikecualikan, Pembayaran untuk Kontrak Tahun Jamak) — tidak punya halaman
- * Realisasi sendiri, jadi diarahkan kembali ke Risiko Pengadaan. */
+/** Fallback untuk metode yang tidak dikenali sama sekali — diarahkan kembali ke
+ * Risiko Pengadaan, satu-satunya halaman yang memuat seluruh paket lintas
+ * metode selain Daftar Paket. */
 const FALLBACK_TARGET = { href: RISIKO_PATH, label: 'Risiko Pengadaan' };
 
 /**
@@ -381,7 +367,7 @@ export function realisasiTargetFor(
   const target =
     row.jenis_paket === 'Swakelola'
       ? SWAKELOLA_TARGET
-      : (row.metode_pengadaan && METODE_TO_REALISASI[row.metode_pengadaan]) || FALLBACK_TARGET;
+      : realisasiPageFor(row.metode_pengadaan) || FALLBACK_TARGET;
 
   const params = new URLSearchParams();
   if (ppkName) params.set('p', ppkName);

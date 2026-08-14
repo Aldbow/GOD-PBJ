@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { fmtRupiah, fmtRupiahDetail, countRup } from '@/lib/format';
 import { fetchRupHistory, type RupHistoryEntry } from '@/lib/paket/rupHistory';
 import { useOrgFilters } from '@/hooks/useOrgFilters';
+import { useUrlPillFilter } from '@/hooks/useUrlPillFilter';
 import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
 import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
 import { MetricGrid, DualProgressBar } from '@/components/paket/SummaryCards';
@@ -57,7 +58,10 @@ export function PengadaanLangsungView() {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [kurasiFilter, setKurasiFilter] = useState<string[]>([]);
   const [anomaliFilter, setAnomaliFilter] = useState<AnomaliJenis[]>([]);
-  const [metodeFilter, setMetodeFilter] = useState<string[]>([]);
+  // Metode hidup di URL (?m=), bukan useState: halaman ini dituju dari Ringkasan
+  // lewat tautan yang sudah membawa metodenya — mis. klik "Dikecualikan" pada
+  // donut membuka halaman ini dengan pill Dikecualikan sudah menyala.
+  const [metodeFilter, setMetodeFilter] = useUrlPillFilter('m');
   const [tipeRupFilter, setTipeRupFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);

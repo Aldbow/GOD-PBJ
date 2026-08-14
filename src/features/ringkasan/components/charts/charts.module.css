@@ -139,6 +139,48 @@
   font-size: 13px;
 }
 
+/* Baris legenda yang punya tujuan jadi TAUTAN sungguhan, bukan tombol ber-onClick:
+   bisa dibuka di tab baru, alamatnya bisa disalin, dan terjangkau keyboard —
+   tiga hal yang tidak bisa dilakukan potongan kanvas donut. Itu sebabnya
+   legenda, bukan potongannya, yang jadi jalan masuk utama. */
+.legendLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  /* Margin negatif menyerap padding-nya sendiri supaya bidang sentuh melebar
+     tanpa menggeser posisi baris terhadap baris yang tidak bisa diklik. */
+  margin: -3px -7px;
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--dur-fast, 0.15s) ease;
+}
+
+.legendLink:hover { background: var(--surface-hover); }
+
+.legendLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Tetap terlihat samar sebelum disentuh — penanda "ini bisa diklik" harus ada
+   sebelum kursor mendarat, bukan setelahnya. */
+.legendArrow {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  opacity: 0.4;
+  transition: opacity var(--dur-fast, 0.15s) ease;
+}
+
+.legendLink:hover .legendArrow,
+.legendLink:focus-visible .legendArrow {
+  opacity: 1;
+  color: var(--accent);
+}
+
 .legendName {
   flex: 1;
   color: var(--text-primary);

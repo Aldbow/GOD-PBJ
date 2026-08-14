@@ -10,8 +10,11 @@ import {
   type TooltipItem,
   type Plugin,
   type ScriptableContext,
+  type ChartEvent,
+  type ActiveElement,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import { useRouter } from 'next/navigation';
 import { useIsDark, chartInk, fmtCompactRp } from './chartTheme';
 import { fmtInt } from '@/lib/format';
 import styles from './charts.module.css';
@@ -33,6 +36,14 @@ interface Props<T extends CategoryBarDatum> {
   getLabel: (item: T) => string;
   getColor: (label: string, isDark: boolean) => string;
   mode?: 'keuangan' | 'paket';
+  /**
+   * Bila diisi, tiap baris chart menjadi jalan masuk ke daftar paketnya.
+   * Sasaran klik memakai mode 'index' tanpa intersect: seluruh lebar baris
+   * aktif, bukan hanya batangnya. Untuk kategori bernilai kecil (mis. 2 paket
+   * Kontrak Tahun Jamak) batangnya cuma beberapa piksel — praktis mustahil
+   * dikenai kalau harus tepat di atasnya.
+   */
+  getLink?: (label: string) => { href: string; label: string } | null;
 }
 
 function adjustHex(hex: string, amount: number): string {
@@ -58,9 +69,10 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, getColor, mode = 'keuangan' }: Props<T>) {
+export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, getColor, mode = 'keuangan', getLink }: Props<T>) {
   const isDark = useIsDark();
   const ink = chartInk(isDark);
+  const router = useRouter();
 
   const dataRef = React.useRef(data);
   const getLabelRef = React.useRef(getLabel);
@@ -187,6 +199,21 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
         responsive: true,
         maintainAspectRatio: false,
         layout: { padding: { right: 70 } },
+        onClick: (e: ChartEvent, _elements: ActiveElement[], chart: ChartJS) => {
+          if (!e.native) return;
+          const pts = chart.getElementsAtEventForMode(e.native, 'index', { intersect: false }, false);
+          const i = pts[0]?.index;
+          if (i === undefined) return;
+          const target = getLink?.(labels[i]);
+          if (target) router.push(target.href);
+        },
+        onHover: (e: ChartEvent, _elements: ActiveElement[], chart: ChartJS) => {
+          const canvas = chart.canvas;
+          if (!canvas || !e.native) return;
+          const pts = chart.getElementsAtEventForMode(e.native, 'index', { intersect: false }, false);
+          const i = pts[0]?.index;
+          canvas.style.cursor = i !== undefined && getLink?.(labels[i]) ? 'pointer' : 'default';
+        },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -244,7 +271,7 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
         },
       },
     };
-  }, [data, getLabel, getColor, mode, isDark, ink.tick, ink.grid, ink.tooltipBg]);
+  }, [data, getLabel, getColor, mode, isDark, ink.tick, ink.grid, ink.tooltipBg, getLink, router]);
 
   if (data.length === 0) {
     return <div className={styles.empty}>Tidak ada data untuk filter ini.</div>;

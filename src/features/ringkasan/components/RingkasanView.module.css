@@ -326,6 +326,45 @@
   vertical-align: middle;
 }
 
+/* Nama kategori di tabel rincian: tautan sungguhan ke daftar paketnya.
+   Barisnya juga bisa diklik, tapi tautan inilah yang bisa difokuskan keyboard
+   dan dibuka di tab baru — baris <tr> tidak bisa keduanya. */
+.kategoriLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.kategoriLink:hover {
+  color: var(--info-600, #2563eb);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.kategoriLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Terlihat samar sejak awal: penanda "bisa diklik" harus ada sebelum kursor
+   mendarat, bukan muncul setelah pengguna menebak-nebak. */
+.kategoriArrow {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  opacity: 0.45;
+  transition: opacity var(--dur-fast, 0.15s) ease, color var(--dur-fast, 0.15s) ease;
+}
+
+.interactiveRow:hover .kategoriArrow,
+.kategoriLink:hover .kategoriArrow,
+.kategoriLink:focus-visible .kategoriArrow {
+  opacity: 1;
+  color: var(--info-600, #2563eb);
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

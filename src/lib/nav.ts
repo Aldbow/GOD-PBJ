@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap, ListChecks, Star, Database, ShieldAlert, Bell } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap, ListChecks, Star, Database, ShieldAlert, Bell, Layers } from 'lucide-react';
 import type { Role } from '@/types';
 import { canAccess } from '@/lib/auth/access';
 
@@ -43,6 +43,9 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'realisasi',
     label: 'Realisasi',
     links: [
+      // Daftar lintas metode — tujuan drill-down dari Ringkasan, dan satu-satunya
+      // entri grup ini yang terbuka untuk sekjend.
+      { name: 'Daftar Seluruh Paket', href: '/daftar-paket', icon: React.createElement(Layers, { size: 18 }) },
       { name: 'Realisasi E-Purchasing V6', href: '/epurchasing', icon: React.createElement(ShoppingCart, { size: 18 }) },
       { name: 'Realisasi Tender', href: '/tender', icon: React.createElement(Briefcase, { size: 18 }) },
       { name: 'Realisasi Pengadaan Langsung', href: '/pengadaan-langsung', icon: React.createElement(Package, { size: 18 }) },
