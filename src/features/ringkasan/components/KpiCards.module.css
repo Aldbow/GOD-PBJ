@@ -1,134 +1,106 @@
-.grid {
+/* Satu papan, tiga kolom — bukan enam kartu.
+   Angka rupiah dan jumlah paket untuk satu keadaan anggaran (Total / Sudah /
+   Belum) harus bisa dibandingkan sekali lihat, jadi keduanya ditumpuk di kolom
+   yang sama: rupiah di atas, paket tepat di bawahnya. Membaca menyamping
+   membandingkan ketiga keadaan; membaca ke bawah membandingkan uang dengan
+   jumlah paketnya.
+
+   Pemisahnya garis rambut dan jarak, bukan enam kotak berbingkai: kotak hanya
+   dipakai kalau elevasi memang menyampaikan hierarki, dan di sini tidak. */
+
+.papan {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 14px;
-  margin-bottom: 26px;
-}
-
-@media (max-width: 1200px) { .grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 720px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 420px) { .grid { grid-template-columns: 1fr; } }
-
-.card {
-  position: relative;
-  overflow: hidden;
+  grid-template-columns: repeat(3, 1fr);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 16px;
+  overflow: hidden;
+  margin-bottom: var(--space-6);
+}
+
+.kolom {
   display: flex;
   flex-direction: column;
-  min-height: 128px;
-  transition: border-color var(--dur-fast, 0.15s) ease, box-shadow var(--dur-fast, 0.15s) ease;
+  padding: var(--space-5);
+  border-left: 1px solid var(--border);
+  min-width: 0;
 }
+.kolom:first-child { border-left: none; }
 
-.card:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
-}
-
-/* Aksen kiri per-variant */
-.card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-}
-.brand::before { background: linear-gradient(180deg, #163B63, #27B6D6); }
-.good::before { background: #0ca30c; }
-.warn::before { background: #eda100; }
-.danger::before { background: var(--kpi-danger); }
-.neutral::before { background: var(--border-strong, #cbd5e1); }
-
-/* Kartu prioritas pakai gradient halus sesuai warna aksen */
-.brand {
-  background:
-    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, #27B6D6 12%, transparent), transparent 55%),
-    var(--surface);
-}
-
-.good {
-  background:
-    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, #0ca30c 12%, transparent), transparent 55%),
-    var(--surface);
-}
-
-.warn {
-  background:
-    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, #eda100 12%, transparent), transparent 55%),
-    var(--surface);
-}
-
-/* Realisasi di bawah target triwulan yang sudah selesai. Merahnya memakai warna
-   yang sama dengan badge "% Capaian" di tabel peringkat satker pada halaman ini
-   (.badgeRed di RingkasanView.module.css), supaya satu halaman satu merah.
-   Border ikut ditegaskan karena ini satu-satunya keadaan alarm di baris KPI. */
-.danger {
-  --kpi-danger: var(--error-600, #dc2626);
-  background:
-    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--kpi-danger) 12%, transparent), transparent 55%),
-    var(--surface);
-  border-color: color-mix(in srgb, var(--kpi-danger) 32%, var(--border));
-}
-
-.neutral {
-  background:
-    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, #64748b 12%, transparent), transparent 55%),
-    var(--surface);
-}
-
-.top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
+/* ── Judul kolom ─────────────────────────────────────────────────────────── */
 
 .label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 500;
-  line-height: 1.3;
-}
-
-.icon {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  flex-shrink: 0;
-  background: var(--surface-2);
-  color: var(--info-600);
+  gap: var(--space-2);
+  margin: 0;
+  /* Dua baris disediakan supaya baseline nilai di ketiga kolom tetap sejajar
+     walau salah satu judulnya membungkus. Perbandingan menyamping bergantung
+     pada kesejajaran itu. */
+  min-height: 32px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
 }
-.good .icon { color: #0a7d0a; background: color-mix(in srgb, #0ca30c 12%, transparent); }
-.warn .icon { color: #b07a00; background: color-mix(in srgb, #eda100 14%, transparent); }
-.danger .icon { color: var(--red-700); background: color-mix(in srgb, var(--kpi-danger) 14%, transparent); }
-.brand .icon { color: #1A5D91; background: color-mix(in srgb, #1A5D91 12%, transparent); }
+.label svg { flex-shrink: 0; color: var(--text-tertiary); }
 
-:global([data-theme='dark']) .good .icon { color: #4ade80; }
-:global([data-theme='dark']) .warn .icon { color: #f0c34d; }
-:global([data-theme='dark']) .brand .icon { color: #6db3ff; }
+/* Ikon mewarisi warna status kolom — satu-satunya tempat warna dipakai sebagai
+   penanda keadaan, selain bar dan flag target. */
+.good .label svg { color: var(--success-600, #059669); }
+.warn .label svg { color: var(--warn-700, #b45309); }
+.danger .label svg { color: var(--error-600, #dc2626); }
 
-.value {
-  font-size: 22px;
+/* ── Ukuran utama (rupiah) & pendamping (paket) ──────────────────────────── */
+
+.blokUtama {
+  padding-bottom: var(--space-4);
+}
+
+/* Garis rambut memisahkan uang dari jumlah paket: dua satuan berbeda untuk
+   keadaan yang sama, jadi dipisah tipis — bukan dijauhkan. */
+.blokPendamping {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
+.nilaiUtama {
+  font-size: 26px;
   font-weight: 700;
-  color: var(--text-primary);
-  margin-top: 12px;
+  line-height: 1.1;
   letter-spacing: -0.02em;
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
-  line-height: 1.15;
 }
+
+/* Jelas lebih kecil dari rupiah supaya urutan bacanya tidak ambigu, tapi tetap
+   angka penuh: ini ukuran kedua, bukan catatan kaki. */
+.nilaiPendamping {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.keterangan {
+  margin-top: var(--space-2);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+/* ── Bar pembanding ──────────────────────────────────────────────────────── */
 
 .track {
-  height: 5px;
-  background: var(--surface-2);
-  border-radius: 999px;
-  overflow: hidden;
+  height: 4px;
   margin-top: 10px;
+  background: var(--track-bg, var(--surface-2));
+  border-radius: var(--radius-pill, 999px);
+  overflow: hidden;
 }
 
 /* Diisi lewat scaleX, bukan width: width memicu layout tiap frame, transform
@@ -136,37 +108,96 @@
 .fill {
   width: 100%;
   height: 100%;
-  border-radius: 999px;
+  border-radius: inherit;
   transform: scaleX(var(--fill, 0));
   transform-origin: left center;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
 @media (prefers-reduced-motion: reduce) {
   .fill { transition: none; }
 }
-.good .fill { background: #0ca30c; }
-.warn .fill { background: #eda100; }
-.danger .fill { background: var(--kpi-danger); }
-.brand .fill { background: linear-gradient(90deg, #1A5D91, #27B6D6); }
-.neutral .fill { background: var(--info-600); }
 
-.hint {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: auto;
-  padding-top: 8px;
+.good .fill { background: var(--success-600, #059669); }
+.warn .fill { background: var(--warn-600, #d97706); }
+.danger .fill { background: var(--error-600, #dc2626); }
+/* Cukup gelap supaya terbaca sebagai bar penuh, bukan garis pemisah: bedanya
+   dengan warna track harus jelas, karena justru bar inilah tolok ukur yang
+   membuat dua bar berwarna di sebelahnya punya arti. */
+.base .fill { background: var(--text-tertiary); }
+
+/* Kolom yang sedang menyimpang dari target diberi latar sangat tipis. Ini
+   satu-satunya keadaan alarm di baris ini, jadi boleh menonjol — tapi teksnya
+   sendiri sudah menyebut "di bawah target", warna bukan satu-satunya sinyal. */
+.danger {
+  background: color-mix(in srgb, var(--error-600, #dc2626) 4%, transparent);
 }
 
-/* Status terhadap target triwulan. Warnanya mengikuti varian kartu, tapi teksnya
-   sendiri sudah menyebut lulus/tidaknya, jadi warna bukan satu-satunya sinyal. */
 .flag {
   font-weight: 600;
   color: var(--text-primary);
 }
-/* Flag menempel di kartu Total Realisasi, jadi variannya good (target tercapai)
-   atau danger (di bawah target) — warnanya disamakan dengan .good/.danger .icon. */
-.good .flag { color: #0a7d0a; }
-.danger .flag { color: var(--red-700); }
+.good .flag { color: var(--success-700, #047857); }
+.danger .flag { color: var(--error-600, #dc2626); }
 
+:global([data-theme='dark']) .good .label svg,
 :global([data-theme='dark']) .good .flag { color: #4ade80; }
+:global([data-theme='dark']) .warn .label svg { color: #f0c34d; }
+:global([data-theme='dark']) .danger .label svg,
+:global([data-theme='dark']) .danger .flag { color: #f87171; }
+:global([data-theme='dark']) .danger { background: color-mix(in srgb, #f87171 7%, transparent); }
+
+/* ── Adaptasi ────────────────────────────────────────────────────────────── */
+
+/* Tiga kolom mulai sempit sebelum benar-benar pecah: pindah ke tiga baris, dan
+   di tiap baris rupiah & paket berdampingan — ruang mendatar yang tadinya
+   terpakai memisahkan konsep kini dipakai menyandingkan dua ukuran. */
+@media (max-width: 960px) {
+  .papan { grid-template-columns: 1fr; }
+  .kolom {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      'label label'
+      'utama pendamping';
+    column-gap: var(--space-6);
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+  .kolom:first-child { border-top: none; }
+  .label { grid-area: label; min-height: 0; margin-bottom: var(--space-3); }
+  /* Rupiah & paket kini berdampingan, jadi bar keduanya harus mulai pada garis
+     yang sama — kalau tidak, perbandingan menyampingnya justru terganggu oleh
+     selisih tinggi angka. Angka kecil diturunkan agar dasarnya sejajar. */
+  .nilaiPendamping {
+    min-height: 29px;
+    display: flex;
+    align-items: flex-end;
+  }
+  .blokUtama { grid-area: utama; padding-bottom: 0; }
+  .blokPendamping {
+    grid-area: pendamping;
+    padding-top: 0;
+    margin-top: 0;
+    border-top: none;
+    border-left: 1px solid var(--border);
+    padding-left: var(--space-6);
+  }
+}
+
+@media (max-width: 560px) {
+  .kolom {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'label' 'utama' 'pendamping';
+    padding: var(--space-4);
+  }
+  .blokUtama { padding-bottom: var(--space-3); }
+  .blokPendamping {
+    padding-top: var(--space-3);
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+  .nilaiUtama { font-size: 23px; }
+  /* Kembali bertumpuk — tak ada lagi yang perlu disejajarkan menyamping. */
+  .nilaiPendamping { min-height: 0; display: block; }
+}

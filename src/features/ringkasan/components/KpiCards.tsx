@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Wallet, TrendingUp, Hourglass, Package, CircleCheckBig, Clock, AlertTriangle } from 'lucide-react';
+import { Wallet, CircleCheckBig, Hourglass, AlertTriangle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { RingkasanKpi } from '../lib/ringkasanData';
 import { fmtInt, fmtPct } from '@/lib/format';
@@ -20,7 +20,7 @@ function fmtRupiahKpi(m: number): string {
 }
 
 // Target realisasi kumulatif per triwulan (persen dari pagu). Dinilai dari
-// pctRealisasi dan ditandai pada kartu Total Realisasi — kartu yang angkanya
+// pctRealisasi dan ditandai pada kolom Sudah Realisasi — kolom yang angkanya
 // memang dinilai. Indeks 0 = TW1.
 const TARGET_TRIWULAN = [20, 50, 80, 100] as const;
 
@@ -30,28 +30,70 @@ function triwulanBerjalan(now: Date = new Date()): 1 | 2 | 3 | 4 {
   return (Math.floor(now.getMonth() / 3) + 1) as 1 | 2 | 3 | 4;
 }
 
-type Variant = 'brand' | 'good' | 'warn' | 'neutral' | 'danger';
+type Tone = 'base' | 'good' | 'warn' | 'danger';
 
-interface KpiItem {
+/** Satu ukuran di dalam kolom: nilai + persentase pembandingnya. */
+interface UkuranData {
+  nilai: string;
+  /**
+   * Kolom acuan memakai 100: barnya penuh dan netral. Bukan sekadar penyelaras
+   * tinggi — bar penuh itulah tolok ukur yang membuat dua bar di sebelahnya
+   * terbaca sebagai bagian dari keseluruhan, bukan angka yang berdiri sendiri.
+   */
+  pct: number;
+  keterangan: React.ReactNode;
+}
+
+interface Kolom {
   key: string;
   label: string;
-  value: string;
   icon: LucideIcon;
-  hint: React.ReactNode;
-  progress?: number;
-  variant: Variant;
+  tone: Tone;
   tooltip: string;
+  rupiah: UkuranData;
+  paket: UkuranData;
+}
+
+/**
+ * Bar-nya aria-hidden: ia hanya menggambar ulang persentase yang sudah tertulis
+ * sebagai teks tepat di bawahnya, jadi mengumumkannya lagi hanya menggandakan
+ * informasi yang sama bagi pengguna pembaca layar.
+ */
+function Ukuran({ data, size }: { data: UkuranData; size: 'utama' | 'pendamping' }) {
+  const utama = size === 'utama';
+  return (
+    <div className={utama ? styles.blokUtama : styles.blokPendamping}>
+      <div className={utama ? styles.nilaiUtama : styles.nilaiPendamping}>{data.nilai}</div>
+      <div className={styles.track} aria-hidden="true">
+        <div
+          className={styles.fill}
+          style={{ '--fill': Math.max(0, Math.min(data.pct, 100)) / 100 } as React.CSSProperties}
+        />
+      </div>
+      <div className={styles.keterangan}>{data.keterangan}</div>
+    </div>
+  );
 }
 
 export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolean }) {
   if (loading) {
     return (
-      <div className={styles.grid}>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className={styles.card}>
-            <Skeleton width="55%" height={12} />
-            <Skeleton width="75%" height={26} style={{ marginTop: 12 }} />
-            <Skeleton width="40%" height={11} style={{ marginTop: 10 }} />
+      <div className={styles.papan}>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className={styles.kolom}>
+            <Skeleton width="52%" height={12} />
+            {/* Rangka mengikuti bentuk akhir termasuk barnya, supaya tinggi papan
+                tidak melonjak saat data masuk. */}
+            <div className={styles.blokUtama}>
+              <Skeleton width="78%" height={28} />
+              <Skeleton width="100%" height={4} style={{ marginTop: 10 }} />
+              <Skeleton width="45%" height={11} style={{ marginTop: 8 }} />
+            </div>
+            <div className={styles.blokPendamping}>
+              <Skeleton width="46%" height={19} />
+              <Skeleton width="100%" height={4} style={{ marginTop: 10 }} />
+              <Skeleton width="40%" height={11} style={{ marginTop: 8 }} />
+            </div>
           </div>
         ))}
       </div>
@@ -74,113 +116,89 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
   const adaPagu = kpi.totalPagu > 0;
   const dibawahTarget = adaPagu && targetDinilai !== null && kpi.pctRealisasi < targetDinilai;
 
-  const items: KpiItem[] = [
+  const kolom: Kolom[] = [
     {
-      key: 'pagu',
-      label: 'Total Pagu',
-      value: fmtRupiahKpi(kpi.totalPagu),
+      key: 'total',
+      label: 'Total Anggaran',
       icon: Wallet,
-      hint: 'Total anggaran pengadaan',
-      variant: 'brand',
-      tooltip: 'Jumlah seluruh nilai pagu anggaran paket pengadaan pada cakupan filter aktif.',
+      tone: 'base',
+      tooltip:
+        'Acuan pembanding: seluruh nilai pagu dan seluruh jumlah paket pengadaan pada cakupan filter aktif.',
+      rupiah: { nilai: fmtRupiahKpi(kpi.totalPagu), pct: 100, keterangan: 'Pagu keseluruhan — acuan pembanding' },
+      paket: { nilai: `${fmtInt(kpi.totalPaket)} paket`, pct: 100, keterangan: 'Seluruh paket — acuan pembanding' },
     },
     {
-      key: 'realisasi',
-      label: 'Total Realisasi',
-      value: fmtRupiahKpi(kpi.totalRealisasi),
-      icon: dibawahTarget ? AlertTriangle : TrendingUp,
-      hint: (
-        <>
-          {fmtPct(kpi.pctRealisasi)} dari pagu
-          {targetDinilai === null ? (
-            <> · penilaian target mulai TW2</>
-          ) : (
-            adaPagu && (
-              <>
-                {' · '}
-                <span className={styles.flag}>
-                  {dibawahTarget
-                    ? `di bawah target TW${triwulanDinilai} (${targetDinilai}%)`
-                    : `target TW${triwulanDinilai} (${targetDinilai}%) tercapai`}
-                </span>
-              </>
-            )
-          )}
-        </>
-      ),
-      progress: kpi.pctRealisasi,
-      variant: dibawahTarget ? 'danger' : 'good',
+      key: 'sudah',
+      label: 'Sudah Realisasi',
+      icon: dibawahTarget ? AlertTriangle : CircleCheckBig,
+      tone: dibawahTarget ? 'danger' : 'good',
       tooltip:
-        `Total nilai realisasi/kontrak yang sudah terserap dibanding pagu. ` +
+        `Nilai realisasi/kontrak yang sudah terserap dan jumlah paket yang realisasinya lebih dari nol. ` +
         `Target realisasi kumulatif: TW1 20%, TW2 50%, TW3 80%, TW4 100%. ` +
         (targetDinilai === null
           ? `Yang dinilai selalu triwulan terakhir yang sudah selesai; TW1 masih berjalan sehingga belum ada target yang jatuh tempo.`
           : `Yang dinilai triwulan terakhir yang sudah selesai. Kini TW${triwulan} berjalan, jadi acuannya target TW${triwulanDinilai} (${targetDinilai}%). Realisasi saat ini ${fmtPct(kpi.pctRealisasi)}.`),
+      rupiah: {
+        nilai: fmtRupiahKpi(kpi.totalRealisasi),
+        pct: kpi.pctRealisasi,
+        keterangan: (
+          <>
+            {fmtPct(kpi.pctRealisasi)} dari pagu
+            {targetDinilai === null ? (
+              <> · penilaian target mulai TW2</>
+            ) : (
+              adaPagu && (
+                <>
+                  {' · '}
+                  <span className={styles.flag}>
+                    {dibawahTarget
+                      ? `di bawah target TW${triwulanDinilai} (${targetDinilai}%)`
+                      : `target TW${triwulanDinilai} (${targetDinilai}%) tercapai`}
+                  </span>
+                </>
+              )
+            )}
+          </>
+        ),
+      },
+      paket: {
+        nilai: `${fmtInt(kpi.paketSudah)} paket`,
+        pct: sudahPaketPct,
+        keterangan: `${fmtPct(sudahPaketPct)} dari total paket`,
+      },
     },
     {
       key: 'belum',
       label: 'Belum Realisasi',
-      value: fmtRupiahKpi(kpi.belumRealisasi),
       icon: Hourglass,
-      hint: `${fmtPct(belumPct)} dari pagu`,
-      progress: belumPct,
-      variant: 'warn',
-      tooltip: 'Selisih pagu dikurangi realisasi, yaitu anggaran yang belum terserap.',
-    },
-    {
-      key: 'totalPaket',
-      label: 'Total Paket',
-      value: `${fmtInt(kpi.totalPaket)} Paket`,
-      icon: Package,
-      hint: 'Seluruh paket pengadaan',
-      variant: 'neutral',
-      tooltip: 'Jumlah seluruh paket pengadaan pada cakupan filter aktif.',
-    },
-    {
-      key: 'paketSudah',
-      label: 'Paket Sudah Realisasi',
-      value: `${fmtInt(kpi.paketSudah)} Paket`,
-      icon: CircleCheckBig,
-      hint: `${fmtPct(sudahPaketPct)} dari total`,
-      progress: sudahPaketPct,
-      variant: 'good',
-      tooltip: 'Paket dengan nilai realisasi lebih dari nol.',
-    },
-    {
-      key: 'paketBelum',
-      label: 'Paket Belum Realisasi',
-      value: `${fmtInt(kpi.paketBelum)} Paket`,
-      icon: Clock,
-      hint: `${fmtPct(belumPaketPct)} dari total`,
-      progress: belumPaketPct,
-      variant: 'warn',
-      tooltip: 'Paket yang belum memiliki realisasi.',
+      tone: 'warn',
+      tooltip: 'Sisa pagu yang belum terserap dan jumlah paket yang belum memiliki realisasi.',
+      rupiah: {
+        nilai: fmtRupiahKpi(kpi.belumRealisasi),
+        pct: belumPct,
+        keterangan: `${fmtPct(belumPct)} dari pagu`,
+      },
+      paket: {
+        nilai: `${fmtInt(kpi.paketBelum)} paket`,
+        pct: belumPaketPct,
+        keterangan: `${fmtPct(belumPaketPct)} dari total paket`,
+      },
     },
   ];
 
   return (
-    <div className={styles.grid}>
-      {items.map((it) => {
-        const Icon = it.icon;
+    <div className={styles.papan}>
+      {kolom.map((k) => {
+        const Icon = k.icon;
         return (
-          <div key={it.key} className={`${styles.card} ${styles[it.variant]}`} title={it.tooltip}>
-            <div className={styles.top}>
-              <span className={styles.label}>{it.label}</span>
-              <span className={styles.icon}>
-                <Icon size={16} />
-              </span>
-            </div>
-            <div className={styles.value}>{it.value}</div>
-            {it.progress !== undefined && (
-              <div className={styles.track}>
-                <div
-                  className={styles.fill}
-                  style={{ '--fill': Math.max(0, Math.min(it.progress, 100)) / 100 } as React.CSSProperties}
-                />
-              </div>
-            )}
-            <div className={styles.hint}>{it.hint}</div>
-          </div>
+          <section key={k.key} className={`${styles.kolom} ${styles[k.tone]}`} aria-label={k.label} title={k.tooltip}>
+            <h3 className={styles.label}>
+              <Icon size={14} aria-hidden="true" />
+              {k.label}
+            </h3>
+            <Ukuran data={k.rupiah} size="utama" />
+            <Ukuran data={k.paket} size="pendamping" />
+          </section>
         );
       })}
     </div>
