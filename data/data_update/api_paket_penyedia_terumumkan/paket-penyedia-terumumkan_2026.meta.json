@@ -1,0 +1,10 @@
+{
+  "endpoint": "/v1/rup/paket-penyedia-terumumkan",
+  "year": "2026",
+  "keyFields": [
+    "kode_rup||kd_rup"
+  ],
+  "rowCount": 7691,
+  "lastUpdated": "2026-08-18T02:40:17.788Z",
+  "lastWriteMode": "append"
+}

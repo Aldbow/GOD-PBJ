@@ -1,0 +1,10 @@
+{
+  "endpoint": "/v1/tender/non-tender-selesai",
+  "year": "2026",
+  "keyFields": [
+    "kode_lelang||kd_lelang||kode_rup||kd_rup"
+  ],
+  "rowCount": 49,
+  "lastUpdated": "2026-08-18T02:40:30.315Z",
+  "lastWriteMode": "append"
+}

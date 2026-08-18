@@ -1,0 +1,10 @@
+{
+  "endpoint": "/v1/rup/paket-swakelola-terumumkan",
+  "year": "2026",
+  "keyFields": [
+    "kode_rup||kd_rup"
+  ],
+  "rowCount": 43,
+  "lastUpdated": "2026-08-18T02:40:24.505Z",
+  "lastWriteMode": "append"
+}

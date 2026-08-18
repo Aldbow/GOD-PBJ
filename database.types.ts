@@ -1142,6 +1142,7 @@ export type Database = {
           kd_satker: string | null
           kd_satker_str: string | null
           ket_realisasi: string | null
+          kode_penyedia: string | null
           last_update_ref: string | null
           nama_klpd: string | null
           nama_lpse: string | null
@@ -1171,6 +1172,7 @@ export type Database = {
           kd_satker?: string | null
           kd_satker_str?: string | null
           ket_realisasi?: string | null
+          kode_penyedia?: string | null
           last_update_ref?: string | null
           nama_klpd?: string | null
           nama_lpse?: string | null
@@ -1200,6 +1202,7 @@ export type Database = {
           kd_satker?: string | null
           kd_satker_str?: string | null
           ket_realisasi?: string | null
+          kode_penyedia?: string | null
           last_update_ref?: string | null
           nama_klpd?: string | null
           nama_lpse?: string | null

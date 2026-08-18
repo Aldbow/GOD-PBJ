@@ -1,0 +1,10 @@
+{
+  "endpoint": "/v1/rup/paket-anggaran-penyedia",
+  "year": "2026",
+  "keyFields": [
+    "kode_rup||kd_rup"
+  ],
+  "rowCount": 7704,
+  "lastUpdated": "2026-08-18T02:38:06.872Z",
+  "lastWriteMode": "append"
+}

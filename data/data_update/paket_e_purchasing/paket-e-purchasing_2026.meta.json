@@ -1,0 +1,11 @@
+{
+  "endpoint": "/v1/ekatalog/paket-e-purchasing",
+  "year": "2026",
+  "keyFields": [
+    "kd_paket",
+    "kode_rup||kd_rup"
+  ],
+  "rowCount": 1173,
+  "lastUpdated": "2026-08-18T02:40:39.753Z",
+  "lastWriteMode": "append"
+}
