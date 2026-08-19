@@ -1,11 +1,8 @@
 {
   "endpoint": "/v1/tender/pencatatan-non-tender-realisasi",
   "year": "2026",
-  "keyFields": [
-    "kode_lelang||kd_lelang||kode_rup||kd_rup",
-    "id_realisasi"
-  ],
+  "keyFields": null,
   "rowCount": 30,
-  "lastUpdated": "2026-08-18T02:40:31.331Z",
+  "lastUpdated": "2026-08-19T01:59:15.065Z",
   "lastWriteMode": "append"
 }

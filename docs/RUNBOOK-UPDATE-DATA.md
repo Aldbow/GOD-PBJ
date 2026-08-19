@@ -233,9 +233,17 @@ Catatan lain: `nilai_kontrak` sering kosong di data non-tender; view sudah jatuh
 
 ---
 
-## 10. Status terakhir (18 Agustus 2026)
+## 10. Status terakhir (19 Agustus 2026)
 
-- `non_tender_selesai` — **sudah diimpor**, 0 → 49 baris.
-- 9 tabel lain — **belum dijalankan**. Semua sudah lolos `--dry-run` kecuali `pencatatan_non_tender_realisasi`, yang menunggu [`sql/migrations/67_alter_pencatatan_non_tender_kode_penyedia.sql`](../sql/migrations/67_alter_pencatatan_non_tender_kode_penyedia.sql) dijalankan di Supabase SQL Editor.
+- Migration 67 **sudah dijalankan** di Supabase SQL Editor.
+- `--dry-run --all` pagi ini lolos 10/10 dengan selisih 0 — tapi begitu file sumber ditarik ulang (mis. `data_afirmasi_pdn_perencanaan` dapat CSV baru jam 01:56), selisihnya muncul lagi. `--all` **sudah dijalankan** dan sukses 10/10 `[OK]`: `api_paket_penyedia_terumumkan` 7.691→7.690, `history_kaji_ulang` 6.374→6.393, `paket_anggaran_penyedia` 7.704→7.703, `non_tender_selesai` 49→50, sisanya tidak berubah. Semua ter-backup ke `data/backup/` sebelum ditulis.
+- Pelajaran: jangan asumsikan "tadi pagi 0 selisih" masih berlaku kalau ada jeda waktu — sumbernya bisa ditarik ulang otomatis kapan saja. Selalu `--dry-run --all` dulu tepat sebelum `--all`, jangan mengandalkan dry-run lama.
 
-Langkah berikutnya di komputer mana pun: jalankan migration 67 → `--dry-run --all` sampai 10/10 lolos → `--all`.
+Kalau ada tarikan data baru: taruh file JSON/CSV terbaru di folder tabel terkait di `data/data_update/`, lalu ulangi prosedur bagian 5:
+
+```powershell
+node scripts/update_from_data_update.mjs --dry-run --all
+node scripts/update_from_data_update.mjs --all
+```
+
+Status sebelumnya (18 Agustus 2026, untuk riwayat): `non_tender_selesai` baru diimpor 0 → 49 baris; 9 tabel lain saat itu belum dijalankan karena `pencatatan_non_tender_realisasi` menunggu migration 67.
