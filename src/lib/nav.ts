@@ -75,9 +75,9 @@ export const NAV_GROUPS: NavGroup[] = [
     // http/https) + 1 rute internal baru yang dibuka juga untuk sekjend lewat
     // `roles` di link itu sendiri (lihat ROUTE_ACCESS di auth/access.ts).
     links: [
-      { name: 'Prioritas Nasional', href: 'https://god-pbj.vercel.app/prioritas-nasional', icon: React.createElement(Star, { size: 18 }), roles: ['admin'] },
-      { name: 'Master Data PN', href: 'https://god-pbj.vercel.app/program-prioritas', icon: React.createElement(Database, { size: 18 }), roles: ['admin'] },
-      { name: 'Realisasi Program Prioritas Nasional', href: '/program-prioritas-nasional', icon: React.createElement(ListChecks, { size: 18 }), roles: ['admin', 'sekjend'] },
+      // { name: 'Prioritas Nasional', href: 'https://god-pbj.vercel.app/prioritas-nasional', icon: React.createElement(Star, { size: 18 }), roles: ['admin'] },
+      // { name: 'Master Data PN', href: 'https://god-pbj.vercel.app/program-prioritas', icon: React.createElement(Database, { size: 18 }), roles: ['admin'] },
+      { name: 'Program Prioritas Nasional', href: '/program-prioritas-nasional', icon: React.createElement(ListChecks, { size: 18 }), roles: ['admin', 'sekjend'] },
     ],
   },
 ];
