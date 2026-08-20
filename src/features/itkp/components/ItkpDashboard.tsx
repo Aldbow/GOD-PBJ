@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   RefreshCw,
   CalendarDays,
@@ -15,6 +15,8 @@ import {
   Users,
   Building2,
   ShieldCheck,
+  ChevronDown,
+  ArrowRightLeft,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
@@ -46,6 +48,46 @@ const COMP_ICON: Record<ComponentCode, React.ReactNode> = {
   C: <Building2 size={18} />,
   D: <ShieldCheck size={18} />,
 };
+
+function formasiStatus(kebutuhan: number, eksisting: number, kekurangan: number): { label: string; variant: 'success' | 'danger' | 'warning' | 'info' } {
+  if (eksisting <= 0 && kebutuhan > 0) return { label: 'Kosong', variant: 'danger' };
+  if (kekurangan > 0) return { label: 'Kurang', variant: 'warning' };
+  if (kekurangan < 0) return { label: 'Sisa', variant: 'info' };
+  return { label: 'Terisi', variant: 'success' };
+}
+
+const BADGE_POP_TRANSITION = { duration: 0.25, ease: [0.22, 1, 0.36, 1] as const };
+
+function StatusBadge({ variant, children }: { variant: 'success' | 'danger' | 'warning' | 'info'; children: React.ReactNode }) {
+  const variantClass = variant === 'success' ? styles.statusSuccess
+    : variant === 'danger' ? styles.statusDanger
+    : variant === 'warning' ? styles.statusWarning
+    : styles.statusInfo;
+  return (
+    <motion.span
+      initial={{ opacity: 0, scale: 0.85 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={BADGE_POP_TRANSITION}
+      className={`${styles.statusBadge} ${variantClass}`}
+    >
+      {children}
+    </motion.span>
+  );
+}
+
+// Entrance choreography untuk konten modal "Rincian Keterisian Formasi"
+const FORMASI_CONTAINER_VARIANTS = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1 } },
+};
+
+const FORMASI_SECTION_VARIANTS = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const } },
+};
+
+const FORMASI_ACCORDION_TRANSITION = { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const };
+const FORMASI_CHEVRON_TRANSITION = { duration: 0.25, ease: [0.22, 1, 0.36, 1] as const };
 
 export function ItkpDashboard() {
   const [kementerian, setKementerian] = useState<ItkpAInput | null>(null);
@@ -319,97 +361,182 @@ export function ItkpDashboard() {
         }
       >
         {modalData?.type === 'formasi' && (
-          <div style={{ overflowX: 'auto', marginTop: 16 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
-              <thead>
-                <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}>
-                  <th style={{ padding: '8px 12px' }}>Jenjang</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right' }}>Kebutuhan</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right' }}>Eksisting</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right' }}>Kekurangan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {modalData.data.map((row: any, i: number) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '8px 12px' }}>{row['Jenjang']}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{row['Formasi Kebutuhan']}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{row['Formasi Terpenuhi']}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{row['Kekurangan']}</td>
-                  </tr>
-                ))}
-                <tr style={{ background: 'var(--surface-2)', fontWeight: 'bold' }}>
-                  <td style={{ padding: '8px 12px' }}>Total</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right' }}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Formasi Kebutuhan']) || 0), 0)}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right' }}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Formasi Terpenuhi']) || 0), 0)}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right' }}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Kekurangan']) || 0), 0)}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            {/* ── Proses Perpindahan JF ke JF PBJ ── */}
-            <div style={{ marginTop: 24 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: 8, marginBottom: 12 }}>
-                Proses Perpindahan JF ke JF PBJ
+          <motion.div
+            className={styles.formasiWrap}
+            variants={FORMASI_CONTAINER_VARIANTS}
+            initial="hidden"
+            animate="show"
+          >
+            {/* ── Formasi Jabatan Fungsional PBJ ── */}
+            <motion.section className={styles.formasiSection} variants={FORMASI_SECTION_VARIANTS}>
+              <div className={styles.formasiSectionHead}>
+                <div className={styles.formasiSectionIcon}>
+                  <Building2 size={16} />
+                </div>
+                <div>
+                  <h3 className={styles.formasiSectionTitle}>Formasi Jabatan Fungsional PBJ</h3>
+                  <p className={styles.formasiSectionDesc}>
+                    Perbandingan kebutuhan formasi dengan jumlah pegawai eksisting pada tiap jenjang JF PBJ.
+                  </p>
+                </div>
               </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}>
-                    <th style={{ padding: '8px 12px' }}>Jenjang JF</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'right' }}>Jumlah Pengajuan</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {perpindahanJfSummary.map((row) => {
-                    const isSelected = selectedJenjangPerpindahan === row.jenjang;
-                    const clickable = row.jumlahPengajuan > 0;
-                    return (
-                      <tr
-                        key={row.jenjang}
-                        onClick={() => clickable && setSelectedJenjangPerpindahan(isSelected ? null : row.jenjang)}
-                        style={{
-                          borderBottom: '1px solid var(--border)',
-                          cursor: clickable ? 'pointer' : 'default',
-                          background: isSelected ? 'var(--surface-2)' : 'transparent',
-                        }}
-                      >
-                        <td style={{ padding: '8px 12px', fontWeight: isSelected ? 600 : 400 }}>{row.jenjang}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right' }}>{row.jumlahPengajuan}</td>
-                      </tr>
-                    );
-                  })}
-                  <tr style={{ background: 'var(--surface-2)', fontWeight: 'bold' }}>
-                    <td style={{ padding: '8px 12px' }}>Total</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{perpindahanJf.length}</td>
-                  </tr>
-                </tbody>
-              </table>
 
-              {selectedJenjangPerpindahan && (
-                <div style={{ marginTop: 12, overflowX: 'auto' }}>
-                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 8 }}>
-                    Pengajuan jenjang <strong>{selectedJenjangPerpindahan}</strong>
-                  </div>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+              <div className={styles.formasiCard}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className={styles.formasiTable}>
                     <thead>
-                      <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}>
-                        <th style={{ padding: '8px 12px' }}>Nama Satuan Kerja</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right' }}>Jumlah</th>
+                      <tr>
+                        <th>Jenjang</th>
+                        <th className={styles.formasiColRight}>Kebutuhan</th>
+                        <th className={styles.formasiColRight}>Eksisting</th>
+                        <th className={styles.formasiColRight}>Kekurangan</th>
+                        <th>Status</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {perpindahanJfDetailBySatker.map((s) => (
-                        <tr key={s.satuanKerja} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '8px 12px' }}>{s.satuanKerja}</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right' }}>{s.jumlah}</td>
-                        </tr>
-                      ))}
+                      {modalData.data.map((row: any, i: number) => {
+                        const kebutuhan = Number(row['Formasi Kebutuhan']) || 0;
+                        const eksisting = Number(row['Formasi Terpenuhi']) || 0;
+                        const kekurangan = Number(row['Kekurangan']) || 0;
+                        const status = formasiStatus(kebutuhan, eksisting, kekurangan);
+                        return (
+                          <tr key={i} className={styles.formasiRowAnim} style={{ animationDelay: `${i * 35}ms` }}>
+                            <td className={styles.formasiRowName}>{row['Jenjang']}</td>
+                            <td className={`${styles.formasiColRight} ${styles.formasiMono}`}>{kebutuhan}</td>
+                            <td className={`${styles.formasiColRight} ${styles.formasiMono}`}>{eksisting}</td>
+                            <td className={`${styles.formasiColRight} ${styles.formasiMono}`}>{kekurangan}</td>
+                            <td>
+                              <StatusBadge variant={status.variant}>{status.label}</StatusBadge>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
+                    <tfoot>
+                      <tr className={styles.formasiTotalRow}>
+                        <td>Total</td>
+                        <td className={styles.formasiColRight}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Formasi Kebutuhan']) || 0), 0)}</td>
+                        <td className={styles.formasiColRight}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Formasi Terpenuhi']) || 0), 0)}</td>
+                        <td className={styles.formasiColRight}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Kekurangan']) || 0), 0)}</td>
+                        <td />
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </motion.section>
+
+            {/* ── Proses Perpindahan JF ke JF PBJ ── */}
+            <motion.section className={styles.formasiSection} variants={FORMASI_SECTION_VARIANTS}>
+              <div className={styles.formasiSectionHead}>
+                <div className={styles.formasiSectionIcon}>
+                  <ArrowRightLeft size={16} />
+                </div>
+                <div>
+                  <h3 className={styles.formasiSectionTitle}>Proses Perpindahan JF ke JF PBJ</h3>
+                  <p className={styles.formasiSectionDesc}>
+                    Jumlah pengajuan perpindahan per jenjang. Klik baris untuk melihat rincian per satuan kerja.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.formasiCard}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className={`${styles.formasiTable} ${styles.formasiTableAccordion}`}>
+                    <thead>
+                      <tr>
+                        <th>Jenjang JF</th>
+                        <th className={styles.formasiColCenter}>Jumlah Pengajuan</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {perpindahanJfSummary.map((row, i) => {
+                        const isSelected = selectedJenjangPerpindahan === row.jenjang;
+                        const clickable = row.jumlahPengajuan > 0;
+                        return (
+                          <React.Fragment key={row.jenjang}>
+                            <tr
+                              onClick={() => clickable && setSelectedJenjangPerpindahan(isSelected ? null : row.jenjang)}
+                              className={[
+                                styles.formasiRowAnim,
+                                clickable ? styles.formasiRowClickable : '',
+                                isSelected ? styles.formasiRowSelected : '',
+                              ].filter(Boolean).join(' ')}
+                              style={{ animationDelay: `${i * 35}ms` }}
+                            >
+                              <td className={styles.formasiRowName}>
+                                <span className={styles.formasiRowLabel}>
+                                  {clickable && (
+                                    <motion.span
+                                      className={styles.formasiChevron}
+                                      animate={{ rotate: isSelected ? 0 : -90 }}
+                                      transition={FORMASI_CHEVRON_TRANSITION}
+                                    >
+                                      <ChevronDown size={14} />
+                                    </motion.span>
+                                  )}
+                                  {row.jenjang}
+                                </span>
+                              </td>
+                              <td className={`${styles.formasiColCenter} ${styles.formasiMono}`}>{row.jumlahPengajuan}</td>
+                            </tr>
+                            <tr className={styles.formasiSubRow}>
+                              <td colSpan={2} style={{ padding: 0, border: isSelected ? undefined : 'none' }}>
+                                <AnimatePresence initial={false}>
+                                  {isSelected && (
+                                    <motion.div
+                                      key="panel"
+                                      className={styles.formasiAccordionMotion}
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: 'auto', opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      transition={FORMASI_ACCORDION_TRANSITION}
+                                    >
+                                      <div className={styles.formasiSubPanel}>
+                                        <div className={styles.formasiSubLabel}>
+                                          Pengajuan jenjang <strong>{row.jenjang}</strong> per satuan kerja
+                                        </div>
+                                        {perpindahanJfDetailBySatker.length > 0 ? (
+                                          <table className={styles.formasiSubTable}>
+                                            <thead>
+                                              <tr>
+                                                <th>Nama Satuan Kerja</th>
+                                                <th className={styles.formasiColCenter}>Jumlah</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              {perpindahanJfDetailBySatker.map((s) => (
+                                                <tr key={s.satuanKerja}>
+                                                  <td>{s.satuanKerja}</td>
+                                                  <td className={`${styles.formasiColCenter} ${styles.formasiMono}`}>{s.jumlah}</td>
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        ) : (
+                                          <div className={styles.formasiEmpty}>Tidak ada data satuan kerja.</div>
+                                        )}
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </td>
+                            </tr>
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className={styles.formasiTotalRow}>
+                        <td>Total</td>
+                        <td className={styles.formasiColCenter}>{perpindahanJf.length}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </motion.section>
+          </motion.div>
         )}
 
         {modalData?.type === 'penugasan' && (
