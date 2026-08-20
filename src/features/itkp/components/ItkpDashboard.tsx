@@ -378,7 +378,7 @@ export function ItkpDashboard() {
                         <th className={styles.formasiColRight}>Kebutuhan</th>
                         <th className={styles.formasiColRight}>Eksisting</th>
                         <th className={styles.formasiColRight}>Kekurangan</th>
-                        <th className={styles.formasiColRight}>Keterisian (%)</th>
+                        <th className={styles.formasiColRight}>Keterisian</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -524,7 +524,9 @@ export function ItkpDashboard() {
                     <tfoot>
                       <tr className={styles.formasiTotalRow}>
                         <td>Total</td>
-                        <td className={styles.formasiColCenter}>{perpindahanJf.length}</td>
+                        <td className={styles.formasiColCenter}>
+                          {perpindahanJfSummary.reduce((s, r) => s + r.jumlahPengajuan, 0)}
+                        </td>
                       </tr>
                     </tfoot>
                   </table>

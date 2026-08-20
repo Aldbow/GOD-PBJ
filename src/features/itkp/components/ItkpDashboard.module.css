@@ -1022,19 +1022,18 @@
 
 .formasiTable th {
   text-align: left;
-  padding: 10px 16px;
+  padding: 8px 10px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   color: var(--text-tertiary);
   background: var(--surface-2);
   border-bottom: 1px solid var(--border);
-  white-space: nowrap;
 }
 
 .formasiTable td {
-  padding: 11px 16px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--border);
   color: var(--text-secondary);
   vertical-align: middle;
@@ -1195,6 +1194,6 @@
 @media (max-width: 600px) {
   .formasiTable th,
   .formasiTable td {
-    padding: 9px 10px;
+    padding: 7px 8px;
   }
 }

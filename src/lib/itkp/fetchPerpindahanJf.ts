@@ -38,12 +38,18 @@ export async function fetchPerpindahanJfData(): Promise<PerpindahanJfPerson[]> {
   return data ?? [];
 }
 
-const JENJANG_URUTAN = ['Ahli Pertama', 'Ahli Muda', 'Ahli Madya', 'Ahli Utama'];
+const JENJANG_URUTAN = ['Ahli Pertama', 'Ahli Muda', 'Ahli Madya'];
+
+// Ahli Utama belum diatur untuk perpindahan ke JF PBJ pada peraturan saat ini —
+// dikeluarkan sepenuhnya dari ringkasan (bukan cuma tidak dijadikan baris baku),
+// supaya kalaupun ada entri bertanda jenjang ini di data, tetap tidak tampil.
+const JENJANG_DIKECUALIKAN = new Set(['Ahli Utama']);
 
 export function groupByJenjang(rows: PerpindahanJfPerson[]): PerpindahanJfSummaryRow[] {
   const counts = new Map<string, number>();
   for (const row of rows) {
     const jenjang = row.jenjang_jf || 'Tidak diketahui';
+    if (JENJANG_DIKECUALIKAN.has(jenjang)) continue;
     counts.set(jenjang, (counts.get(jenjang) ?? 0) + 1);
   }
 
