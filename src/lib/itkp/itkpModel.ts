@@ -150,6 +150,32 @@ function bcdIndicator(
   };
 }
 
+// B1 (Formasi) berbeda dari B2/B3/C1/D1: dia satu-satunya indikator B/C/D yang
+// punya rasio riil (terisi/kebutuhan), bukan cuma kondisi kualitatif. Supaya
+// angka besar di kartu sama persis dengan Total di modal "Rincian Keterisian
+// Formasi" (dan konsisten dengan pola komponen A, yang juga menaruh rasio riil
+// di capaianLabel sementara attainment/bar tetap dari skor), override
+// capaianLabel dengan keterisian riil — dihitung dari rawData yang sama
+// (bukan re-parse string) supaya tidak bisa berbeda dari modalnya. Catatan di
+// kartu (`description`) juga diganti dari sekadar angka mentah menjadi kalimat
+// `alasan` bawaan hitungFormasi — sudah menyebut rentang pita Kepka yang cocok
+// dengan persentase saat ini beserta skornya, dan otomatis ikut berubah kalau
+// datanya berubah (bukan teks statis).
+type FormasiRawRow = Record<string, unknown>;
+
+function formasiIndicator(
+  code: string,
+  row: Parameters<typeof bcdIndicator>[1] & { rawData?: FormasiRawRow[]; alasan?: string }
+): ItkpIndicatorModel {
+  const base = bcdIndicator(code, row);
+  const rows: FormasiRawRow[] = Array.isArray(row.rawData) ? row.rawData : [];
+  const totalKebutuhan = rows.reduce((s, r) => s + (Number(r['Formasi Kebutuhan']) || 0), 0);
+  const totalTerisi = rows.reduce((s, r) => s + (Number(r['Formasi Terpenuhi']) || 0), 0);
+  const description = row.alasan ?? base.description;
+  if (totalKebutuhan <= 0) return { ...base, description };
+  return { ...base, capaianLabel: fmtPct((totalTerisi / totalKebutuhan) * 100), description };
+}
+
 export interface BuildComponentsArgs {
   resultA: ItkpAResult | null;
   totalA: number;
@@ -186,7 +212,7 @@ export function buildComponents(args: BuildComponentsArgs): ItkpComponentModel[]
 
   const bIndicators: ItkpIndicatorModel[] = bcdRows
     ? [
-        bcdIndicator('B1', bcdRows.formasi),
+        formasiIndicator('B1', bcdRows.formasi),
         bcdIndicator('B2', bcdRows.penugasan),
         bcdIndicator('B3', bcdRows.renaksi),
       ]

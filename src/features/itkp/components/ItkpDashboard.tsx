@@ -56,23 +56,11 @@ function formasiStatus(kebutuhan: number, eksisting: number, kekurangan: number)
   return { label: 'Terisi', variant: 'success' };
 }
 
-const BADGE_POP_TRANSITION = { duration: 0.25, ease: [0.22, 1, 0.36, 1] as const };
-
-function StatusBadge({ variant, children }: { variant: 'success' | 'danger' | 'warning' | 'info'; children: React.ReactNode }) {
-  const variantClass = variant === 'success' ? styles.statusSuccess
-    : variant === 'danger' ? styles.statusDanger
-    : variant === 'warning' ? styles.statusWarning
-    : styles.statusInfo;
-  return (
-    <motion.span
-      initial={{ opacity: 0, scale: 0.85 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={BADGE_POP_TRANSITION}
-      className={`${styles.statusBadge} ${variantClass}`}
-    >
-      {children}
-    </motion.span>
-  );
+function formasiPctColorClass(variant: 'success' | 'danger' | 'warning' | 'info'): string {
+  return variant === 'success' ? styles.formasiPctSuccess
+    : variant === 'danger' ? styles.formasiPctDanger
+    : variant === 'warning' ? styles.formasiPctWarning
+    : styles.formasiPctInfo;
 }
 
 // Entrance choreography untuk konten modal "Rincian Keterisian Formasi"
@@ -390,7 +378,7 @@ export function ItkpDashboard() {
                         <th className={styles.formasiColRight}>Kebutuhan</th>
                         <th className={styles.formasiColRight}>Eksisting</th>
                         <th className={styles.formasiColRight}>Kekurangan</th>
-                        <th>Status</th>
+                        <th className={styles.formasiColRight}>Keterisian (%)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -399,14 +387,15 @@ export function ItkpDashboard() {
                         const eksisting = Number(row['Formasi Terpenuhi']) || 0;
                         const kekurangan = Number(row['Kekurangan']) || 0;
                         const status = formasiStatus(kebutuhan, eksisting, kekurangan);
+                        const pctKeterisian = kebutuhan > 0 ? (eksisting / kebutuhan) * 100 : null;
                         return (
                           <tr key={i} className={styles.formasiRowAnim} style={{ animationDelay: `${i * 35}ms` }}>
                             <td className={styles.formasiRowName}>{row['Jenjang']}</td>
                             <td className={`${styles.formasiColRight} ${styles.formasiMono}`}>{kebutuhan}</td>
                             <td className={`${styles.formasiColRight} ${styles.formasiMono}`}>{eksisting}</td>
                             <td className={`${styles.formasiColRight} ${styles.formasiMono}`}>{kekurangan}</td>
-                            <td>
-                              <StatusBadge variant={status.variant}>{status.label}</StatusBadge>
+                            <td className={`${styles.formasiColRight} ${styles.formasiMono} ${formasiPctColorClass(status.variant)}`}>
+                              {pctKeterisian === null ? '-' : fmtPct(pctKeterisian, 1)}
                             </td>
                           </tr>
                         );
@@ -418,7 +407,13 @@ export function ItkpDashboard() {
                         <td className={styles.formasiColRight}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Formasi Kebutuhan']) || 0), 0)}</td>
                         <td className={styles.formasiColRight}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Formasi Terpenuhi']) || 0), 0)}</td>
                         <td className={styles.formasiColRight}>{modalData.data.reduce((s: number, r: any) => s + (Number(r['Kekurangan']) || 0), 0)}</td>
-                        <td />
+                        <td className={styles.formasiColRight}>
+                          {(() => {
+                            const totalKebutuhan = modalData.data.reduce((s: number, r: any) => s + (Number(r['Formasi Kebutuhan']) || 0), 0);
+                            const totalEksisting = modalData.data.reduce((s: number, r: any) => s + (Number(r['Formasi Terpenuhi']) || 0), 0);
+                            return totalKebutuhan > 0 ? fmtPct((totalEksisting / totalKebutuhan) * 100, 1) : '-';
+                          })()}
+                        </td>
                       </tr>
                     </tfoot>
                   </table>

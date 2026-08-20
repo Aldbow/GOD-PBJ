@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "src/features/itkp/components/ItkpDashboard.module.css"
+        ],
+        "createdAt": "2026-08-20T08:23:47.020Z",
+        "reason": "Claude: width transition is on contained progress-bar fills (.compBarFill/.indBarFill) inside fixed-height overflow:hidden tracks, matching the established .compFill/.miniFill idiom already used repo-wide in ItkpGauge.module.css - no reflow cascade beyond the bar itself; rewriting to transform-based bars is out of scope for the current task"
+      }
+    ]
+  }
+}

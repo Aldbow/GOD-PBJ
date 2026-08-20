@@ -479,7 +479,6 @@
 .rincian {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--c);
   border-radius: var(--radius-xl);
   padding: 20px 22px 22px;
   box-shadow: var(--shadow-sm);
@@ -1175,35 +1174,21 @@
   text-align: center;
 }
 
-/* Status badge — Terisi / Kurang / Kosong / Sisa */
-.statusBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  white-space: nowrap;
-}
-
-.statusSuccess {
-  background: var(--teal-100);
+/* Warna angka Keterisian (%) — mengikuti makna status lama (Terisi/Kurang/
+   Kosong/Sisa) tapi sebagai teks polos, bukan pill/badge. */
+.formasiPctSuccess {
   color: var(--teal-700);
 }
 
-.statusDanger {
-  background: var(--red-100);
+.formasiPctDanger {
   color: var(--red-700);
 }
 
-.statusWarning {
-  background: var(--amber-100);
+.formasiPctWarning {
   color: var(--amber-700);
 }
 
-.statusInfo {
-  background: var(--info-100);
+.formasiPctInfo {
   color: var(--info-700);
 }
 
