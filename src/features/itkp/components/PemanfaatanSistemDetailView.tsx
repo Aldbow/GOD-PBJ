@@ -2,8 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { CalendarDays, Info, TriangleAlert, FileText, ArrowLeft, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { motion, AnimatePresence, animate } from 'framer-motion';
+import { CalendarDays, Info, TriangleAlert, ArrowLeft, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import Link from 'next/link';
 import { Select } from '@/components/ui/Select';
 import { ErrorBox } from '@/components/ui/ErrorBox';
@@ -54,6 +54,50 @@ function capaianBadgeVariant(p: number): BadgeVariant {
   if (p >= 65) return 'rendah';
   if (p >= 50) return 'sedang';
   return 'tinggi';
+}
+
+function capaianColorVar(p: number): string {
+  if (p >= 65) return 'var(--teal-600)';
+  if (p >= 50) return 'var(--amber-600)';
+  return 'var(--red-600)';
+}
+
+const EASE_OUT = [0.22, 1, 0.36, 1] as const;
+
+const CARD_CONTAINER_VARIANTS = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } },
+};
+
+const CARD_ITEM_VARIANTS = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE_OUT } },
+};
+
+const RENTANG_TRANSITION = { duration: 0.26, ease: EASE_OUT };
+
+// Geometri gauge semi-lingkaran — mengikuti motif yang sama dengan ItkpGauge
+// di Ringkasan, supaya "skor ITKP" selalu terbaca dengan bahasa visual yang
+// sama di seluruh aplikasi.
+const GAUGE_ARC_PATH = 'M 18 100 A 82 82 0 0 1 182 100';
+const GAUGE_ARC_LEN = Math.PI * 82;
+
+// Skor bertambah dari 0 ke nilai akhir saat kartu pertama kali menampilkan
+// hasil — memberi momen "hidup" satu kali di titik paling penting halaman ini,
+// alih-alih animasi seragam di semua elemen.
+function useCountUp(value: number, duration = 0.9) {
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    const controls = animate(0, value, {
+      duration,
+      ease: EASE_OUT,
+      onUpdate: (v) => setDisplay(v),
+    });
+    return () => controls.stop();
+  }, [value, duration]);
+
+  return display;
 }
 
 type SortKey = 'name' | 'total' | 'capaian' | string;
@@ -155,6 +199,19 @@ export function PemanfaatanSistemDetailView() {
   }, [effectiveUnit, unitsInEselon1, units]);
 
   const result = useMemo(() => computeItkpA(currentInput), [currentInput]);
+  const capaian = capaianOf(result);
+  const gaugeRatio = result.totalMaxSaatIni > 0 ? Math.max(0, Math.min(result.total / result.totalMaxSaatIni, 1)) : 0;
+
+  // Busur digambar dari kosong ke nilai sesungguhnya sesaat setelah mount,
+  // supaya transisi CSS pada stroke-dashoffset punya state awal untuk animasi
+  // (kalau langsung dirender di nilai akhir, tidak ada apa pun untuk dianimasikan).
+  const [drawnGaugeRatio, setDrawnGaugeRatio] = useState(0);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setDrawnGaugeRatio(gaugeRatio));
+    return () => cancelAnimationFrame(id);
+  }, [gaugeRatio]);
+
+  const displayTotal = useCountUp(result.total);
 
   const updatedLabel = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -268,61 +325,101 @@ export function PemanfaatanSistemDetailView() {
         {loading ? (
           <div className={styles.loadingBox}>Memuat data dari Supabase...</div>
         ) : (
-          <div className={styles.cardGrid}>
-            {result.rows.map((row, i) => (
-              <ComponentCard key={row.key} index={i + 1} row={row} />
-            ))}
-            
-            {/* Summary Card as the 8th item */}
-            <div className={`${styles.compCard} ${styles.summaryCardSpecial}`}>
-              <div className={`${styles.compHeader} ${styles.summaryHeaderSpecial}`}>
-                <span className={styles.compHeaderBadge}>TOTAL</span>
-                Skor Pemanfaatan Sistem
+          <>
+            {/* Hero: total skor gabungan A1-A7, ditonjolkan lewat gauge — motif yang
+                sama dengan skor ITKP di Ringkasan — supaya angka paling penting di
+                halaman ini langsung terbaca sebelum melihat rincian per komponen. */}
+            <motion.div
+              className={styles.heroCard}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: EASE_OUT }}
+            >
+              <div className={styles.heroTopRow}>
+                <div>
+                  <h3 className={styles.heroTitle}>Skor Pemanfaatan Sistem</h3>
+                  <p className={styles.heroSub}>Total gabungan komponen A1–A7</p>
+                </div>
+                <Badge variant={capaianBadgeVariant(capaian)}>{fmtPct(capaian, 1)} capaian</Badge>
               </div>
-              
-              <div className={styles.compBody}>
-                <div className={styles.compMainStat}>
-                  <span className={styles.compMainStatLabel}>Total Skor</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span className={styles.compMainStatValue}>
-                      {fmtDec(result.total, 2)}
-                    </span>
-                    <Badge variant={capaianBadgeVariant(capaianOf(result))}>
-                      {fmtPct(capaianOf(result), 1)}
-                    </Badge>
+
+              <div className={styles.heroBody}>
+                <div className={styles.heroGaugeWrap}>
+                  <svg
+                    viewBox="0 0 200 110"
+                    className={styles.heroGauge}
+                    role="img"
+                    aria-label={`Skor total ${fmtDec(result.total, 2)} dari ${fmtDec(result.totalMaxSaatIni, 2)}`}
+                  >
+                    <defs>
+                      <linearGradient id="pemanfaatanGaugeGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#163B63" />
+                        <stop offset="55%" stopColor="#1A5D91" />
+                        <stop offset="100%" stopColor="#27B6D6" />
+                      </linearGradient>
+                    </defs>
+                    <path d={GAUGE_ARC_PATH} className={styles.heroGaugeTrack} strokeLinecap="round" fill="transparent" strokeWidth="15" />
+                    <path
+                      d={GAUGE_ARC_PATH}
+                      className={styles.heroGaugeValue}
+                      strokeLinecap="round"
+                      fill="transparent"
+                      strokeWidth="15"
+                      style={{ strokeDasharray: GAUGE_ARC_LEN, strokeDashoffset: GAUGE_ARC_LEN * (1 - drawnGaugeRatio) }}
+                    />
+                  </svg>
+                  <div className={styles.heroGaugeCenter}>
+                    <span className={styles.heroGaugeScore}>{fmtDec(displayTotal, 2)}</span>
+                    <span className={styles.heroGaugeMax}>/ {fmtDec(result.totalMaxSaatIni, 2)}</span>
                   </div>
                 </div>
-                
-                <div className={styles.compSideStats}>
-                  <div className={styles.compSubStat}>
-                    <span className={styles.compSubStatLabel}>Skor Max Saat Ini</span>
-                    <span className={styles.compSubStatValue}>
-                      {fmtDec(result.totalMaxSaatIni, 2)}
-                    </span>
+
+                <div className={styles.heroStats}>
+                  <div className={styles.heroStatsRow}>
+                    <div className={styles.heroStat}>
+                      <span className={styles.heroStatLabel}>Skor Max Saat Ini</span>
+                      <span className={styles.heroStatValue}>{fmtDec(result.totalMaxSaatIni, 2)}</span>
+                    </div>
+                    <div className={styles.heroStat}>
+                      <span className={styles.heroStatLabel}>Skor Max Kepka</span>
+                      <span className={styles.heroStatValue}>{fmtDec(result.totalMaxKepka, 0)}</span>
+                    </div>
                   </div>
-                  <div className={styles.compSubStat}>
-                    <span className={styles.compSubStatLabel}>Skor Max Kepka</span>
-                    <span className={styles.compSubStatValue}>
-                      {fmtDec(result.totalMaxKepka, 0)}
-                    </span>
-                  </div>
+                  <p className={styles.heroFormula}>
+                    Penilaian ini bersifat kumulatif dari seluruh komponen A1–A7. Jika ada indikator yang tidak
+                    tersedia/tidak berlaku, skor maksimum saat ini menyesuaikan parameter yang berlaku.
+                  </p>
                 </div>
               </div>
-              
-              <div className={styles.compDetail}>
-                <div className={styles.compDetailFormulaBox} style={{ marginTop: 0 }}>
-                  Penilaian ini bersifat kumulatif dari seluruh komponen A1-A7.
-                </div>
-              </div>
-              
-              <div className={`${styles.compNote} ${styles.compNoteInfo}`}>
-                <FileText size={16} />
-                <span>
-                  Jika ada indikator yang tidak tersedia/tidak berlaku, skor maksimum saat ini menyesuaikan parameter yang berlaku.
-                </span>
-              </div>
-            </div>
-          </div>
+            </motion.div>
+
+            {/* A1-A7 dikelompokkan sesuai tahapnya (bukan dibagi rata per baris grid):
+                A1-A3 mengukur kelengkapan RUP sebelum pelaksanaan, A4-A7 mengukur
+                seberapa jauh rencana itu benar-benar terealisasi. Pengelompokan ini
+                mengikuti perhitungan skor itu sendiri (nilaiRencana/nilaiRealisasi
+                di computeItkpA) — bukan sekat visual buatan — sekaligus membuat
+                setiap baris grid selalu penuh (3 kartu di grid 3 kolom, 4 kartu di
+                grid 4 kolom), jadi tidak ada baris terakhir yang menggantung. */}
+            <CardGroup
+              title="Tahap Perencanaan (RUP)"
+              caption="A1–A3 · Kelengkapan Rencana Umum Pengadaan sebelum pelaksanaan."
+              nilai={result.nilaiRencana}
+              nilaiMax={result.nilaiRencanaMaxSaatIni}
+              rows={result.rencanaRows}
+              startIndex={1}
+              columnClass={styles.cardGrid3}
+            />
+
+            <CardGroup
+              title="Tahap Realisasi"
+              caption="A4–A7 · Seberapa jauh rencana benar-benar terlaksana dan tercatat elektronik."
+              nilai={result.nilaiRealisasi}
+              nilaiMax={result.nilaiRealisasiMaxSaatIni}
+              rows={result.realisasiRows}
+              startIndex={result.rencanaRows.length + 1}
+              columnClass={styles.cardGrid4}
+            />
+          </>
         )}
       </div>
 
@@ -406,11 +503,60 @@ export function PemanfaatanSistemDetailView() {
   );
 }
 
-function ComponentCard({ index, row }: { index: number; row: ItkpARowResult }) {
-  const [showRentang, setShowRentang] = useState(false);
+function CardGroup({
+  title,
+  caption,
+  nilai,
+  nilaiMax,
+  rows,
+  startIndex,
+  columnClass,
+}: {
+  title: string;
+  caption: string;
+  nilai: number;
+  nilaiMax: number;
+  rows: ItkpARowResult[];
+  startIndex: number;
+  columnClass: string;
+}) {
+  const pct = nilaiMax > 0 ? (nilai / nilaiMax) * 100 : 0;
 
   return (
-    <div className={styles.compCard}>
+    <div className={styles.cardGroup}>
+      <div className={`${styles.sectionHead} ${styles.cardGroupHead}`}>
+        <div>
+          <h3 className={styles.sectionTitle}>{title}</h3>
+          <span className={styles.sectionCaption}>{caption}</span>
+        </div>
+        <div className={styles.cardGroupStat}>
+          <span className={styles.cardGroupStatValue}>
+            {fmtDec(nilai, 2)} <span className={styles.cardGroupStatMax}>/ {fmtDec(nilaiMax, 2)}</span>
+          </span>
+          <Badge variant={capaianBadgeVariant(pct)}>{fmtPct(pct, 1)}</Badge>
+        </div>
+      </div>
+
+      <motion.div
+        className={`${styles.cardGrid} ${columnClass}`}
+        variants={CARD_CONTAINER_VARIANTS}
+        initial="hidden"
+        animate="show"
+      >
+        {rows.map((row, i) => (
+          <ComponentCard key={row.key} index={startIndex + i} row={row} />
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+function ComponentCard({ index, row }: { index: number; row: ItkpARowResult }) {
+  const [showRentang, setShowRentang] = useState(false);
+  const progress = row.applicable && row.skorMax > 0 ? Math.max(0, Math.min(row.skor / row.skorMax, 1)) : 0;
+
+  return (
+    <motion.div className={styles.compCard} variants={CARD_ITEM_VARIANTS}>
       <div className={styles.compHeader}>
         <span className={styles.compHeaderBadge}>A{index}</span>
         {row.label}
@@ -422,6 +568,15 @@ function ComponentCard({ index, row }: { index: number; row: ItkpARowResult }) {
           <span className={styles.compMainStatValue}>
             {row.applicable ? fmtDec(row.skor, row.skor % 1 === 0 ? 0 : 1) : '-'}
           </span>
+          <div className={styles.compProgressTrack}>
+            <motion.div
+              className={styles.compProgressFill}
+              style={{ background: capaianColorVar(progress * 100) }}
+              initial={{ width: 0 }}
+              animate={{ width: `${progress * 100}%` }}
+              transition={{ duration: 0.6, ease: EASE_OUT, delay: 0.15 }}
+            />
+          </div>
         </div>
 
         <div className={styles.compSideStats}>
@@ -461,27 +616,44 @@ function ComponentCard({ index, row }: { index: number; row: ItkpARowResult }) {
           aria-expanded={showRentang}
         >
           <span>Informasi Rentang Nilai</span>
-          {showRentang ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          <motion.span
+            className={styles.rentangChevron}
+            animate={{ rotate: showRentang ? 180 : 0 }}
+            transition={RENTANG_TRANSITION}
+          >
+            <ChevronDown size={13} />
+          </motion.span>
         </button>
 
-        {showRentang && (
-          <div className={styles.rentangTable}>
-            {row.rentang.map((b) => {
-              const aktif = row.applicable && b.label === row.rentangAktifLabel;
-              return (
-                <div key={b.label} className={`${styles.rentangRow} ${aktif ? styles.rentangRowActive : ''}`}>
-                  <span className={styles.rentangLabel}>{b.label}</span>
-                  <span className={styles.rentangSkor}>{fmtDec(b.skor, b.skor % 1 === 0 ? 0 : 1)}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <AnimatePresence initial={false}>
+          {showRentang && (
+            <motion.div
+              key="rentang"
+              className={styles.rentangMotion}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={RENTANG_TRANSITION}
+            >
+              <div className={styles.rentangTable}>
+                {row.rentang.map((b) => {
+                  const aktif = row.applicable && b.label === row.rentangAktifLabel;
+                  return (
+                    <div key={b.label} className={`${styles.rentangRow} ${aktif ? styles.rentangRowActive : ''}`}>
+                      <span className={styles.rentangLabel}>{b.label}</span>
+                      <span className={styles.rentangSkor}>{fmtDec(b.skor, b.skor % 1 === 0 ? 0 : 1)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       <div className={`${styles.compNote} ${row.applicable ? styles.compNoteInfo : styles.compNoteWarn}`}>
         {row.applicable ? <Info size={16} /> : <TriangleAlert size={16} />}
         <span>{row.catatan}</span>
       </div>
-    </div>
+    </motion.div>
   );
 }

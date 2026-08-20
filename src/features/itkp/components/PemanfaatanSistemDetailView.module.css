@@ -104,6 +104,47 @@
   }
 }
 
+/* Grup A1-A3 (Perencanaan) dan A4-A7 (Realisasi): kolom disesuaikan dengan
+   jumlah kartu di masing-masing grup supaya baris terakhir selalu penuh,
+   bukan menyisakan slot kosong seperti grid 4 kolom yang dipaksakan ke 7 item. */
+@media (min-width: 1400px) {
+  .cardGrid3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .cardGrid4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.cardGroup {
+  margin-bottom: 26px;
+}
+
+.cardGroupHead {
+  align-items: flex-start;
+}
+
+.cardGroupStat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cardGroupStatValue {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.cardGroupStatMax {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
 .compCard {
   background: linear-gradient(160deg, var(--surface) 0%, color-mix(in srgb, var(--accent) 4%, var(--surface)) 100%);
   border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
@@ -111,7 +152,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease, border-color 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .compCard:hover {
@@ -169,6 +210,22 @@
   font-weight: 700;
   color: var(--accent);
   line-height: 1;
+}
+
+.compProgressTrack {
+  height: 6px;
+  width: 100%;
+  max-width: 160px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.compProgressFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
 }
 
 .compSideStats {
@@ -272,6 +329,16 @@
   border-color: var(--accent);
 }
 
+.rentangChevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rentangMotion {
+  overflow: hidden;
+}
+
 .rentangTable {
   display: flex;
   flex-direction: column;
@@ -344,13 +411,145 @@
   margin-top: 1px;
 }
 
-.summaryCardSpecial {
-  border: 2px solid var(--accent);
+/* ============ Hero: Total Skor (gauge) ============ */
+.heroCard {
+  background: linear-gradient(160deg, var(--surface) 0%, color-mix(in srgb, var(--accent) 6%, var(--surface)) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
+  border-radius: var(--radius-lg, 14px);
+  padding: 22px 24px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
 }
 
-.summaryHeaderSpecial {
-  background: var(--accent);
-  color: white;
+.heroTopRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.heroTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.heroSub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 3px 0 0;
+}
+
+.heroBody {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.heroGaugeWrap {
+  position: relative;
+  width: 220px;
+  max-width: 100%;
+  flex: 0 0 220px;
+}
+
+.heroGauge {
+  width: 100%;
+  display: block;
+}
+
+.heroGaugeTrack {
+  fill: none;
+  stroke: var(--surface-2);
+  stroke-width: 15;
+}
+
+.heroGaugeValue {
+  fill: none;
+  stroke: url(#pemanfaatanGaugeGrad);
+  stroke-width: 15;
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.heroGaugeCenter {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.heroGaugeScore {
+  font-family: var(--font-mono);
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.heroGaugeMax {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.heroStats {
+  flex: 1 1 260px;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.heroStatsRow {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.heroStat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.heroStatLabel {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.heroStatValue {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.heroFormula {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+@media (max-width: 640px) {
+  .heroBody {
+    gap: 18px;
+  }
+  .heroGaugeWrap {
+    flex: 0 0 auto;
+    width: 180px;
+    margin: 0 auto;
+  }
 }
 
 .tableSection {

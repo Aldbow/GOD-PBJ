@@ -69,6 +69,11 @@ export interface ItkpARowResult {
 
 export interface ItkpAResult {
   rows: ItkpARowResult[];
+  // Sama seperti `rows`, dipecah per tahap (Perencanaan/RUP vs Realisasi) —
+  // dipakai UI untuk mengelompokkan kartu A1-A7 secara bermakna alih-alih
+  // hanya membagi rata per baris grid.
+  rencanaRows: ItkpARowResult[];
+  realisasiRows: ItkpARowResult[];
   nilaiRencana: number;
   nilaiRencanaMaxSaatIni: number;
   nilaiRealisasi: number;
@@ -335,6 +340,8 @@ export function computeItkpA(input: ItkpAInput): ItkpAResult {
 
   return {
     rows,
+    rencanaRows,
+    realisasiRows,
     nilaiRencana,
     nilaiRencanaMaxSaatIni,
     nilaiRealisasi,
