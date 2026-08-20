@@ -24,6 +24,7 @@ import { computeItkpA, type ItkpAInput, type ItkpAResult } from '@/lib/itkp/calc
 import { computeItkpBCD, type ItkpBCDResult } from '@/lib/itkp/calcBCD';
 import { fetchItkpBCDData } from '@/lib/itkp/fetchBCD';
 import { fetchItkpAData } from '@/lib/itkp/fetchA';
+import { fetchPerpindahanJfData, groupByJenjang, type PerpindahanJfPerson } from '@/lib/itkp/fetchPerpindahanJf';
 import { fmtDec, fmtPct } from '@/lib/format';
 import {
   buildComponents,
@@ -56,6 +57,8 @@ export function ItkpDashboard() {
   const [pedomanOpen, setPedomanOpen] = useState(false);
   const [modalData, setModalData] = useState<{ type: 'formasi' | 'penugasan' | 'renaksi' | 'spi'; data: any } | null>(null);
   const [spiTab, setSpiTab] = useState<'Internal' | 'Eksternal' | 'Eksper' | 'Faktor Koreksi' | 'Perhitungan'>('Internal');
+  const [perpindahanJf, setPerpindahanJf] = useState<PerpindahanJfPerson[]>([]);
+  const [selectedJenjangPerpindahan, setSelectedJenjangPerpindahan] = useState<string | null>(null);
   const rincianRef = useRef<HTMLElement | null>(null);
 
   const handleIndicatorDetailClick = (ind: ItkpIndicatorModel) => {
@@ -75,12 +78,14 @@ export function ItkpDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [resultA, bcdInput] = await Promise.all([
+      const [resultA, bcdInput, perpindahanJfData] = await Promise.all([
         fetchItkpAData(),
         fetchItkpBCDData(),
+        fetchPerpindahanJfData(),
       ]);
       setKementerian(resultA.kementerian);
       setBcdResult(computeItkpBCD(bcdInput));
+      setPerpindahanJf(perpindahanJfData);
       setLastUpdate(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal memuat data ITKP dari Supabase.');
@@ -129,6 +134,12 @@ export function ItkpDashboard() {
   );
 
   const activeComp = components.find((c) => c.code === activeCode) ?? components[0];
+
+  const perpindahanJfSummary = useMemo(() => groupByJenjang(perpindahanJf), [perpindahanJf]);
+  const perpindahanJfDetail = useMemo(
+    () => perpindahanJf.filter((p) => p.jenjang_jf === selectedJenjangPerpindahan),
+    [perpindahanJf, selectedJenjangPerpindahan]
+  );
 
   const selectComponent = (code: ComponentCode) => {
     setActiveCode(code);
@@ -294,9 +305,12 @@ export function ItkpDashboard() {
 
       {/* Pedoman Lengkap telah dipindahkan ke masing-masing rincian komponen */}
       {/* ── Modal Detail ── */}
-      <Modal 
-        isOpen={!!modalData} 
-        onClose={() => setModalData(null)}
+      <Modal
+        isOpen={!!modalData}
+        onClose={() => {
+          setModalData(null);
+          setSelectedJenjangPerpindahan(null);
+        }}
         title={
           modalData?.type === 'formasi' ? 'Rincian Keterisian Formasi' : 
           modalData?.type === 'penugasan' ? 'Daftar Penugasan JF PBJ' : 
@@ -332,6 +346,71 @@ export function ItkpDashboard() {
                 </tr>
               </tbody>
             </table>
+
+            {/* ── Proses Perpindahan JF ke JF PBJ ── */}
+            <div style={{ marginTop: 24 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: 8, marginBottom: 12 }}>
+                Proses Perpindahan JF ke JF PBJ
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}>
+                    <th style={{ padding: '8px 12px' }}>Jenjang JF</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'right' }}>Jumlah Pengajuan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {perpindahanJfSummary.map((row) => {
+                    const isSelected = selectedJenjangPerpindahan === row.jenjang;
+                    const clickable = row.jumlahPengajuan > 0;
+                    return (
+                      <tr
+                        key={row.jenjang}
+                        onClick={() => clickable && setSelectedJenjangPerpindahan(isSelected ? null : row.jenjang)}
+                        style={{
+                          borderBottom: '1px solid var(--border)',
+                          cursor: clickable ? 'pointer' : 'default',
+                          background: isSelected ? 'var(--surface-2)' : 'transparent',
+                        }}
+                      >
+                        <td style={{ padding: '8px 12px', fontWeight: isSelected ? 600 : 400 }}>{row.jenjang}</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'right' }}>{row.jumlahPengajuan}</td>
+                      </tr>
+                    );
+                  })}
+                  <tr style={{ background: 'var(--surface-2)', fontWeight: 'bold' }}>
+                    <td style={{ padding: '8px 12px' }}>Total</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{perpindahanJf.length}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {selectedJenjangPerpindahan && (
+                <div style={{ marginTop: 12, overflowX: 'auto' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                    Pengajuan jenjang <strong>{selectedJenjangPerpindahan}</strong>
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}>
+                        <th style={{ padding: '8px 12px' }}>Nama</th>
+                        <th style={{ padding: '8px 12px' }}>Satuan Kerja</th>
+                        <th style={{ padding: '8px 12px' }}>Pangkat/Gol. Ruang</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {perpindahanJfDetail.map((p) => (
+                        <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '8px 12px' }}>{p.nama}</td>
+                          <td style={{ padding: '8px 12px' }}>{p.satuan_kerja}</td>
+                          <td style={{ padding: '8px 12px' }}>{p.pangkat_golongan}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
