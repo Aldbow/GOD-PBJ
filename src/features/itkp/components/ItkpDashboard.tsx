@@ -24,7 +24,7 @@ import { computeItkpA, type ItkpAInput, type ItkpAResult } from '@/lib/itkp/calc
 import { computeItkpBCD, type ItkpBCDResult } from '@/lib/itkp/calcBCD';
 import { fetchItkpBCDData } from '@/lib/itkp/fetchBCD';
 import { fetchItkpAData } from '@/lib/itkp/fetchA';
-import { fetchPerpindahanJfData, groupByJenjang, type PerpindahanJfPerson } from '@/lib/itkp/fetchPerpindahanJf';
+import { fetchPerpindahanJfData, groupByJenjang, groupBySatuanKerja, type PerpindahanJfPerson } from '@/lib/itkp/fetchPerpindahanJf';
 import { fmtDec, fmtPct } from '@/lib/format';
 import {
   buildComponents,
@@ -136,8 +136,8 @@ export function ItkpDashboard() {
   const activeComp = components.find((c) => c.code === activeCode) ?? components[0];
 
   const perpindahanJfSummary = useMemo(() => groupByJenjang(perpindahanJf), [perpindahanJf]);
-  const perpindahanJfDetail = useMemo(
-    () => perpindahanJf.filter((p) => p.jenjang_jf === selectedJenjangPerpindahan),
+  const perpindahanJfDetailBySatker = useMemo(
+    () => groupBySatuanKerja(perpindahanJf.filter((p) => p.jenjang_jf === selectedJenjangPerpindahan)),
     [perpindahanJf, selectedJenjangPerpindahan]
   );
 
@@ -393,17 +393,15 @@ export function ItkpDashboard() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
                     <thead>
                       <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}>
-                        <th style={{ padding: '8px 12px' }}>Nama</th>
-                        <th style={{ padding: '8px 12px' }}>Satuan Kerja</th>
-                        <th style={{ padding: '8px 12px' }}>Pangkat/Gol. Ruang</th>
+                        <th style={{ padding: '8px 12px' }}>Nama Satuan Kerja</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'right' }}>Jumlah</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {perpindahanJfDetail.map((p) => (
-                        <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '8px 12px' }}>{p.nama}</td>
-                          <td style={{ padding: '8px 12px' }}>{p.satuan_kerja}</td>
-                          <td style={{ padding: '8px 12px' }}>{p.pangkat_golongan}</td>
+                      {perpindahanJfDetailBySatker.map((s) => (
+                        <tr key={s.satuanKerja} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '8px 12px' }}>{s.satuanKerja}</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right' }}>{s.jumlah}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -14,6 +14,11 @@ export interface PerpindahanJfSummaryRow {
   jumlahPengajuan: number;
 }
 
+export interface PerpindahanJfSatkerRow {
+  satuanKerja: string;
+  jumlah: number;
+}
+
 /**
  * Mengambil daftar person pengajuan Perpindahan JF ke JF PBJ dari tabel
  * `data_perpindahan_jf`. Ringkasan per jenjang diturunkan lewat groupByJenjang,
@@ -53,4 +58,16 @@ export function groupByJenjang(rows: PerpindahanJfPerson[]): PerpindahanJfSummar
     .map(([jenjang, jumlahPengajuan]) => ({ jenjang, jumlahPengajuan }));
 
   return [...known, ...rest];
+}
+
+/** Jumlah pengajuan per satuan kerja, diurutkan menurun. Dipakai untuk detail per-jenjang. */
+export function groupBySatuanKerja(rows: PerpindahanJfPerson[]): PerpindahanJfSatkerRow[] {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const satker = row.satuan_kerja || 'Tidak diketahui';
+    counts.set(satker, (counts.get(satker) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([satuanKerja, jumlah]) => ({ satuanKerja, jumlah }))
+    .sort((a, b) => b.jumlah - a.jumlah || a.satuanKerja.localeCompare(b.satuanKerja));
 }
