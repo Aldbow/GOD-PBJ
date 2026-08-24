@@ -5,6 +5,7 @@
 **Script:** [`scripts/update_from_data_update.mjs`](../scripts/update_from_data_update.mjs)
 
 > Dokumen pendamping:
+>
 > - [docs/BASELINE-ARSITEKTUR.md](BASELINE-ARSITEKTUR.md) — arsitektur aplikasi secara umum
 > - [sql/migrations/README.md](../sql/migrations/README.md) — urutan build database & definisi view
 > - [AGENTS.md](../AGENTS.md) — Next.js di repo ini **bukan** Next.js versi umum, baca dokumen lokalnya
@@ -36,11 +37,11 @@ View **tidak perlu di-refresh manual** — semuanya view biasa, bukan materializ
 
 ## 2. Prasyarat di komputer baru
 
-| Langkah | Perintah / tindakan |
-|---|---|
-| 1. Dependency | `npm install` |
-| 2. **`.env.local`** | **WAJIB dibuat manual — file ini di-gitignore, tidak ikut ter-clone.** Salin `.env.example` jadi `.env.local`, isi dari Supabase Dashboard → Project Settings → API |
-| 3. Node | Node 20+ (dites di Node 22). Tidak ada dependency tambahan di luar `package.json` |
+| Langkah                    | Perintah / tindakan                                                                                                                                                              |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Dependency              | `npm install`                                                                                                                                                                  |
+| 2.**`.env.local`** | **WAJIB dibuat manual — file ini di-gitignore, tidak ikut ter-clone.** Salin `.env.example` jadi `.env.local`, isi dari Supabase Dashboard → Project Settings → API |
+| 3. Node                    | Node 20+ (dites di Node 22). Tidak ada dependency tambahan di luar`package.json`                                                                                               |
 
 Isi minimal `.env.local` untuk script ini:
 
@@ -84,18 +85,18 @@ Kalau file JSON tidak tersedia dari sumber, CSV tetap didukung — pemisah `,` m
 
 Ada di konstanta `TABLES` di dalam script. Per 18 Agustus 2026:
 
-| Tabel | Mode | Kunci alami (`keyCol`) | PK DB (`idCol`) |
-|---|---|---|---|
-| `api_paket_penyedia_terumumkan` | upsert | `kd_rup` | `kd_rup` |
-| `api_paket_swakelola_terumumkan` | upsert | `kd_rup` | `kd_rup` |
-| `paket_anggaran_penyedia` | upsert | `id_paket_anggaran_penyedia` | sama |
-| `paket_anggaran_swakelola` | upsert | `id_paket_anggaran_swakelola` | sama |
-| `paket_e_purchasing` | upsert | `order_id` | `order_id` |
-| `tender_selesai_nilai` | upsert | `kd_tender` | `kd_tender` |
-| `history_kaji_ulang` | replace | — | `id` (serial) |
-| `pencatatan_non_tender_realisasi` | replace | — | `id` (uuid) |
-| `non_tender_selesai` | replace | — | `id` (uuid) |
-| `data_afirmasi_pdn_perencanaan` | replace | — | `id` (serial) |
+| Tabel                               | Mode    | Kunci alami (`keyCol`)        | PK DB (`idCol`) |
+| ----------------------------------- | ------- | ------------------------------- | ----------------- |
+| `api_paket_penyedia_terumumkan`   | upsert  | `kd_rup`                      | `kd_rup`        |
+| `api_paket_swakelola_terumumkan`  | upsert  | `kd_rup`                      | `kd_rup`        |
+| `paket_anggaran_penyedia`         | upsert  | `id_paket_anggaran_penyedia`  | sama              |
+| `paket_anggaran_swakelola`        | upsert  | `id_paket_anggaran_swakelola` | sama              |
+| `paket_e_purchasing`              | upsert  | `order_id`                    | `order_id`      |
+| `tender_selesai_nilai`            | upsert  | `kd_tender`                   | `kd_tender`     |
+| `history_kaji_ulang`              | replace | —                              | `id` (serial)   |
+| `pencatatan_non_tender_realisasi` | replace | —                              | `id` (uuid)     |
+| `non_tender_selesai`              | replace | —                              | `id` (uuid)     |
+| `data_afirmasi_pdn_perencanaan`   | replace | —                              | `id` (serial)   |
 
 ### Dua mode
 
@@ -128,14 +129,14 @@ node scripts/update_from_data_update.mjs --table paket_e_purchasing
 
 Flag:
 
-| Flag | Arti |
-|---|---|
-| `--all` | proses semua tabel di `TABLES` |
-| `--table <nama>` | proses satu tabel (boleh diulang) |
-| `--dry-run` | validasi + laporan saja, **tidak menulis** |
-| `--yes` | lewati konfirmasi interaktif (untuk non-TTY) |
-| `--force` | lewati gerbang "baris turun drastis" |
-| `--no-backup` | lewati backup (hanya berlaku mode upsert; mode replace selalu backup) |
+| Flag               | Arti                                                                  |
+| ------------------ | --------------------------------------------------------------------- |
+| `--all`          | proses semua tabel di`TABLES`                                       |
+| `--table <nama>` | proses satu tabel (boleh diulang)                                     |
+| `--dry-run`      | validasi + laporan saja,**tidak menulis**                       |
+| `--yes`          | lewati konfirmasi interaktif (untuk non-TTY)                          |
+| `--force`        | lewati gerbang "baris turun drastis"                                  |
+| `--no-backup`    | lewati backup (hanya berlaku mode upsert; mode replace selalu backup) |
 
 Kalau **satu tabel saja** gagal periksa, script berhenti dan **tidak menulis apa pun ke tabel mana pun**. Ini disengaja.
 
@@ -161,6 +162,7 @@ Nilai **tidak pernah diubah/dinormalisasi**. Yang dikirim persis isi file; konve
    ```js
    { table: 'nama_tabel', mode: 'upsert', keyCol: 'kunci_alami', idCol: 'pk_db' },
    ```
+
    Pakai `mode: 'replace'` + `keyCol: null` kalau PK-nya digenerate DB (serial/uuid) dan tidak ada di file.
 3. `--dry-run` dulu. Kalau muncul keluhan kolom tidak ada, buat migration di `sql/migrations/` (nomor berikutnya), jalankan di Supabase SQL Editor, lalu regenerate `database.types.ts`.
 
@@ -168,15 +170,15 @@ Nilai **tidak pernah diubah/dinormalisasi**. Yang dikirim persis isi file; konve
 
 ## 7. Pesan error dan artinya
 
-| Pesan | Arti & tindakan |
-|---|---|
-| `Field berikut ada di file tapi tidak ada kolomnya di tabel X: <kolom>` | Sumber menambah field baru. Buat migration `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, jalankan di SQL Editor, ulangi. Contoh nyata: [`67_alter_pencatatan_non_tender_kode_penyedia.sql`](../sql/migrations/67_alter_pencatatan_non_tender_kode_penyedia.sql) |
-| `baris baru (N) < 80% baris sekarang (M)` | File sumber diduga tidak lengkap. Periksa `*.meta.json` (`rowCount`). Kalau memang benar turun, ulangi dengan `--force` |
-| `Kunci <k> duplikat di file` | File sumber punya PK ganda — mustahil di-upsert. Bersihkan file sumber dulu |
-| `Tabel X tidak ditemukan di database.types.ts` | Regenerate tipe (lihat bagian 2) |
-| Error `42501` saat menulis | RLS memblokir anon key. Isi `SUPABASE_SERVICE_ROLE_KEY` di `.env.local` |
-| Error `PGRST102` | Seharusnya tidak terjadi (script menormalisasi key). Kalau muncul, ada baris file yang bukan objek datar |
-| `[BEDA]` di ringkasan | Jumlah baris akhir ≠ jumlah file. Periksa manual, jangan diulang membabi buta |
+| Pesan                                                                     | Arti & tindakan                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Field berikut ada di file tapi tidak ada kolomnya di tabel X: <kolom>` | Sumber menambah field baru. Buat migration`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, jalankan di SQL Editor, ulangi. Contoh nyata: [`67_alter_pencatatan_non_tender_kode_penyedia.sql`](../sql/migrations/67_alter_pencatatan_non_tender_kode_penyedia.sql) |
+| `baris baru (N) < 80% baris sekarang (M)`                               | File sumber diduga tidak lengkap. Periksa`*.meta.json` (`rowCount`). Kalau memang benar turun, ulangi dengan `--force`                                                                                                                                    |
+| `Kunci <k> duplikat di file`                                            | File sumber punya PK ganda — mustahil di-upsert. Bersihkan file sumber dulu                                                                                                                                                                                    |
+| `Tabel X tidak ditemukan di database.types.ts`                          | Regenerate tipe (lihat bagian 2)                                                                                                                                                                                                                                |
+| Error`42501` saat menulis                                               | RLS memblokir anon key. Isi`SUPABASE_SERVICE_ROLE_KEY` di `.env.local`                                                                                                                                                                                      |
+| Error`PGRST102`                                                         | Seharusnya tidak terjadi (script menormalisasi key). Kalau muncul, ada baris file yang bukan objek datar                                                                                                                                                        |
+| `[BEDA]` di ringkasan                                                   | Jumlah baris akhir ≠ jumlah file. Periksa manual, jangan diulang membabi buta                                                                                                                                                                                  |
 
 ---
 
@@ -191,14 +193,14 @@ CASE WHEN (total_pencatatan + total_transaksional) > 0
 
 Jadi status hanya berubah kalau ada baris realisasi di tabel sumbernya:
 
-| Dashboard / view | Sumber realisasi | Filter kunci |
-|---|---|---|
-| `view_dashboard_pengadaan_langsung` | `pencatatan_non_tender_realisasi` + `non_tender_selesai` | `mtd_pemilihan IN ('Pengadaan Langsung','Dikecualikan')` |
-| `view_dashboard_penunjukan_langsung` | `pencatatan_non_tender_realisasi` + `non_tender_selesai` | `mtd_pemilihan = 'Penunjukan Langsung'` |
-| `view_dashboard_tender` | `tender_selesai_nilai` | metode Tender/Seleksi/Tender Cepat/Kontrak Tahun Jamak |
-| `view_dashboard_epurchasing_v6` | `paket_e_purchasing` | join lewat `rup_code` + `satker_kode_alias` |
-| `view_dashboard_swakelola_v1` | `api_pencatatan_swakelola` (`total_realisasi`) | status bukan `%cancel%` |
-| `view_dashboard_gabungan_satker` | UNION kelima view di atas | — |
+| Dashboard / view                       | Sumber realisasi                                             | Filter kunci                                               |
+| -------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------- |
+| `view_dashboard_pengadaan_langsung`  | `pencatatan_non_tender_realisasi` + `non_tender_selesai` | `mtd_pemilihan IN ('Pengadaan Langsung','Dikecualikan')` |
+| `view_dashboard_penunjukan_langsung` | `pencatatan_non_tender_realisasi` + `non_tender_selesai` | `mtd_pemilihan = 'Penunjukan Langsung'`                  |
+| `view_dashboard_tender`              | `tender_selesai_nilai`                                     | metode Tender/Seleksi/Tender Cepat/Kontrak Tahun Jamak     |
+| `view_dashboard_epurchasing_v6`      | `paket_e_purchasing`                                       | join lewat`rup_code` + `satker_kode_alias`             |
+| `view_dashboard_swakelola_v1`        | `api_pencatatan_swakelola` (`total_realisasi`)           | status bukan`%cancel%`                                   |
+| `view_dashboard_gabungan_satker`     | UNION kelima view di atas                                    | —                                                         |
 
 Definisi final tiap view = file bernomor **terbesar** di `sql/migrations/` yang menyentuh view itu (mis. PL final ada di `45_view_jenis_pengadaan.sql`, bukan `43_`).
 

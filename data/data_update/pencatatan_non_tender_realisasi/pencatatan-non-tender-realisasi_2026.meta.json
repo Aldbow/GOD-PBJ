@@ -2,7 +2,7 @@
   "endpoint": "/v1/tender/pencatatan-non-tender-realisasi",
   "year": "2026",
   "keyFields": null,
-  "rowCount": 30,
-  "lastUpdated": "2026-08-20T02:13:22.668Z",
+  "rowCount": 37,
+  "lastUpdated": "2026-08-24T02:09:48.807Z",
   "lastWriteMode": "append"
 }
