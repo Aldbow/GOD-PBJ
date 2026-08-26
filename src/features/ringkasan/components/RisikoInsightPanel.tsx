@@ -12,7 +12,9 @@ import { RisikoDriverStackedBarChart, type StackedBucket } from '@/features/risi
 import { SatkerRisikoTinggiChart, type SatkerRisikoBucket } from '@/features/risiko/components/charts/SatkerRisikoTinggiChart';
 import { RisikoDetailBody } from '@/features/risiko/components/RisikoDetailBody';
 import { riskKategoriColor } from '@/features/risiko/components/charts/riskChartTheme';
-import { EXECUTION_STATUS_LABEL, type RiskKategori, type ExecutionStatus } from '@/lib/risiko/types';
+import { EXECUTION_STATUS_LABEL, RISK_KATEGORI_LABEL, type RiskKategori, type ExecutionStatus } from '@/lib/risiko/types';
+import { usePublishPrintSection } from '../lib/pdf/printSections';
+import type { RisikoPrintData } from '../lib/pdf/types';
 import { fmtRupiahDetail, fmtInt, countRup } from '@/lib/format';
 import { useRisikoPaketDetail } from '@/hooks/useRisikoPaketDetail';
 import styles from './RisikoInsightPanel.module.css';
@@ -192,6 +194,36 @@ export function RisikoInsightPanel({ satker, ppk, canSeePaketDetail = true }: Pr
       .sort((a, b) => b.count - a.count)
       .slice(0, SATKER_TOP_N);
   }, [satkerTinggiRows]);
+
+  // Ringkasan cetak seksi ini. Datanya dimuat & diagregasi di sini, bukan di
+  // RingkasanView, jadi Cetak Laporan hanya bisa memuatnya lewat papan terbit —
+  // lihat alasan lengkapnya di `lib/pdf/printSections.tsx`.
+  const printData = useMemo<RisikoPrintData | null>(() => {
+    if (loading) return null;
+    const hitung = (k: RiskKategori) => {
+      const baris = data.filter((r) => r.kategori === k);
+      return {
+        label: RISK_KATEGORI_LABEL[k],
+        count: baris.reduce((s, r) => s + countRup(r.kd_rup), 0),
+        pagu: baris.reduce((s, r) => s + (r.pagu || 0), 0),
+        colorHex: riskKategoriColor(k, false),
+      };
+    };
+    return {
+      totalPaket: data.reduce((s, r) => s + countRup(r.kd_rup), 0),
+      kategori: (['TINGGI', 'SEDANG', 'RENDAH', 'DATA_TIDAK_LENGKAP'] as RiskKategori[]).map(hitung),
+      drivers: distRiskDriverStacked.map((d) => ({
+        label: d.label,
+        tinggi: d.counts['3'] ?? 0,
+        sedang: d.counts['2'] ?? 0,
+        rendah: d.counts['1'] ?? 0,
+        lainnya: (d.counts['0'] ?? 0) + (d.counts['NULL'] ?? 0),
+      })),
+      satkerTinggi: satkerTinggiRanking.map((s) => ({ satker: s.satker, count: s.count, pagu: s.pagu })),
+    };
+  }, [loading, data, distRiskDriverStacked, satkerTinggiRanking]);
+
+  usePublishPrintSection('risiko', printData);
 
   const paketForSelectedSatker = useMemo(() => {
     if (!selectedSatkerTinggi) return [];

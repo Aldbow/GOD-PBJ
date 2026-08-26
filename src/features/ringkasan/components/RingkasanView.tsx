@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, Variants } from 'framer-motion';
 import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge, Sparkles, ShieldAlert, ExternalLink, Landmark, Lock, SlidersHorizontal, ArrowUpRight } from 'lucide-react';
-import * as htmlToImage from 'html-to-image';
-import { jsPDF } from 'jspdf';
 import { ErrorBox } from '@/components/ui/ErrorBox';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
@@ -64,6 +62,7 @@ import { AnomaliTable } from './AnomaliTable';
 import { SatkerDetailModal } from './SatkerDetailModal';
 import { KurasiTidakAkuratTable } from './KurasiTidakAkuratTable';
 import { RisikoInsightPanel } from './RisikoInsightPanel';
+import { PrintSectionsProvider, usePrintSectionsStore } from '../lib/pdf/printSections';
 import styles from './RingkasanView.module.css';
 
 const container: Variants = {
@@ -236,91 +235,14 @@ export function RingkasanView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSatkerForDetail, setSelectedSatkerForDetail] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [isPrintExporting, setIsPrintExporting] = useState(false);
   const [printingPeringkat, setPrintingPeringkat] = useState(false);
+  // Papan tempat seksi ITKP & Risiko menerbitkan ringkasan cetaknya — keduanya
+  // memuat datanya sendiri, jadi angkanya tidak ada di `agg`.
+  const printSections = usePrintSectionsStore();
   const [barChartMode, setBarChartMode] = useState<'keuangan' | 'paket'>('keuangan');
   const [jenisChartMode, setJenisChartMode] = useState<'keuangan' | 'paket'>('keuangan');
   const [sumberChartMode, setSumberChartMode] = useState<'keuangan' | 'paket'>('keuangan');
   const isDark = useIsDark();
-
-  const handleDownloadPdf = async () => {
-    const el = document.getElementById('report-snapshot');
-    if (!el) return;
-    setDownloadingPdf(true);
-    setIsPrintExporting(true);
-    // Tunggu React commit ulang tabel anomali dalam mode "semua baris" (tanpa
-    // paginasi) sebelum di-capture, supaya PDF memuat seluruh paket anomali.
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    try {
-      // Render ke <canvas>, bukan langsung ke PNG tunggal: konten laporan bisa
-      // sangat tinggi (banyak seksi + tabel anomali di paling bawah), dan
-      // menjejalkannya jadi satu halaman PDF raksasa berisiko kena batas ukuran
-      // canvas/halaman browser & jsPDF sehingga seksi paling bawah terpotong.
-      const bgColor = isDark ? '#0f172a' : '#f8fafc'; // slate-900 / slate-50
-      const canvas = await htmlToImage.toCanvas(el, {
-        pixelRatio: 2, // 2x for better resolution
-        backgroundColor: bgColor,
-        width: el.scrollWidth,
-        height: el.scrollHeight,
-        style: {
-          transform: 'none',
-        },
-        filter: (node) => {
-          // Abaikan elemen yang memiliki atribut data-exclude-print
-          if (node.nodeType === 1) {
-            const element = node as HTMLElement;
-            if (element.dataset?.excludePrint === 'true') {
-              return false;
-            }
-          }
-          return true;
-        },
-      });
-
-      // Potong canvas jadi beberapa halaman A4 agar seluruh konten (termasuk
-      // tabel anomali di bagian paling bawah) selalu tercetak utuh, dengan
-      // margin di semua sisi supaya konten tidak mepet ke tepi kertas.
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      const pageWidthPt = pdf.internal.pageSize.getWidth();
-      const pageHeightPt = pdf.internal.pageSize.getHeight();
-      const MARGIN_PT = 32;
-      const contentWidthPt = pageWidthPt - MARGIN_PT * 2;
-      const contentHeightPt = pageHeightPt - MARGIN_PT * 2;
-      const pxToPt = contentWidthPt / canvas.width;
-      const pageHeightPx = Math.floor(contentHeightPt / pxToPt);
-
-      let renderedPx = 0;
-      let pageIndex = 0;
-      while (renderedPx < canvas.height) {
-        const sliceHeightPx = Math.min(pageHeightPx, canvas.height - renderedPx);
-
-        const sliceCanvas = document.createElement('canvas');
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = sliceHeightPx;
-        const ctx = sliceCanvas.getContext('2d');
-        if (!ctx) break;
-        ctx.drawImage(canvas, 0, renderedPx, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
-
-        if (pageIndex > 0) pdf.addPage();
-        // Isi seluruh halaman dengan warna latar laporan agar area margin
-        // menyatu dengan konten, bukan bingkai putih polos di sekitar konten gelap.
-        pdf.setFillColor(bgColor);
-        pdf.rect(0, 0, pageWidthPt, pageHeightPt, 'F');
-        pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', MARGIN_PT, MARGIN_PT, contentWidthPt, sliceHeightPx * pxToPt);
-
-        renderedPx += sliceHeightPx;
-        pageIndex += 1;
-      }
-
-      const filename = `Laporan_Ringkasan_Pengadaan_${new Date().toISOString().split('T')[0]}.pdf`;
-      pdf.save(filename);
-    } catch (err) {
-      console.error('Failed to generate PDF', err);
-    } finally {
-      setIsPrintExporting(false);
-      setDownloadingPdf(false);
-    }
-  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -530,8 +452,43 @@ export function RingkasanView() {
     }
   }, [searchedSatker, searchQuery, highlightSatker, applied.satker, agg.satkerExclusion]);
 
+  /**
+   * Cetak Laporan.
+   *
+   * Tidak lagi memotret halaman. Isinya disusun dari `agg` — agregat yang sama
+   * dengan yang dipakai layar — sehingga seksi yang sedang tergulung, tabel
+   * yang sedang terpaginasi, dan bagian yang berada di luar layar tetap
+   * tercetak utuh, dan tidak ada state layar yang perlu dimutasi dulu.
+   */
+  const handleDownloadPdf = useCallback(async () => {
+    setDownloadingPdf(true);
+    try {
+      const { cetakLaporanRingkasan } = await import('../lib/pdf/cetakLaporanRingkasan');
+      await cetakLaporanRingkasan({
+        agg,
+        scopeLabel: applied.satker || 'Kementerian Ketenagakerjaan',
+        filter: applied,
+        isFiltered,
+        canSeePaketDetail,
+        highlightSatker: highlightSatker || undefined,
+        scopeNote:
+          isPpk && ppkScope === 'kementerian'
+            ? 'Lingkup Kementerian — rincian per-paket dibatasi pada satuan kerja Anda.'
+            : null,
+        sections: printSections.read(),
+        printedAt: new Date(),
+      });
+    } catch (err) {
+      console.error('Gagal mencetak laporan ringkasan', err);
+      setError('Gagal menyiapkan berkas PDF laporan. Coba lagi.');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }, [agg, applied, isFiltered, canSeePaketDetail, highlightSatker, isPpk, ppkScope, printSections]);
+
   return (
-    <motion.div variants={container} initial="hidden" animate="show" id="report-snapshot" style={{ padding: '4px' }}>
+    <PrintSectionsProvider store={printSections}>
+    <motion.div variants={container} initial="hidden" animate="show" style={{ padding: '4px' }}>
       {/* Baris 1 — Header */}
       <motion.div variants={item} className={styles.pageHeader}>
         <div>
@@ -544,7 +501,7 @@ export function RingkasanView() {
               : 'Gambaran umum pelaksanaan pengadaan, realisasi, pemanfaatan sistem, dan hasil kurasi paket.'}
           </p>
         </div>
-        <div className={styles.headerActions} data-exclude-print="true">
+        <div className={styles.headerActions}>
           <button className={styles.ghostBtn} onClick={handleDownloadPdf} disabled={loading || downloadingPdf}>
             {downloadingPdf ? <RefreshCw size={15} className={styles.spin} /> : <Printer size={15} />} Cetak Laporan
           </button>
@@ -564,7 +521,7 @@ export function RingkasanView() {
           Satker/PPK, PPK mendapat pemilih lingkup 2-state. Pemilih penuh tidak
           diberikan ke PPK karena dropdown-nya memuat daftar lengkap nama satker
           dan nama SELURUH PPK — data yang tidak dibutuhkan untuk membaca agregat. */}
-      <motion.div variants={item} data-exclude-print="true">
+      <motion.div variants={item}>
         {isPpk ? (
           <PpkScopeBar
             scope={ppkScope}
@@ -630,7 +587,7 @@ export function RingkasanView() {
         <AccordionTableWrapper 
           title="Rincian Tabel Sumber Pengadaan" 
           count={agg.sumber.length} 
-          isOpen={showSumberTable || isPrintExporting} 
+          isOpen={showSumberTable}
           onToggle={() => setShowSumberTable(!showSumberTable)}
         >
           <div className={styles.tableScroll}>
@@ -709,7 +666,7 @@ export function RingkasanView() {
         <AccordionTableWrapper 
           title="Rincian Tabel Metode Pengadaan" 
           count={agg.metode.length} 
-          isOpen={showMetodeTable || isPrintExporting} 
+          isOpen={showMetodeTable}
           onToggle={() => setShowMetodeTable(!showMetodeTable)}
         >
           <div className={styles.tableScroll}>
@@ -805,7 +762,7 @@ export function RingkasanView() {
         <AccordionTableWrapper 
           title="Rincian Tabel Jenis Pengadaan" 
           count={agg.jenis.length} 
-          isOpen={showJenisTable || isPrintExporting} 
+          isOpen={showJenisTable}
           onToggle={() => setShowJenisTable(!showJenisTable)}
         >
           <div className={styles.tableScroll}>
@@ -861,7 +818,6 @@ export function RingkasanView() {
                 className={`${styles.ghostBtn} ${styles.sectionAction}`}
                 onClick={handleCetakPeringkat}
                 disabled={loading || printingPeringkat || searchedSatker.length === 0}
-                data-exclude-print="true"
                 title={
                   searchedSatker.length === 0
                     ? 'Tidak ada satuan kerja untuk dicetak'
@@ -1045,9 +1001,9 @@ export function RingkasanView() {
       {/* Baris 8 — Deteksi Anomali */}
       <motion.div variants={item} className={styles.sectionGroup}>
         <AnomaliPanel summary={agg.anomali} />
-        {/* Idem — dan karena tabel ini yang dibentangkan penuh oleh printMode,
-            menyembunyikannya di sini juga yang menjaga hasil Cetak Laporan. */}
-        {canSeePaketDetail && <AnomaliTable rows={agg.anomaliRows} printMode={isPrintExporting} />}
+        {/* Idem. Gerbang yang sama juga dipegang `buildLaporan`, jadi
+            menyembunyikannya di sini tidak lagi menentukan isi Cetak Laporan. */}
+        {canSeePaketDetail && <AnomaliTable rows={agg.anomaliRows} />}
       </motion.div>
       
       <ExportDataModal
@@ -1072,5 +1028,6 @@ export function RingkasanView() {
         onClose={() => setSelectedSatkerForDetail(null)}
       />
     </motion.div>
+    </PrintSectionsProvider>
   );
 }
