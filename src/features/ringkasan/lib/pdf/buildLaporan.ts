@@ -394,7 +394,7 @@ export function buildLaporan(input: LaporanInput): Laporan {
           { header: 'Skor 3 (Tinggi)', width: 74, align: 'right' },
           { header: 'Skor 2 (Sedang)', width: 74, align: 'right' },
           { header: 'Skor 1 (Rendah)', width: 74, align: 'right' },
-          { header: 'Skor 0 / Tidak Lengkap', width: 92, align: 'right' },
+          { header: 'Skor 0', width: 92, align: 'right' },
         ],
         rows: rk.drivers.map((d) => [
           d.label,
