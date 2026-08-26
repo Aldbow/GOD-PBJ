@@ -2,7 +2,7 @@
   "endpoint": "/v1/rup/history-kaji-ulang",
   "year": "2026",
   "keyFields": null,
-  "rowCount": 6510,
-  "lastUpdated": "2026-08-24T02:07:06.912Z",
+  "rowCount": 6528,
+  "lastUpdated": "2026-08-26T02:13:25.805Z",
   "lastWriteMode": "append"
 }
