@@ -159,6 +159,7 @@ Nilai **tidak pernah diubah/dinormalisasi**. Yang dikirim persis isi file; konve
 
 1. Buat folder `data/data_update/<nama_tabel>/` dan taruh file JSON-nya.
 2. Tambahkan satu baris ke `TABLES` di script:
+
    ```js
    { table: 'nama_tabel', mode: 'upsert', keyCol: 'kunci_alami', idCol: 'pk_db' },
    ```

@@ -482,6 +482,36 @@ export type Database = {
         }
         Relationships: []
       }
+      data_perpindahan_jf: {
+        Row: {
+          created_at: string
+          id: string
+          jenjang_jf: string | null
+          nama: string | null
+          no_urut: number | null
+          pangkat_golongan: string | null
+          satuan_kerja: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          jenjang_jf?: string | null
+          nama?: string | null
+          no_urut?: number | null
+          pangkat_golongan?: string | null
+          satuan_kerja?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          jenjang_jf?: string | null
+          nama?: string | null
+          no_urut?: number | null
+          pangkat_golongan?: string | null
+          satuan_kerja?: string | null
+        }
+        Relationships: []
+      }
       data_renaksi: {
         Row: {
           created_at: string
@@ -1067,6 +1097,7 @@ export type Database = {
           order_date: string | null
           order_id: string
           product_id: string | null
+          products: string | null
           rekan_id: string | null
           rup_code: string | null
           rup_desc: string | null
@@ -1091,6 +1122,7 @@ export type Database = {
           order_date?: string | null
           order_id: string
           product_id?: string | null
+          products?: string | null
           rekan_id?: string | null
           rup_code?: string | null
           rup_desc?: string | null
@@ -1115,6 +1147,7 @@ export type Database = {
           order_date?: string | null
           order_id?: string
           product_id?: string | null
+          products?: string | null
           rekan_id?: string | null
           rup_code?: string | null
           rup_desc?: string | null
