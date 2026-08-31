@@ -1,44 +1,24 @@
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
   margin-top: 14px;
 }
 
-.headBtn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-  padding: 13px 18px;
-  background: transparent;
-  border: none;
+/* Header akordeon: seluruh baris judul adalah tombol. Bentuk kartunya
+   (radius/border/shadow) datang dari Card; di sini hanya padding baris,
+   garis pemisah saat terbuka, dan sorotan hover. */
+.headBtn.headBtn {
+  gap: 9px;
+  padding: 13px var(--card-pad);
+  margin-bottom: 0;
   border-bottom: 1px solid transparent;
-  cursor: pointer;
-  color: var(--text-tertiary);
   transition: background-color var(--dur-fast, 0.15s) ease;
 }
 
 .headBtn[aria-expanded="true"] {
-  border-bottom-color: var(--border);
+  border-bottom-color: var(--border-subtle);
 }
 
 .headBtn:hover {
   background: var(--surface-hover);
-}
-
-.headTitleWrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
 }
 
 .count {
@@ -54,7 +34,8 @@
 
 .scroll { overflow-x: auto; }
 
-.body {
+.body.body {
+  gap: 0;
   animation: slideDown 0.2s ease-out forwards;
 }
 

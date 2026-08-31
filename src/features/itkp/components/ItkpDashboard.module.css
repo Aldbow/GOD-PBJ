@@ -40,12 +40,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
   margin-bottom: 18px;
-  box-shadow: var(--shadow-sm);
 }
 
 .filterFields {
@@ -143,15 +138,14 @@
 
 /* ============ Ringkasan Skor ITKP ============ */
 .scoreSummary {
+  margin-bottom: 20px;
+}
+
+/* Dua kolom: skor di kiri, pita distribusi di kanan. */
+.scoreSummaryBody.scoreSummaryBody {
   display: grid;
   grid-template-columns: minmax(220px, 280px) 1fr;
   gap: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 22px 24px;
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 20px;
 }
 
 .sumScore,
@@ -308,8 +302,9 @@
 .compGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  gap: var(--card-gap);
   margin-bottom: 22px;
+  align-items: stretch;
 }
 
 @media (max-width: 900px) {
@@ -346,50 +341,30 @@
   --cTint: var(--info-100);
 }
 
+/* Bentuk kartunya dari Card; sisanya isi & penanda terpilih. */
 .compCard {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
   text-align: left;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  cursor: pointer;
-  transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease, border-color var(--dur-fast) ease;
   font: inherit;
   color: inherit;
 }
 
-.compCard:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-  border-color: color-mix(in srgb, var(--c) 40%, var(--border));
-}
-
+/* Penanda kartu terpilih: outline, bukan border kedua di atas border kartu. */
 .compCardActive {
-  border-color: var(--c);
-  box-shadow: 0 0 0 1px var(--c), var(--shadow-md);
-  background: linear-gradient(180deg, var(--cTint), transparent 70%), var(--surface);
+  outline: 2px solid var(--brand-600);
+  outline-offset: -2px;
 }
 
-.compTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+.compTop.compTop {
+  flex-wrap: wrap;
+  margin-bottom: 10px;
 }
 
-.compIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  background: var(--cTint);
-  color: var(--cText);
-  flex-shrink: 0;
+.compBadge {
+  margin-left: auto;
+}
+
+.compBody {
+  gap: 9px;
 }
 
 .compName {
@@ -477,50 +452,30 @@
 
 /* ============ Rincian Indikator ============ */
 .rincian {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 20px 22px 22px;
-  box-shadow: var(--shadow-sm);
   scroll-margin-top: 16px;
 }
 
-.rincianHead {
-  display: flex;
+.rincianHead.rincianHead {
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
   flex-wrap: wrap;
+  gap: 14px;
   padding-bottom: 16px;
   margin-bottom: 18px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .rincianTitleWrap {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
-.rincianIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: var(--radius-md);
-  background: var(--cTint);
-  color: var(--cText);
+.rincianBody {
+  gap: 0;
 }
 
 .rincianTitle {
   font-size: 17px;
-  font-weight: 600;
-  margin: 0 0 4px;
-  color: var(--text-primary);
-  line-height: 1.3;
+  margin-bottom: 4px;
 }
 
 .rincianMeta {
@@ -661,35 +616,19 @@
 }
 
 /* ============ Kartu Indikator ============ */
-.indCard {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 15px;
-  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
-}
-
-.indCard:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-sm);
-}
-
-.indHead {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.indTitle {
-  display: flex;
+.indHead.indHead {
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 6px;
-  min-width: 0;
+  margin-bottom: 10px;
+}
+
+.indBadge {
+  margin-left: auto;
+}
+
+.indBody {
+  gap: 8px;
 }
 
 .indCode {
@@ -851,31 +790,12 @@
 
 /* ============ Kartu Ringkasan Komponen ============ */
 .summaryCard {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: linear-gradient(180deg, var(--cTint), transparent 80%), var(--surface-2);
-  border: 1px solid color-mix(in srgb, var(--c) 30%, var(--border));
-  border-radius: var(--radius-lg);
-  padding: 15px;
   text-decoration: none;
   color: inherit;
 }
 
-.summaryCardLink {
-  transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease, border-color var(--dur-fast) ease;
-}
-
-.summaryCardLink:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--c);
-}
-
-.summaryHead {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--cText);
+.summaryBody {
+  gap: 10px;
 }
 
 .summaryScoreRow {
@@ -985,18 +905,9 @@
   line-height: 1.5;
 }
 
+/* Bentuk kartunya dari Card variant="flush" — tabelnya penuh sampai tepi. */
 .formasiCard {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  transition: box-shadow var(--dur-med) ease, border-color var(--dur-med) ease;
-}
-
-.formasiCard:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--border-strong);
+  margin-top: 4px;
 }
 
 @keyframes formasiRowIn {

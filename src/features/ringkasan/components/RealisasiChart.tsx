@@ -13,8 +13,8 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { SectionHeader } from '@/components/ui/SectionHeader';
 import styles from './RealisasiChart.module.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
@@ -74,26 +74,26 @@ export function RealisasiChart() {
   };
 
   return (
-    <Card style={{ marginBottom: 26, padding: '18px 20px' }}>
-      <SectionHeader
-        title="Realisasi belanja vs kurva ideal"
-        action={
-          <div className={styles.segmented}>
-            <button
-              className={`${styles.segBtn} ${period === 'bulanan' ? styles.active : ''}`}
-              onClick={() => setPeriod('bulanan')}
-            >
-              Bulanan
-            </button>
-            <button
-              className={`${styles.segBtn} ${period === 'kuartalan' ? styles.active : ''}`}
-              onClick={() => setPeriod('kuartalan')}
-            >
-              Kuartalan
-            </button>
-          </div>
-        }
-      />
+    <Card className={styles.card}>
+      <Card.Header>
+        <Card.Icon tone="positive"><TrendingUp /></Card.Icon>
+        <Card.Title>Realisasi belanja vs kurva ideal</Card.Title>
+        <div className={`${styles.segmented} ${styles.headerAction}`}>
+          <button
+            className={`${styles.segBtn} ${period === 'bulanan' ? styles.active : ''}`}
+            onClick={() => setPeriod('bulanan')}
+          >
+            Bulanan
+          </button>
+          <button
+            className={`${styles.segBtn} ${period === 'kuartalan' ? styles.active : ''}`}
+            onClick={() => setPeriod('kuartalan')}
+          >
+            Kuartalan
+          </button>
+        </div>
+      </Card.Header>
+      <Card.Body>
       <div className={styles.legend}>
         <span className={styles.legendItem}>
           <span className={styles.swatch} style={{ background: actualColor }} />
@@ -107,6 +107,7 @@ export function RealisasiChart() {
       <div className={styles.chartWrap}>
         <Line data={data} options={options} />
       </div>
+      </Card.Body>
     </Card>
   );
 }

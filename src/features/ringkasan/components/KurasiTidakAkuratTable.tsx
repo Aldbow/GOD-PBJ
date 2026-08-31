@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import type { KurasiTidakAkuratDetail } from '../lib/ringkasanData';
 import { fmtRupiah, fmtInt } from '@/lib/format';
+import { Card } from '@/components/ui/Card';
 import styles from './KurasiTidakAkuratTable.module.css';
 
 const PER_PAGE = 5;
@@ -14,10 +15,15 @@ export function KurasiTidakAkuratTable({ rows }: { rows: KurasiTidakAkuratDetail
 
   if (rows.length === 0) {
     return (
-      <div className={styles.emptyCard}>
-        <CheckCircle2 size={16} />
-        Semua paket pada filter ini sudah berstatus Akurat.
-      </div>
+      <Card>
+        <Card.Header>
+          <Card.Icon tone="positive"><CheckCircle2 /></Card.Icon>
+          <Card.Title>Paket Perlu Koreksi</Card.Title>
+        </Card.Header>
+        <Card.Body className={styles.emptyBody}>
+          Semua paket pada filter ini sudah berstatus Akurat.
+        </Card.Body>
+      </Card>
     );
   }
 
@@ -27,22 +33,24 @@ export function KurasiTidakAkuratTable({ rows }: { rows: KurasiTidakAkuratDetail
   const pageRows = rows.slice(start, start + PER_PAGE);
 
   return (
-    <div className={styles.card}>
-      <button 
+    <Card variant="flush">
+      <Card.Header
+        as="button"
         type="button"
-        className={styles.headBtn} 
+        className={styles.headBtn}
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
       >
-        <div className={styles.headTitleWrap}>
-          <span className={styles.title}>Paket Perlu Koreksi (Tidak Akurat)</span>
-          <span className={styles.count}>{fmtInt(rows.length)} paket</span>
-        </div>
-        {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-      </button>
+        <Card.Icon tone="warning"><Sparkles /></Card.Icon>
+        <Card.Title as="span">Paket Perlu Koreksi (Tidak Akurat)</Card.Title>
+        <span className={styles.count}>{fmtInt(rows.length)} paket</span>
+        <Card.Action as="span" aria-hidden>
+          {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </Card.Action>
+      </Card.Header>
 
       {isOpen && (
-        <div className={styles.body}>
+        <Card.Body className={styles.body}>
           <div className={styles.scroll}>
             <table className={styles.table}>
               <thead>
@@ -109,8 +117,8 @@ export function KurasiTidakAkuratTable({ rows }: { rows: KurasiTidakAkuratDetail
               </button>
             </div>
           </div>
-        </div>
+        </Card.Body>
       )}
-    </div>
+    </Card>
   );
 }

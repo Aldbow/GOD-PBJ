@@ -1,0 +1,7 @@
+.card {
+  margin-bottom: var(--card-gap);
+}
+
+.body {
+  gap: 14px;
+}

@@ -1,26 +1,20 @@
-.wrap {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
+/* Bentuk kartunya dari komponen Card. Satu-satunya penyimpangan yang
+   disengaja: daftar pilihan SearchableSelect diposisikan absolut di dalam
+   kartu, jadi overflow:hidden bawaan Card akan memotongnya. */
+.wrap.wrap {
   margin-bottom: 24px;
+  overflow: visible;
 }
 
-.row {
-  display: flex;
+.head.head {
+  margin-bottom: 12px;
+}
+
+.row.row {
+  flex-direction: row;
   align-items: flex-end;
   gap: 14px;
   flex-wrap: wrap;
-}
-
-.iconLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  padding-bottom: 9px;
 }
 
 .field {
@@ -77,9 +71,7 @@
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .activeInfo {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin: 12px 0 0;
+  margin-top: 12px;
 }
 .activeInfo b { color: var(--text-primary); font-weight: 600; }
 

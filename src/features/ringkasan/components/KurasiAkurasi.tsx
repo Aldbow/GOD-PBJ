@@ -6,6 +6,7 @@ import type { KurasiAggregate, MetodeAggregate } from '../lib/ringkasanData';
 import { fmtInt, fmtPct } from '@/lib/format';
 import { KurasiMetodeChart } from './charts/KurasiMetodeChart';
 import { useSession } from '@/components/auth/SessionProvider';
+import { Card } from '@/components/ui/Card';
 import styles from './KurasiAkurasi.module.css';
 
 const RING_R = 52;
@@ -102,10 +103,11 @@ export function KurasiAkurasi({ kurasi, metode, onRefresh, isFullWidth = false }
   const wBelum = (belumDikurasi / segTotal) * 100;
 
   return (
-    <div className={styles.card}>
-      <div className={styles.head}>
-        <div>
-          <h3 className={styles.title}>Akurasi Rencana Umum Pengadaan</h3>
+    <Card>
+      <Card.Header className={styles.head}>
+        <Card.Icon tone="neutral"><Sparkles /></Card.Icon>
+        <div className={styles.titleWrap}>
+          <Card.Title>Akurasi Rencana Umum Pengadaan</Card.Title>
           <p className={styles.sub}>Kualitas metode pemilihan terhadap pagu &amp; jenis pengadaan</p>
         </div>
         <div className={styles.actions}>
@@ -123,9 +125,9 @@ export function KurasiAkurasi({ kurasi, metode, onRefresh, isFullWidth = false }
             </>
           )}
         </div>
-      </div>
+      </Card.Header>
 
-      <div className={`${styles.mainLayout} ${isFullWidth ? styles.mainLayoutFullWidth : ''}`}>
+      <Card.Body className={`${styles.mainLayout} ${isFullWidth ? styles.mainLayoutFullWidth : ''}`}>
         <div className={styles.body}>
           <div className={styles.ringWrap}>
             <svg viewBox="0 0 130 130" className={styles.ring} role="img" aria-label={`Akurasi ${fmtPct(pctAkurasi)}`}>
@@ -189,9 +191,9 @@ export function KurasiAkurasi({ kurasi, metode, onRefresh, isFullWidth = false }
           </div>
           <KurasiMetodeChart metode={metode} />
         </div>
-      </div>
 
-      {message && <div className={styles.msg}>{message}</div>}
-    </div>
+        {message && <div className={styles.msg}>{message}</div>}
+      </Card.Body>
+    </Card>
   );
 }

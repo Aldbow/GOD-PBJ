@@ -1,22 +1,13 @@
+/* Bentuk kartunya dari komponen Card. */
 .row {
   width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 14px 18px;
-  cursor: pointer;
-  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease, transform var(--dur-fast) ease;
 }
 
-.row:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
+.body {
+  gap: 10px;
 }
 
-.top {
-  display: flex;
-  align-items: center;
+.top.top {
   gap: 12px;
   margin-bottom: 9px;
 }

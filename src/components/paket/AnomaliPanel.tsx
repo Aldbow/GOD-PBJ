@@ -1,10 +1,10 @@
 "use client";
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { AlertTriangle, FileWarning, TrendingUp, CheckCircle2, Filter } from 'lucide-react';
 import { anomaliOf, ANOMALI_LABEL, type AnomaliJenis, type AnomaliRow, type AnomaliSummary } from '@/lib/anomali';
 import { fmtRupiah, fmtInt } from '@/lib/format';
+import { Card, type CardTone } from '@/components/ui/Card';
 import styles from './AnomaliPanel.module.css';
 
 // Badge ringkas untuk baris tabel yang terdeteksi anomali.
@@ -63,6 +63,12 @@ export function AnomaliPanel({ summary, activeFilter = [], onToggleFilter, title
 
   const clickable = Boolean(onToggleFilter);
 
+  // 'critical' = risiko, 'serious' = peringatan. Warnanya hanya di Card.Icon.
+  const tint: Record<TileDef['severity'], CardTone> = {
+    critical: 'risk',
+    serious: 'warning',
+  };
+
   return (
     <div className={styles.section}>
       <h3 className={styles.title}>
@@ -78,10 +84,11 @@ export function AnomaliPanel({ summary, activeFilter = [], onToggleFilter, title
       </h3>
 
       {summary.totalPaket === 0 ? (
-        <div className={styles.empty}>
-          <CheckCircle2 size={18} />
-          Tidak ada anomali terdeteksi pada data ini.
-        </div>
+        <Card>
+          <Card.Body className={styles.empty}>
+            Tidak ada anomali terdeteksi pada data ini.
+          </Card.Body>
+        </Card>
       ) : (
         <div className={styles.grid}>
           {tiles.map((t) => {
@@ -90,11 +97,16 @@ export function AnomaliPanel({ summary, activeFilter = [], onToggleFilter, title
             const disabled = t.count === 0;
             const content = (
               <>
-                <div className={`${styles.iconWrap} ${styles[`sev-${t.severity}`]}`}>
-                  <Icon size={22} />
-                </div>
-                <div className={styles.body}>
-                  <p className={styles.label}>{t.label}</p>
+                <Card.Header>
+                  <Card.Icon tone={tint[t.severity]}><Icon /></Card.Icon>
+                  <Card.Label as="span">{t.label}</Card.Label>
+                  {clickable && !disabled && (
+                    <Card.Action as="span">
+                      <Filter size={11} /> {active ? 'aktif' : 'filter'}
+                    </Card.Action>
+                  )}
+                </Card.Header>
+                <Card.Body className={styles.body}>
                   <div className={styles.valueRow}>
                     <span className={styles.count}>{fmtInt(t.count)}</span>
                     <span className={styles.countUnit}>paket</span>
@@ -102,35 +114,31 @@ export function AnomaliPanel({ summary, activeFilter = [], onToggleFilter, title
                   <p className={styles.nilai}>
                     {t.nilaiLabel}: <strong>{fmtRupiah(t.nilai)}</strong>
                   </p>
-                  <p className={styles.desc}>{t.desc}</p>
-                </div>
-                {clickable && !disabled && (
-                  <span className={styles.filterHint}>
-                    <Filter size={11} /> {active ? 'aktif' : 'filter'}
-                  </span>
-                )}
+                </Card.Body>
+                <Card.Footer>{t.desc}</Card.Footer>
               </>
             );
 
             if (clickable) {
               return (
-                <motion.button
+                <Card
                   key={t.jenis}
+                  as="button"
+                  interactive={!disabled}
                   type="button"
-                  whileHover={disabled ? undefined : { y: -2 }}
-                  className={`${styles.tile} ${styles[`tile-${t.severity}`]} ${active ? styles.tileActive : ''}`}
+                  className={`${styles.tile} ${active ? styles.tileActive : ''}`}
                   onClick={() => !disabled && onToggleFilter?.(t.jenis)}
                   disabled={disabled}
                   aria-pressed={active}
                 >
                   {content}
-                </motion.button>
+                </Card>
               );
             }
             return (
-              <div key={t.jenis} className={`${styles.tile} ${styles[`tile-${t.severity}`]}`}>
+              <Card key={t.jenis} className={styles.tile}>
                 {content}
-              </div>
+              </Card>
             );
           })}
         </div>

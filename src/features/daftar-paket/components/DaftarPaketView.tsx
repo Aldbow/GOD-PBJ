@@ -10,6 +10,7 @@ import { jenisOf, metodeOf, JENIS_ANOMALI } from '@/lib/drilldown';
 import { useOrgFilters } from '@/hooks/useOrgFilters';
 import { useUrlPillFilter } from '@/hooks/useUrlPillFilter';
 import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
+import { FilterAdvancedCard } from '@/components/paket/FilterAdvancedCard';
 import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
 import { MetricGrid, DualProgressBar } from '@/components/paket/SummaryCards';
 import { AnomaliPanel, AnomaliBadge } from '@/components/paket/AnomaliPanel';
@@ -428,7 +429,7 @@ export function DaftarPaketView() {
               dibawa dari Ringkasan, jadi harus terlihat begitu halaman terbuka —
               kalau tersembunyi di balik toggle, pengguna melihat daftar yang
               tersaring tanpa tahu apa yang menyaringnya. */}
-          <div className={styles.advancedPanel}>
+          <FilterAdvancedCard title="Filter Bawaan dari Ringkasan">
             <div className={styles.filterRow}>
               <span className={styles.filterLabel}>Metode</span>
               <FilterPillGroup options={METODE_OPTIONS} selected={metodeFilter} onChange={setMetodeFilter} multi={false} />
@@ -437,10 +438,10 @@ export function DaftarPaketView() {
               <span className={styles.filterLabel}>Jenis</span>
               <FilterPillGroup options={JENIS_OPTIONS} selected={jenisFilter} onChange={setJenisFilter} multi={false} />
             </div>
-          </div>
+          </FilterAdvancedCard>
 
           {showAdvanced && (
-            <div className={styles.advancedPanel}>
+            <FilterAdvancedCard>
               <div className={styles.filterRow}>
                 <span className={styles.filterLabel}>Status</span>
                 <FilterPillGroup options={STATUS_OPTIONS} selected={statusFilter} onChange={setStatusFilter} />
@@ -469,7 +470,7 @@ export function DaftarPaketView() {
                   Reset Semua Filter &amp; Urutan
                 </button>
               )}
-            </div>
+            </FilterAdvancedCard>
           )}
 
           <PaketTable

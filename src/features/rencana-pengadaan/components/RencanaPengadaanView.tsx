@@ -4,10 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Select } from '@/components/ui/Select';
-import { AlertCircle, ChevronLeft, ChevronRight, SearchX, Wallet, TrendingUp, Percent } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, SearchX, Wallet, TrendingUp, Percent, BarChart3, PieChart } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
+import { Card, type CardTone } from '@/components/ui/Card';
 import styles from './RencanaPengadaanView.module.css';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -124,6 +125,15 @@ export function RencanaPengadaanView() {
     if (m >= 1e9) return 'Rp ' + (m / 1e9).toFixed(2).replace('.', ',') + ' M';
     if (m >= 1e6) return 'Rp ' + (m / 1e6).toFixed(2).replace('.', ',') + ' Jt';
     return 'Rp ' + m.toLocaleString('id-ID');
+  };
+
+  // Rona kartu skor: hanya dipakai tint Card.Icon, tidak lagi jadi latar kartu.
+  const getPercentageTone = (pct: number): CardTone => {
+    if (pct <= 30) return 'risk';
+    if (pct <= 50) return 'warning';
+    if (pct <= 80) return 'neutral';
+    if (pct <= 100) return 'positive';
+    return 'risk';
   };
 
   const getPercentageTheme = (pct: number) => {
@@ -364,8 +374,12 @@ export function RencanaPengadaanView() {
       )}
 
       {loading && data.length === 0 ? (
-        <div className={styles.dashboardCard}>
-          <div className={styles.chartContainer}>
+        <Card className={styles.dashboardCard} aria-hidden>
+          <Card.Header>
+            <Card.Icon tone="neutral"><BarChart3 /></Card.Icon>
+            <Card.Title>Pengumuman RUP per Satuan Kerja</Card.Title>
+          </Card.Header>
+          <Card.Body className={styles.chartContainer}>
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className={styles.skeletonRow}>
                 <div className={styles.skeletonLabel} />
@@ -374,67 +388,82 @@ export function RencanaPengadaanView() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
+          </Card.Body>
+        </Card>
       ) : (
         <div style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.3s ease', pointerEvents: loading ? 'none' : 'auto' }}>
           <div className={styles.scorecardsWrapper}>
-            <div className={styles.scorecard}>
-              <div className={styles.scoreIconWrap} style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.1)' }}>
-                <TrendingUp size={24} />
-              </div>
-              <div className={styles.scoreInfo}>
-                <span className={styles.scoreLabel}>Total Belanja Pengadaan</span>
+            <Card>
+              <Card.Header>
+                <Card.Icon tone="neutral"><TrendingUp /></Card.Icon>
+                <Card.Label>Total Belanja Pengadaan</Card.Label>
+              </Card.Header>
+              <Card.Body className={styles.scoreInfo}>
                 <span className={styles.scoreValue}>
                   {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalBelanjaAll)}
                 </span>
-              </div>
-            </div>
-            
-            <div className={styles.scorecard}>
-              <div className={styles.scoreIconWrap} style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.1)' }}>
-                <Wallet size={24} />
-              </div>
-              <div className={styles.scoreInfo}>
-                <span className={styles.scoreLabel}>Total RUP Terumumkan</span>
+              </Card.Body>
+            </Card>
+
+            <Card>
+              <Card.Header>
+                <Card.Icon tone="neutral"><Wallet /></Card.Icon>
+                <Card.Label>Total RUP Terumumkan</Card.Label>
+              </Card.Header>
+              <Card.Body className={styles.scoreInfo}>
                 <span className={styles.scoreValue}>
                   {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalRupAll)}
                 </span>
-              </div>
-            </div>
-            
-            <div className={styles.scorecardProminent} style={{ background: getPercentageTheme(avgPct).grad }}>
-              <div className={styles.scoreInfo}>
-                <span className={styles.scoreLabelProminent}>Persentase Pengumuman RUP</span>
+              </Card.Body>
+            </Card>
+
+            <Card>
+              <Card.Header>
+                <Card.Icon tone={getPercentageTone(avgPct)}><Percent /></Card.Icon>
+                <Card.Label>Persentase Pengumuman RUP</Card.Label>
+              </Card.Header>
+              <Card.Body className={styles.scoreInfo}>
                 <span className={styles.scoreValueProminent}>
                   {avgPct.toFixed(1)}%
                 </span>
-              </div>
-              <div className={styles.scoreIconWrapProminent}>
-                <Percent size={32} />
-              </div>
-            </div>
+              </Card.Body>
+            </Card>
           </div>
 
           <div className={styles.analyticsPanel}>
-            <div className={styles.analyticsCard}>
-              <h3 className={styles.analyticsTitle}>Cara Pengadaan</h3>
-              <div className={styles.donutWrapper}>
-                <Doughnut data={pelaksanaData} options={chartOptions} />
-              </div>
-            </div>
-            <div className={styles.analyticsCard}>
-              <h3 className={styles.analyticsTitle}>Metode Pemilihan Pengadaan</h3>
-              <div className={styles.donutWrapper}>
-                <Doughnut data={metodePengadaanData} options={chartOptions} />
-              </div>
-            </div>
-            <div className={styles.analyticsCard}>
-              <h3 className={styles.analyticsTitle}>Jenis Belanja Pengadaan</h3>
-              <div className={styles.donutWrapper}>
-                <Doughnut data={jenisBelanjaData} options={chartOptions} />
-              </div>
-            </div>
+            <Card>
+              <Card.Header>
+                <Card.Icon tone="neutral"><PieChart /></Card.Icon>
+                <Card.Title>Cara Pengadaan</Card.Title>
+              </Card.Header>
+              <Card.Body>
+                <div className={styles.donutWrapper}>
+                  <Doughnut data={pelaksanaData} options={chartOptions} />
+                </div>
+              </Card.Body>
+            </Card>
+            <Card>
+              <Card.Header>
+                <Card.Icon tone="neutral"><PieChart /></Card.Icon>
+                <Card.Title>Metode Pemilihan Pengadaan</Card.Title>
+              </Card.Header>
+              <Card.Body>
+                <div className={styles.donutWrapper}>
+                  <Doughnut data={metodePengadaanData} options={chartOptions} />
+                </div>
+              </Card.Body>
+            </Card>
+            <Card>
+              <Card.Header>
+                <Card.Icon tone="neutral"><PieChart /></Card.Icon>
+                <Card.Title>Jenis Belanja Pengadaan</Card.Title>
+              </Card.Header>
+              <Card.Body>
+                <div className={styles.donutWrapper}>
+                  <Doughnut data={jenisBelanjaData} options={chartOptions} />
+                </div>
+              </Card.Body>
+            </Card>
           </div>
 
           <div className={styles.toolbar}>
@@ -496,8 +525,12 @@ export function RencanaPengadaanView() {
             </div>
           </div>
 
-          <div className={styles.dashboardCard}>
-            <div className={styles.chartContainer}>
+          <Card className={styles.dashboardCard}>
+            <Card.Header>
+              <Card.Icon tone="neutral"><BarChart3 /></Card.Icon>
+              <Card.Title>Pengumuman RUP per Satuan Kerja</Card.Title>
+            </Card.Header>
+            <Card.Body className={styles.chartContainer}>
               <div className={styles.limitLine} />
               
               {currentData.length > 0 ? (
@@ -603,7 +636,7 @@ export function RencanaPengadaanView() {
                   <p>Coba gunakan kata kunci pencarian yang lain.</p>
                 </div>
               )}
-            </div>
+            </Card.Body>
 
             <div className={styles.legendWrap}>
               <div className={styles.legendItem}>
@@ -650,7 +683,7 @@ export function RencanaPengadaanView() {
                 </button>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Building2 } from 'lucide-react';
+import { Card } from './Card';
 import styles from './EselonBarRow.module.css';
 
 interface EselonBarRowProps {
@@ -31,19 +32,15 @@ export function EselonBarRow({
     clampedPct > 75 ? 'rgba(6, 182, 212, 0.35)' : clampedPct > 40 ? 'rgba(249, 115, 22, 0.35)' : 'rgba(239, 68, 68, 0.35)';
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: index != null ? Math.min(index * 0.03, 0.3) : 0 }}
-      className={styles.row}
-      onClick={onClick}
-    >
-      <div className={styles.top}>
+    <Card interactive padding="tight" className={styles.row} onClick={onClick}>
+      <Card.Header className={styles.top}>
+        <Card.Icon tone="neutral"><Building2 /></Card.Icon>
         {index != null && <span className={styles.rank}>{index + 1}</span>}
-        <span className={styles.name} title={name}>{name}</span>
+        <Card.Title className={styles.name} title={name}>{name}</Card.Title>
         <span className={styles.pct} style={{ color }}>{pct.toFixed(1)}%</span>
         <span className={styles.arrow}><ArrowRight size={16} /></span>
-      </div>
+      </Card.Header>
+      <Card.Body className={styles.body}>
       <div className={styles.track}>
         <motion.div
           className={styles.fill}
@@ -60,6 +57,7 @@ export function EselonBarRow({
         <span className={styles.dotSep}>·</span>
         <span><span className={styles.metaVal}>{count}</span> {countLabel}</span>
       </div>
-    </motion.div>
+      </Card.Body>
+    </Card>
   );
 }

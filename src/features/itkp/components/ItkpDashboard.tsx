@@ -17,6 +17,8 @@ import {
   ShieldCheck,
   ChevronDown,
   ArrowRightLeft,
+  ClipboardList,
+  Gauge,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
@@ -37,6 +39,7 @@ import {
   type ItkpIndicatorModel,
 } from '@/lib/itkp/itkpModel';
 import { PEDOMAN, PedomanComponentDetail } from './PedomanLengkapCard';
+import { Card, type CardTone } from '@/components/ui/Card';
 import styles from './ItkpDashboard.module.css';
 
 const KEMENTERIAN_LABEL = 'Kementerian (Total)';
@@ -216,7 +219,12 @@ export function ItkpDashboard() {
       </div>
 
       {/* ── Ringkasan Skor ITKP ── */}
-      <div className={styles.scoreSummary}>
+      <Card className={styles.scoreSummary}>
+        <Card.Header>
+          <Card.Icon tone="neutral"><Gauge /></Card.Icon>
+          <Card.Title>Skor ITKP {TAHUN}</Card.Title>
+        </Card.Header>
+        <Card.Body className={styles.scoreSummaryBody}>
         {/* Skor */}
         <div className={styles.sumScore}>
           <span className={styles.sumLabel}>Skor ITKP {TAHUN}</span>
@@ -260,7 +268,8 @@ export function ItkpDashboard() {
             </div>
           </div>
         </div>
-      </div>
+        </Card.Body>
+      </Card>
 
       {/* ── Kartu Komponen A–D ── */}
       <div className={styles.compGrid}>
@@ -270,14 +279,17 @@ export function ItkpDashboard() {
       </div>
 
       {/* ── Rincian Indikator Komponen Aktif ── */}
-      <section ref={rincianRef} className={`${styles.rincian} ${styles[`comp${activeComp.code}`]}`}>
-        <header className={styles.rincianHead}>
-          <div className={styles.rincianTitleWrap}>
-            <span className={styles.rincianIcon}>{COMP_ICON[activeComp.code]}</span>
-            <div>
-              <h2 className={styles.rincianTitle}>
+      <Card
+        as="section"
+        ref={rincianRef}
+        className={`${styles.rincian} ${styles[`comp${activeComp.code}`]}`}
+      >
+        <Card.Header className={styles.rincianHead}>
+          <Card.Icon tone={COMP_TONE[activeComp.code]}>{COMP_ICON[activeComp.code]}</Card.Icon>
+            <div className={styles.rincianTitleWrap}>
+              <Card.Title as="h2" className={styles.rincianTitle}>
                 Rincian Indikator Komponen {activeComp.code} — {activeComp.name}
-              </h2>
+              </Card.Title>
               <div className={styles.rincianMeta}>
                 <span>
                   Bobot <strong>{activeComp.weight}%</strong>
@@ -295,7 +307,6 @@ export function ItkpDashboard() {
                 </span>
               </div>
             </div>
-          </div>
           <button
             type="button"
             className={styles.pedomanBtn}
@@ -305,7 +316,8 @@ export function ItkpDashboard() {
             <BookOpen size={14} />
             {pedomanOpen ? 'Tutup pedoman' : 'Lihat pedoman penilaian'}
           </button>
-        </header>
+        </Card.Header>
+        <Card.Body className={styles.rincianBody}>
 
         {pedomanOpen && (
           <div className={styles.pedomanPanel} style={{ padding: 0, overflow: 'hidden' }}>
@@ -331,7 +343,8 @@ export function ItkpDashboard() {
           )}
           <ComponentSummaryCard comp={activeComp} />
         </div>
-      </section>
+        </Card.Body>
+      </Card>
 
       {/* Pedoman Lengkap telah dipindahkan ke masing-masing rincian komponen */}
       {/* ── Modal Detail ── */}
@@ -369,7 +382,7 @@ export function ItkpDashboard() {
                 </div>
               </div>
 
-              <div className={styles.formasiCard}>
+              <Card variant="flush" className={styles.formasiCard}>
                 <div style={{ overflowX: 'auto' }}>
                   <table className={styles.formasiTable}>
                     <thead>
@@ -418,7 +431,7 @@ export function ItkpDashboard() {
                     </tfoot>
                   </table>
                 </div>
-              </div>
+              </Card>
             </motion.section>
 
             {/* ── Proses Perpindahan JF ke JF PBJ ── */}
@@ -435,7 +448,7 @@ export function ItkpDashboard() {
                 </div>
               </div>
 
-              <div className={styles.formasiCard}>
+              <Card variant="flush" className={styles.formasiCard}>
                 <div style={{ overflowX: 'auto' }}>
                   <table className={`${styles.formasiTable} ${styles.formasiTableAccordion}`}>
                     <thead>
@@ -531,7 +544,7 @@ export function ItkpDashboard() {
                     </tfoot>
                   </table>
                 </div>
-              </div>
+              </Card>
             </motion.section>
           </motion.div>
         )}
@@ -846,19 +859,23 @@ function ComponentCard({
 }) {
   const barPct = Math.max(0, Math.min(comp.percentage, 100));
   return (
-    <button
+    <Card
+      as="button"
+      interactive
+      padding="tight"
       type="button"
       onClick={onSelect}
       aria-pressed={active}
       className={`${styles.compCard} ${styles[`comp${comp.code}`]} ${active ? styles.compCardActive : ''}`}
     >
-      <div className={styles.compTop}>
-        <span className={styles.compIcon}>{COMP_ICON[comp.code]}</span>
-        <Badge variant={comp.status.variant}>{comp.status.label}</Badge>
-      </div>
-      <div className={styles.compName}>
-        {comp.code}. {comp.name}
-      </div>
+      <Card.Header className={styles.compTop}>
+        <Card.Icon tone={COMP_TONE[comp.code]}>{COMP_ICON[comp.code]}</Card.Icon>
+        <Card.Title as="span" className={styles.compName}>
+          {comp.code}. {comp.name}
+        </Card.Title>
+        <Badge variant={comp.status.variant} className={styles.compBadge}>{comp.status.label}</Badge>
+      </Card.Header>
+      <Card.Body className={styles.compBody}>
       <span className={styles.compWeight}>Bobot {comp.weight}%</span>
       <div className={styles.compScoreRow}>
         <span className={styles.compScore}>{fmtDec(comp.score, 2)}</span>
@@ -874,32 +891,36 @@ function ComponentCard({
       >
         <div className={styles.compBarFill} style={{ width: `${barPct}%` }} />
       </div>
-      <div className={styles.compFoot}>
+      </Card.Body>
+      <Card.Footer className={styles.compFoot}>
         <span className={styles.compPct}>{fmtPct(comp.percentage)}</span>
         <span className={styles.compDetail}>
           Lihat rincian <ArrowRight size={13} />
         </span>
-      </div>
-    </button>
+      </Card.Footer>
+    </Card>
   );
 }
+
+// Empat tint resmi Card.Icon; komponen C & D memakai rona netral karena
+// palet kartu hanya mengenal netral/positif/peringatan/risiko.
+const COMP_TONE: Record<string, CardTone> = { A: 'positive', B: 'warning', C: 'neutral', D: 'neutral' };
 
 // ── Kartu Indikator ──
 function IndicatorCard({ ind, onDetailClick }: { ind: ItkpIndicatorModel; onDetailClick?: (ind: ItkpIndicatorModel) => void }) {
   const barPct = ind.applicable ? Math.max(0, Math.min(ind.attainment, 100)) : 0;
   return (
-    <div className={styles.indCard}>
-      <div className={styles.indHead}>
-        <div className={styles.indTitle}>
-          <span className={styles.indCode}>{ind.code}</span>
-          <span className={styles.indName}>{ind.name}</span>
-          <button type="button" className={styles.infoBtn} title={ind.formula} aria-label={`Formula ${ind.name}`}>
-            <Info size={12} />
-          </button>
-        </div>
-        <Badge variant={ind.status.variant}>{ind.status.label}</Badge>
-      </div>
+    <Card padding="tight" className={styles.indCard}>
+      <Card.Header className={styles.indHead}>
+        <span className={styles.indCode}>{ind.code}</span>
+        <Card.Title className={styles.indName}>{ind.name}</Card.Title>
+        <button type="button" className={styles.infoBtn} title={ind.formula} aria-label={`Formula ${ind.name}`}>
+          <Info size={12} />
+        </button>
+        <Badge variant={ind.status.variant} className={styles.indBadge}>{ind.status.label}</Badge>
+      </Card.Header>
 
+      <Card.Body className={styles.indBody}>
       <div className={styles.indPct}>{ind.capaianLabel}</div>
       <span className={styles.indPctCaption}>Persentase capaian</span>
 
@@ -946,7 +967,8 @@ function IndicatorCard({ ind, onDetailClick }: { ind: ItkpIndicatorModel; onDeta
           Lihat Detail Data
         </button>
       )}
-    </div>
+      </Card.Body>
+    </Card>
   );
 }
 
@@ -955,7 +977,11 @@ function ComponentSummaryCard({ comp }: { comp: ItkpComponentModel }) {
   const tercapai = comp.indicators.filter((i) => i.applicable && i.score >= i.maxScore).length;
   const inner = (
     <>
-      <span className={styles.summaryHead}>Ringkasan Komponen {comp.code}</span>
+      <Card.Header>
+        <Card.Icon tone={COMP_TONE[comp.code]}><ClipboardList /></Card.Icon>
+        <Card.Title>Ringkasan Komponen {comp.code}</Card.Title>
+      </Card.Header>
+      <Card.Body className={styles.summaryBody}>
       <div className={styles.summaryScoreRow}>
         <span className={styles.summaryScore}>
           {fmtDec(comp.score, 2)}
@@ -985,20 +1011,21 @@ function ComponentSummaryCard({ comp }: { comp: ItkpComponentModel }) {
           </div>
         )}
       </div>
+      </Card.Body>
       {comp.detailHref && (
-        <span className={styles.summaryCta}>
+        <Card.Footer className={styles.summaryCta}>
           Lihat analisis <ArrowRight size={13} />
-        </span>
+        </Card.Footer>
       )}
     </>
   );
 
   if (comp.detailHref) {
     return (
-      <Link href={comp.detailHref} className={`${styles.summaryCard} ${styles.summaryCardLink}`}>
+      <Card as={Link} href={comp.detailHref} interactive padding="tight" className={styles.summaryCard}>
         {inner}
-      </Link>
+      </Card>
     );
   }
-  return <div className={styles.summaryCard}>{inner}</div>;
+  return <Card padding="tight" className={styles.summaryCard}>{inner}</Card>;
 }

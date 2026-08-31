@@ -1,10 +1,4 @@
-.wrap {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
+/* Bentuk kartunya dari Card variant="flush" — tabel menempel sampai tepi. */
 .scroller {
   overflow-x: auto;
 }
@@ -70,20 +64,22 @@ tbody tr:last-child .td {
 }
 
 .empty {
+  min-height: 120px;
   padding: 40px 16px;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   color: var(--text-tertiary);
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
-.footer {
+.footer.footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 12px 14px;
-  border-top: 1px solid var(--border);
+  padding: 12px var(--card-pad) var(--card-pad);
 }
 
 .footerCount {

@@ -14,6 +14,7 @@ import { fmtDec, fmtPct } from '@/lib/format';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { usePublishPrintSection } from '../lib/pdf/printSections';
 import type { ItkpPrintData } from '../lib/pdf/types';
+import { Card } from '@/components/ui/Card';
 import styles from './ItkpGauge.module.css';
 
 // Skala total ITKP = A(30) + B(30) + C(30) + D(10).
@@ -173,25 +174,39 @@ export function ItkpGauge({ satker, forceComponentA = false, rows, rowsLoading }
 
   if (loading) {
     return (
-      <div className={styles.card}>
-        <Skeleton width="55%" height={16} />
-        <Skeleton width={220} height={110} style={{ margin: '18px auto' }} />
-        <Skeleton width="100%" height={120} style={{ marginTop: 16 }} />
-      </div>
+      <Card aria-hidden>
+        <Card.Header>
+          <Skeleton width={30} height={30} />
+          <Skeleton width="55%" height={16} />
+        </Card.Header>
+        <Card.Body>
+          <Skeleton width={220} height={110} style={{ margin: '18px auto' }} />
+          <Skeleton width="100%" height={120} style={{ marginTop: 16 }} />
+        </Card.Body>
+      </Card>
     );
   }
 
   if (error || !resultA || !view) {
-    return <div className={styles.card}><p className={styles.errText}>{error || 'Data ITKP tidak tersedia.'}</p></div>;
+    return (
+      <Card>
+        <Card.Header>
+          <Card.Icon tone="neutral"><Gauge /></Card.Icon>
+          <Card.Title>{judul}</Card.Title>
+        </Card.Header>
+        <Card.Body className={styles.errBody}>{error || 'Data ITKP tidak tersedia.'}</Card.Body>
+      </Card>
+    );
   }
 
   const { componentAOnly, displayTotal, displayMax, ratio, band, nextLabel, komponen } = view;
 
   return (
-    <div className={`${styles.card} ${componentAOnly ? styles.cardComponentAOnly : ''}`}>
-      <div className={styles.head}>
-        <div>
-          <h3 className={styles.title}>{judul}</h3>
+    <Card className={componentAOnly ? styles.cardComponentAOnly : undefined}>
+      <Card.Header className={styles.head}>
+        <Card.Icon tone="neutral"><Gauge /></Card.Icon>
+        <div className={styles.titleWrap}>
+          <Card.Title>{judul}</Card.Title>
           {!componentAOnly && <p className={styles.scope}>{scopeLabel}</p>}
         </div>
         <div className={styles.headActions}>
@@ -204,9 +219,9 @@ export function ItkpGauge({ satker, forceComponentA = false, rows, rowsLoading }
             Lihat Detail <ArrowRight size={13} />
           </Link>
         </div>
-      </div>
+      </Card.Header>
 
-      <div className={styles.splitLayout}>
+      <Card.Body className={styles.splitLayout}>
         <div className={styles.splitLeft}>
           {/* Hero */}
           <div className={styles.hero}>
@@ -337,15 +352,15 @@ export function ItkpGauge({ satker, forceComponentA = false, rows, rowsLoading }
             </div>
           )}
         </div>
-      </div>
+      </Card.Body>
 
       {/* Satu sumber teks dengan catatan yang ikut tercetak di PDF — kalau
           dibiarkan terpisah, keduanya cepat berbeda bunyi. */}
       {catatan && (
-        <p className={styles.note}>
+        <Card.Footer className={styles.note}>
           <Info size={12} /> {catatan}
-        </p>
+        </Card.Footer>
       )}
-    </div>
+    </Card>
   );
 }

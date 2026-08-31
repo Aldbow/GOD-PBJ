@@ -5,6 +5,7 @@ import { BookOpen, ChevronDown, ChevronUp, Info, MonitorSmartphone, Users, Build
 import { computeItkpA, emptyItkpAInput } from '@/lib/itkp/calcA';
 import { PENUGASAN_OPTIONS, RENAKSI_OPTIONS, KEMATANGAN_OPTIONS, BAND_FORMASI, BAND_INTEGRITAS, CATATAN_INKONSISTENSI_FORMASI } from '@/lib/itkp/calcBCD';
 import { fmtDec } from '@/lib/format';
+import { Card } from '@/components/ui/Card';
 import styles from './PedomanLengkapCard.module.css';
 
 interface PedomanBlock {
@@ -221,21 +222,18 @@ export function PedomanLengkapCard() {
   const activeComp = PEDOMAN.find((c) => c.code === openCode);
 
   return (
-    <section className={styles.card}>
-      <div className={styles.header}>
-        <div className={styles.headerTitleWrap}>
-          <span className={styles.headerIcon}>
-            <BookOpen size={18} />
-          </span>
-          <div>
-            <h2 className={styles.title}>Pedoman Lengkap Penilaian ITKP</h2>
-            <p className={styles.subtitle}>
-              Keputusan Kepala LKPP Nomor 74 Tahun 2026 — formula & rentang nilai tiap komponen (A–D) sesuai regulasi.
-            </p>
-          </div>
+    <Card as="section" className={styles.card}>
+      <Card.Header className={styles.header}>
+        <Card.Icon tone="neutral"><BookOpen /></Card.Icon>
+        <div className={styles.titleWrap}>
+          <Card.Title as="h2">Pedoman Lengkap Penilaian ITKP</Card.Title>
+          <p className={styles.subtitle}>
+            Keputusan Kepala LKPP Nomor 74 Tahun 2026 — formula &amp; rentang nilai tiap komponen (A–D) sesuai regulasi.
+          </p>
         </div>
-      </div>
+      </Card.Header>
 
+      <Card.Body className={styles.body}>
       <div className={styles.compList}>
         {PEDOMAN.map((comp) => {
           const isOpen = openCode === comp.code;
@@ -271,6 +269,7 @@ export function PedomanLengkapCard() {
           <PedomanComponentDetail comp={activeComp} />
         </div>
       )}
-    </section>
+      </Card.Body>
+    </Card>
   );
 }

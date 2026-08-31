@@ -24,7 +24,7 @@
 .segmentedControl {
   display: flex;
   background: var(--bg-page);
-  border-radius: 99px;
+  border-radius: var(--radius-pill);
   padding: 4px;
   border: 1px solid var(--border);
   position: relative;
@@ -35,7 +35,7 @@
   position: relative;
   background: transparent;
   border: none;
-  border-radius: 99px;
+  border-radius: var(--radius-pill);
   padding: 8px 24px;
   font-size: 14px;
   font-weight: 600;
@@ -57,8 +57,8 @@
   right: 0;
   bottom: 0;
   background: var(--surface);
-  border-radius: 99px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
   z-index: -1;
 }
@@ -100,22 +100,18 @@
   color: var(--text-secondary);
 }
 
-/* Dashboard Styles */
+/* Dashboard Styles — bentuk kartunya dari komponen Card. */
 .dashboardCard {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  padding: 24px;
   margin-top: 16px;
+  /* Chart batang di dalamnya lebih lebar dari kartu; biarkan bergulir
+     mendatar di dalam kartu, bukan mendorong lebar halaman. */
+  overflow-x: auto;
 }
 
 .chartContainer {
   position: relative;
-  display: flex;
-  flex-direction: column;
   gap: 20px;
-  padding-right: 500px; 
+  padding-right: 500px;
   min-width: 900px;
 }
 
@@ -166,7 +162,7 @@
   flex: 1;
   height: 24px;
   background: var(--bg-page);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   position: relative;
   display: flex;
   align-items: center;
@@ -174,7 +170,7 @@
 
 .chartBar {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   position: relative;
   display: flex;
   align-items: center;
@@ -318,7 +314,7 @@
   background: var(--red-50);
   color: var(--red-600);
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -419,29 +415,41 @@
   margin-bottom: 20px;
 }
 
+/* Abu-abu skeleton diambil dari token permukaan supaya ikut membalik di mode
+   gelap — sebelumnya hex terang yang menyala di atas kartu gelap. */
 .skeletonLabel {
   width: 350px;
   height: 16px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   margin-right: 20px;
   animation: shimmer 1.5s infinite linear;
-  background: linear-gradient(to right, #f1f5f9 4%, #e2e8f0 25%, #f1f5f9 36%);
+  background: linear-gradient(
+    to right,
+    var(--surface-2) 4%,
+    color-mix(in srgb, var(--text-tertiary) 18%, var(--surface-2)) 25%,
+    var(--surface-2) 36%
+  );
   background-size: 1000px 100%;
 }
 
 .skeletonBarWrapper {
   flex: 1;
   height: 24px;
-  background: #f1f5f9;
-  border-radius: 12px;
+  background: var(--surface-2);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
 .skeletonBar {
   height: 100%;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   animation: shimmer 1.5s infinite linear;
-  background: linear-gradient(to right, #e2e8f0 4%, #cbd5e1 25%, #e2e8f0 36%);
+  background: linear-gradient(
+    to right,
+    var(--surface-2) 4%,
+    color-mix(in srgb, var(--text-tertiary) 28%, var(--surface-2)) 25%,
+    var(--surface-2) 36%
+  );
   background-size: 1000px 100%;
 }
 
@@ -458,8 +466,9 @@
 .scorecardsWrapper {
   display: grid;
   grid-template-columns: 1fr 1fr 1.5fr;
-  gap: 16px;
+  gap: var(--card-gap);
   margin-bottom: 24px;
+  align-items: stretch;
 }
 
 @media (max-width: 768px) {
@@ -468,36 +477,9 @@
   }
 }
 
-.scorecard {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  box-shadow: var(--shadow-sm);
-}
-
-.scoreIconWrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .scoreInfo {
-  display: flex;
-  flex-direction: column;
+  justify-content: flex-end;
   gap: 4px;
-}
-
-.scoreLabel {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 500;
 }
 
 .scoreValue {
@@ -510,77 +492,22 @@
   display: block;
 }
 
-/* Prominent Scorecard */
-.scorecardProminent {
-  border-radius: var(--radius-xl);
-  padding: 24px 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  color: white;
-  transition: transform 0.2s;
-}
-
-.scorecardProminent:hover {
-  transform: translateY(-2px);
-}
-
-.scoreLabelProminent {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
-  display: block;
-}
-
+/* Angka utama kartu persentase — badan kartu tetap putih, ronanya di ikon. */
 .scoreValueProminent {
   font-size: 36px;
   font-weight: 700;
-  color: white;
+  line-height: 1.05;
+  color: var(--text-primary);
   font-family: var(--font-mono);
-  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.scoreIconWrapProminent {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  box-shadow: inset 0 2px 4px rgba(255,255,255,0.1);
 }
 
 /* Analytics Panel (Donut Charts) */
 .analyticsPanel {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
+  gap: var(--card-gap);
   margin-bottom: 24px;
-}
-
-.analyticsCard {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-}
-
-.analyticsTitle {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-top: 0;
-  margin-bottom: 24px;
-  text-align: center;
+  align-items: stretch;
 }
 
 .donutWrapper {

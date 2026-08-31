@@ -8,8 +8,10 @@ import { fmtRupiahDetail, countRup } from '@/lib/format';
 import { fetchRupHistory, type RupHistoryEntry } from '@/lib/paket/rupHistory';
 import { useOrgFilters } from '@/hooks/useOrgFilters';
 import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
+import { FilterAdvancedCard } from '@/components/paket/FilterAdvancedCard';
 import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
 import { MetricGrid, type MetricCardDef } from '@/components/paket/SummaryCards';
+import { Card } from '@/components/ui/Card';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
 import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
 import { Badge } from '@/components/ui/Badge';
@@ -557,11 +559,11 @@ export function RisikoPengadaanView() {
             {/* ─── 3 Kartu Horizontal ─── */}
             <div className={distStyles.splitGrid}>
               {/* Kartu 1: Donut Kategori Risiko */}
-              <div className={distStyles.donutCard}>
-                <div className={distStyles.cardHeader}>
-                  <span className={distStyles.cardIcon}><PieChart size={15} /></span>
-                  <div>
-                    <div className={distStyles.cardTitle}>Kategori Risiko</div>
+              <Card className={distStyles.donutCard}>
+                <Card.Header className={distStyles.cardHeader}>
+                  <Card.Icon tone="neutral"><PieChart /></Card.Icon>
+                  <div className={distStyles.titleWrap}>
+                    <Card.Title>Kategori Risiko</Card.Title>
                     <div className={distStyles.cardSubtitle}>Per level risiko</div>
                   </div>
                   <div className={distStyles.donutJenisToggle}>
@@ -594,18 +596,19 @@ export function RisikoPengadaanView() {
                       </button>
                     )})}
                   </div>
-                </div>
-                <RisikoKategoriDonut rows={donutRows} />
-              </div>
+                </Card.Header>
+                <Card.Body>
+                  <RisikoKategoriDonut rows={donutRows} />
+                </Card.Body>
+              </Card>
 
 
               {/* Kartu 3: Risk Driver — Vertical Bar */}
-              <div className={distStyles.card}>
-                <div className={distStyles.cardInner}>
-                  <div className={distStyles.cardHeader}>
-                    <span className={`${distStyles.cardIcon} ${distStyles.cardIconRed}`}><AlertTriangle size={15} /></span>
-                    <div>
-                      <div className={distStyles.cardTitle}>Sebaran Risiko</div>
+              <Card>
+                  <Card.Header className={distStyles.cardHeader}>
+                    <Card.Icon tone="risk"><AlertTriangle /></Card.Icon>
+                    <div className={distStyles.titleWrap}>
+                      <Card.Title>Sebaran Risiko</Card.Title>
                       <div className={distStyles.cardSubtitle}>Distribusi tingkat risiko per kategori</div>
                     </div>
                     {mainRiskDriverFilter && (
@@ -639,7 +642,8 @@ export function RisikoPengadaanView() {
                         </span>
                       </button>
                     )}
-                  </div>
+                  </Card.Header>
+                  <Card.Body>
                   <p style={{
                     fontSize: 12,
                     color: 'var(--text-secondary)',
@@ -668,8 +672,8 @@ export function RisikoPengadaanView() {
                       segmentColors={SCORE_COLORS}
                     />
                   </div>
-                </div>
-              </div>
+                  </Card.Body>
+              </Card>
             </div>
           </div>
 
@@ -710,7 +714,7 @@ export function RisikoPengadaanView() {
           />
 
           {showAdvanced && (
-            <div className={styles.advancedPanel}>
+            <FilterAdvancedCard>
               <div className={styles.filterRow}>
                 <span className={styles.filterLabel}>Kategori Risiko</span>
                 <FilterPillGroup options={KATEGORI_OPTIONS} selected={kategoriFilter} onChange={setKategoriFilter} />
@@ -757,7 +761,7 @@ export function RisikoPengadaanView() {
                   Reset Semua Filter
                 </button>
               )}
-            </div>
+            </FilterAdvancedCard>
           )}
 
           <PaketTable

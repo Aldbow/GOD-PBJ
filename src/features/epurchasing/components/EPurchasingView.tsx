@@ -8,6 +8,7 @@ import { fmtRupiah, fmtRupiahDetail } from '@/lib/format';
 import { fetchRupHistory, type RupHistoryEntry } from '@/lib/paket/rupHistory';
 import { useOrgFilters } from '@/hooks/useOrgFilters';
 import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
+import { FilterAdvancedCard } from '@/components/paket/FilterAdvancedCard';
 import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
 import { FilterToggle } from '@/components/paket/FilterToggle';
 import { MetricGrid, DualProgressBar } from '@/components/paket/SummaryCards';
@@ -416,7 +417,7 @@ export function EPurchasingView() {
           />
 
           {showAdvanced && (
-            <div className={styles.advancedPanel}>
+            <FilterAdvancedCard>
               <div className={styles.filterRow}>
                 <span className={styles.filterLabel}>Status Realisasi</span>
                 <FilterPillGroup options={STATUS_OPTIONS} selected={statusFilter} onChange={setStatusFilter} />
@@ -470,7 +471,7 @@ export function EPurchasingView() {
                   Reset Semua Filter &amp; Urutan
                 </button>
               )}
-            </div>
+            </FilterAdvancedCard>
           )}
 
           <PaketTable

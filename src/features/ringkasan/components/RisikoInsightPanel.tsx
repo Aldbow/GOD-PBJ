@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState, useMemo, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
-import { AlertTriangle, Loader2, X } from 'lucide-react';
+import { AlertTriangle, Loader2, X, ShieldAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
 import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
@@ -17,6 +17,7 @@ import { usePublishPrintSection } from '../lib/pdf/printSections';
 import type { RisikoPrintData } from '../lib/pdf/types';
 import { fmtRupiahDetail, fmtInt, countRup } from '@/lib/format';
 import { useRisikoPaketDetail } from '@/hooks/useRisikoPaketDetail';
+import { Card } from '@/components/ui/Card';
 import styles from './RisikoInsightPanel.module.css';
 
 const SCORE_KEYS = ['3', '2', '1', '0', 'NULL'];
@@ -278,8 +279,13 @@ export function RisikoInsightPanel({ satker, ppk, canSeePaketDetail = true }: Pr
   );
 
   return (
-    <div className={styles.container}>
-      <div className={styles.layout}>
+    <Card>
+      <Card.Header>
+        <Card.Icon tone="risk"><ShieldAlert /></Card.Icon>
+        <Card.Title>Insight Risiko Pengadaan</Card.Title>
+      </Card.Header>
+      <Card.Body className={styles.bodyStack}>
+        <div className={styles.layout}>
         <div className={styles.left}>
            <h4 className={styles.chartTitle}>Distribusi Kategori Risiko</h4>
            {loading ? (
@@ -306,7 +312,7 @@ export function RisikoInsightPanel({ satker, ppk, canSeePaketDetail = true }: Pr
              </div>
            )}
         </div>
-      </div>
+        </div>
 
       <div className={styles.satkerSection}>
         <div className={styles.satkerHeader}>
@@ -368,6 +374,7 @@ export function RisikoInsightPanel({ satker, ppk, canSeePaketDetail = true }: Pr
           )}
         </AnimatePresence>
       </div>
+      </Card.Body>
 
       <PaketDetailModal
         isOpen={paketModal.isOpen}
@@ -379,6 +386,6 @@ export function RisikoInsightPanel({ satker, ppk, canSeePaketDetail = true }: Pr
         {paketModal.loadingDetail && <p>Memuat detail...</p>}
         {!paketModal.loadingDetail && paketModal.selectedDetail && <RisikoDetailBody detail={paketModal.selectedDetail} />}
       </PaketDetailModal>
-    </div>
+    </Card>
   );
 }

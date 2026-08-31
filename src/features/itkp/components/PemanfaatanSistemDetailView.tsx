@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion, AnimatePresence, animate } from 'framer-motion';
-import { CalendarDays, Info, TriangleAlert, ArrowLeft, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { CalendarDays, Info, TriangleAlert, ArrowLeft, ChevronUp, ChevronDown, ChevronsUpDown, SlidersHorizontal, Gauge, MonitorSmartphone } from 'lucide-react';
 import Link from 'next/link';
 import { Select } from '@/components/ui/Select';
 import { ErrorBox } from '@/components/ui/ErrorBox';
@@ -14,6 +14,7 @@ import { fetchItkpAData, type ItkpAUnit } from '@/lib/itkp/fetchA';
 import { normSatker } from '@/lib/itkp/crosswalk';
 import { useSession } from '@/components/auth/SessionProvider';
 import { fmtDec, fmtPct, fmtRupiahDetail } from '@/lib/format';
+import { Card } from '@/components/ui/Card';
 import styles from './PemanfaatanSistemDetailView.module.css';
 
 const KEMENTERIAN_LABEL = 'Kementerian (Total)';
@@ -289,7 +290,12 @@ export function PemanfaatanSistemDetailView() {
         </ErrorBox>
       )}
 
-      <div className={styles.filterBar}>
+      <Card padding="tight" className={styles.filterBar}>
+        <Card.Header className={styles.filterHead}>
+          <Card.Icon tone="neutral"><SlidersHorizontal /></Card.Icon>
+          <Card.Title>Lingkup Penilaian</Card.Title>
+        </Card.Header>
+        <Card.Body className={styles.filterBody}>
         {!isPpkScoped && (
           <>
             <div className={styles.filterCol}>
@@ -315,35 +321,34 @@ export function PemanfaatanSistemDetailView() {
             </div>
           </>
         )}
-        <div className={styles.filterMeta}>
+        </Card.Body>
+        <Card.Footer className={styles.filterMeta}>
           <CalendarDays size={14} />
           <span>Update data terakhir: {updatedLabel}</span>
-        </div>
-      </div>
+        </Card.Footer>
+      </Card>
 
       <div className={styles.layout}>
         {loading ? (
-          <div className={styles.loadingBox}>Memuat data dari Supabase...</div>
+          <Card aria-hidden>
+            <Card.Body className={styles.loadingBox}>Memuat data dari Supabase...</Card.Body>
+          </Card>
         ) : (
           <>
             {/* Hero: total skor gabungan A1-A7, ditonjolkan lewat gauge — motif yang
                 sama dengan skor ITKP di Ringkasan — supaya angka paling penting di
                 halaman ini langsung terbaca sebelum melihat rincian per komponen. */}
-            <motion.div
-              className={styles.heroCard}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, ease: EASE_OUT }}
-            >
-              <div className={styles.heroTopRow}>
-                <div>
-                  <h3 className={styles.heroTitle}>Skor Pemanfaatan Sistem</h3>
+            <Card className={styles.heroCard}>
+              <Card.Header className={styles.heroTopRow}>
+                <Card.Icon tone="neutral"><Gauge /></Card.Icon>
+                <div className={styles.heroTitleWrap}>
+                  <Card.Title className={styles.heroTitle}>Skor Pemanfaatan Sistem</Card.Title>
                   <p className={styles.heroSub}>Total gabungan komponen A1–A7</p>
                 </div>
-                <Badge variant={capaianBadgeVariant(capaian)}>{fmtPct(capaian, 1)} capaian</Badge>
-              </div>
+                <Badge variant={capaianBadgeVariant(capaian)} className={styles.heroBadge}>{fmtPct(capaian, 1)} capaian</Badge>
+              </Card.Header>
 
-              <div className={styles.heroBody}>
+              <Card.Body className={styles.heroBody}>
                 <div className={styles.heroGaugeWrap}>
                   <svg
                     viewBox="0 0 200 110"
@@ -390,8 +395,8 @@ export function PemanfaatanSistemDetailView() {
                     tersedia/tidak berlaku, skor maksimum saat ini menyesuaikan parameter yang berlaku.
                   </p>
                 </div>
-              </div>
-            </motion.div>
+              </Card.Body>
+            </Card>
 
             {/* A1-A7 dikelompokkan sesuai tahapnya (bukan dibagi rata per baris grid):
                 A1-A3 mengukur kelengkapan RUP sebelum pelaksanaan, A4-A7 mengukur
@@ -441,7 +446,8 @@ export function PemanfaatanSistemDetailView() {
         {loading ? (
           <div className={styles.loadingBox}>Memuat data dari Supabase...</div>
         ) : (
-          <div className={styles.tableWrap}>
+          <Card variant="flush" className={styles.tableWrap}>
+            <div className={styles.tableScroll}>
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -490,7 +496,8 @@ export function PemanfaatanSistemDetailView() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </Card>
         )}
 
         <p className={styles.tableNote}>
@@ -556,12 +563,16 @@ function ComponentCard({ index, row }: { index: number; row: ItkpARowResult }) {
   const progress = row.applicable && row.skorMax > 0 ? Math.max(0, Math.min(row.skor / row.skorMax, 1)) : 0;
 
   return (
-    <motion.div className={styles.compCard} variants={CARD_ITEM_VARIANTS}>
-      <div className={styles.compHeader}>
+    <Card className={styles.compCard}>
+      <Card.Header className={styles.compHeader}>
+        <Card.Icon tone={row.applicable ? 'neutral' : 'warning'}>
+          <MonitorSmartphone />
+        </Card.Icon>
         <span className={styles.compHeaderBadge}>A{index}</span>
-        {row.label}
-      </div>
+        <Card.Title className={styles.compHeaderTitle}>{row.label}</Card.Title>
+      </Card.Header>
 
+      <Card.Body className={styles.compCardBody}>
       <div className={styles.compBody}>
         <div className={styles.compMainStat}>
           <span className={styles.compMainStatLabel}>Skor Saat Ini</span>
@@ -650,10 +661,11 @@ function ComponentCard({ index, row }: { index: number; row: ItkpARowResult }) {
           )}
         </AnimatePresence>
       </div>
-      <div className={`${styles.compNote} ${row.applicable ? styles.compNoteInfo : styles.compNoteWarn}`}>
+      </Card.Body>
+      <Card.Footer className={`${styles.compNote} ${row.applicable ? styles.compNoteInfo : styles.compNoteWarn}`}>
         {row.applicable ? <Info size={16} /> : <TriangleAlert size={16} />}
         <span>{row.catatan}</span>
-      </div>
-    </motion.div>
+      </Card.Footer>
+    </Card>
   );
 }

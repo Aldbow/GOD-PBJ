@@ -8,6 +8,7 @@ import { fmtRupiah, fmtRupiahDetail, countRup } from '@/lib/format';
 import { fetchRupHistory, type RupHistoryEntry } from '@/lib/paket/rupHistory';
 import { useOrgFilters } from '@/hooks/useOrgFilters';
 import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
+import { FilterAdvancedCard } from '@/components/paket/FilterAdvancedCard';
 import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
 import { MetricGrid, DualProgressBar } from '@/components/paket/SummaryCards';
 import { AnomaliPanel, AnomaliBadge } from '@/components/paket/AnomaliPanel';
@@ -390,7 +391,7 @@ export function PenunjukanLangsungView() {
           />
 
           {showAdvanced && (
-            <div className={styles.advancedPanel}>
+            <FilterAdvancedCard>
               <div className={styles.filterRow}>
                 <span className={styles.filterLabel}>Status</span>
                 <FilterPillGroup options={STATUS_OPTIONS} selected={statusFilter} onChange={setStatusFilter} />
@@ -422,7 +423,7 @@ export function PenunjukanLangsungView() {
                   Reset Semua Filter &amp; Urutan
                 </button>
               )}
-            </div>
+            </FilterAdvancedCard>
           )}
 
           <PaketTable

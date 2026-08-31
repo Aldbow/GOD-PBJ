@@ -6,6 +6,8 @@ import { Star, Wallet, ShieldCheck, AlertTriangle, PieChart, Layers, CalendarClo
 import { fetchProgramPrioritasNasional } from '../lib/fetchProgramPrioritasNasional';
 import { MATCH_STATUS_LABEL, type MatchStatus, type ProgramPrioritasRow } from '../lib/types';
 import { MetricGrid, type MetricCardDef } from '@/components/paket/SummaryCards';
+import { FilterAdvancedCard } from '@/components/paket/FilterAdvancedCard';
+import { Card } from '@/components/ui/Card';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
 import { FilterPillGroup, type PillOption } from '@/components/paket/FilterPillGroup';
 import { SearchableSelect } from '@/components/paket/SearchableSelect';
@@ -307,36 +309,42 @@ export function ProgramPrioritasNasionalView() {
               <span className={viewStyles.sectionCaption}>Sebaran paket PN berdasarkan skema, jenis pengadaan, dan status kecocokan data SPSE</span>
             </div>
             <div className={viewStyles.chartGrid}>
-              <div className={viewStyles.chartCard}>
-                <div className={viewStyles.cardHeader}>
-                  <span className={viewStyles.cardIcon}><Layers size={15} /></span>
-                  <div>
-                    <div className={viewStyles.cardTitle}>Skema</div>
+              <Card>
+                <Card.Header className={viewStyles.cardHeader}>
+                  <Card.Icon tone="neutral"><Layers /></Card.Icon>
+                  <div className={viewStyles.titleWrap}>
+                    <Card.Title>Skema</Card.Title>
                     <div className={viewStyles.cardSubtitle}>Metode pengadaan paket PN</div>
                   </div>
-                </div>
-                <PnCategoryDonut data={skemaChartData} getColor={metodeColor} />
-              </div>
-              <div className={viewStyles.chartCard}>
-                <div className={viewStyles.cardHeader}>
-                  <span className={viewStyles.cardIcon}><MapPin size={15} /></span>
-                  <div>
-                    <div className={viewStyles.cardTitle}>Jenis Pengadaan</div>
+                </Card.Header>
+                <Card.Body>
+                  <PnCategoryDonut data={skemaChartData} getColor={metodeColor} />
+                </Card.Body>
+              </Card>
+              <Card>
+                <Card.Header className={viewStyles.cardHeader}>
+                  <Card.Icon tone="neutral"><MapPin /></Card.Icon>
+                  <div className={viewStyles.titleWrap}>
+                    <Card.Title>Jenis Pengadaan</Card.Title>
                     <div className={viewStyles.cardSubtitle}>Barang / jasa / konstruksi</div>
                   </div>
-                </div>
-                <PnCategoryDonut data={jenisChartData} getColor={jenisColor} />
-              </div>
-              <div className={viewStyles.chartCard}>
-                <div className={viewStyles.cardHeader}>
-                  <span className={viewStyles.cardIcon}><ShieldCheck size={15} /></span>
-                  <div>
-                    <div className={viewStyles.cardTitle}>Status Match SPSE</div>
+                </Card.Header>
+                <Card.Body>
+                  <PnCategoryDonut data={jenisChartData} getColor={jenisColor} />
+                </Card.Body>
+              </Card>
+              <Card>
+                <Card.Header className={viewStyles.cardHeader}>
+                  <Card.Icon tone="neutral"><ShieldCheck /></Card.Icon>
+                  <div className={viewStyles.titleWrap}>
+                    <Card.Title>Status Match SPSE</Card.Title>
                     <div className={viewStyles.cardSubtitle}>Kecocokan ke Paket Penyedia/Swakelola</div>
                   </div>
-                </div>
-                <PnCategoryDonut data={matchChartData} getColor={matchStatusColor} />
-              </div>
+                </Card.Header>
+                <Card.Body>
+                  <PnCategoryDonut data={matchChartData} getColor={matchStatusColor} />
+                </Card.Body>
+              </Card>
             </div>
           </div>
 
@@ -374,7 +382,7 @@ export function ProgramPrioritasNasionalView() {
           </div>
 
           {showAdvanced && (
-            <div className={styles.advancedPanel}>
+            <FilterAdvancedCard>
               <div className={styles.filterRow}>
                 <span className={styles.filterLabel}>Skema</span>
                 <FilterPillGroup options={skemaOptions} selected={skemaFilter} onChange={setSkemaFilter} />
@@ -423,7 +431,7 @@ export function ProgramPrioritasNasionalView() {
                   Reset Semua Filter
                 </button>
               )}
-            </div>
+            </FilterAdvancedCard>
           )}
 
           <PaketTable

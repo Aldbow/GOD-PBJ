@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import styles from './PaketTable.module.css';
 
 export interface PaketColumn<T> {
@@ -99,7 +100,7 @@ export function PaketTable<T>({
   };
 
   return (
-    <div className={styles.wrap}>
+    <Card variant="flush" className={styles.wrap}>
       <div className={styles.scroller}>
         <table className={styles.table}>
           <thead>
@@ -141,10 +142,10 @@ export function PaketTable<T>({
         </table>
       </div>
 
-      {sortedRows.length === 0 && <div className={styles.empty}>{emptyMessage}</div>}
+      {sortedRows.length === 0 && <Card.Body className={styles.empty}>{emptyMessage}</Card.Body>}
 
       {sortedRows.length > 0 && (
-        <div className={styles.footer}>
+        <Card.Footer className={styles.footer}>
           <span className={styles.footerCount}>
             Menampilkan {startIndex + 1}–{Math.min(startIndex + pageSize, sortedRows.length)} dari {sortedRows.length} paket
           </span>
@@ -161,8 +162,8 @@ export function PaketTable<T>({
               </Button>
             </div>
           )}
-        </div>
+        </Card.Footer>
       )}
-    </div>
+    </Card>
   );
 }

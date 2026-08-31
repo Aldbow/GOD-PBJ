@@ -3,62 +3,26 @@
    rupiah di atas, paket di bawah — supaya uang dan jumlah paketnya terbandingkan
    sekali lihat, dan ketiga kartu terbandingkan menyamping.
 
-   Pembedanya rona latar yang sangat pudar + bayangan tipis, bukan garis tegas. */
+   Bentuk kartunya (radius, border, shadow, padding) datang seluruhnya dari
+   komponen Card. Berkas ini hanya mengatur isi. */
 
 .papan {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-6);
+  gap: var(--card-gap);
   margin-bottom: var(--space-6);
   align-items: stretch;
 }
 
 .kolom {
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-6);
-  border-radius: var(--radius-xl, 16px);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px -4px rgba(15, 23, 42, 0.08);
-  transition: box-shadow var(--dur-fast, 0.15s) ease, transform var(--dur-fast, 0.15s) ease;
   min-width: 0;
 }
 
-.kolom:hover {
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 22px -6px rgba(15, 23, 42, 0.13);
+/* Dua kelompok ukuran di dalam Body. Jaraknya diatur tiap blok sendiri,
+   jadi gap bawaan Body dinolkan. */
+.isi {
+  gap: 0;
 }
-
-/* Rona status — sangat pudar supaya angka tetap jadi yang paling menonjol,
-   cukup untuk membedakan ketiga kartu tanpa garis pemisah. */
-.good { background: color-mix(in srgb, var(--success-600, #059669) 5%, var(--surface)); }
-.warn { background: color-mix(in srgb, var(--warn-600, #d97706) 6%, var(--surface)); }
-.danger { background: color-mix(in srgb, var(--error-600, #dc2626) 5%, var(--surface)); }
-
-.good { border-color: color-mix(in srgb, var(--success-600, #059669) 16%, var(--border)); }
-.warn { border-color: color-mix(in srgb, var(--warn-600, #d97706) 18%, var(--border)); }
-.danger { border-color: color-mix(in srgb, var(--error-600, #dc2626) 18%, var(--border)); }
-
-/* ── Judul metrik ────────────────────────────────────────────────────────── */
-
-.label {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: 0 0 var(--space-4);
-  /* Dua baris disediakan supaya baseline angka di ketiga kartu tetap sejajar
-     walau salah satu judulnya membungkus. */
-  min-height: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.35;
-  color: var(--text-secondary);
-}
-.label svg { flex-shrink: 0; color: var(--text-tertiary); }
-
-.good .label svg { color: var(--success-600, #059669); }
-.warn .label svg { color: var(--warn-700, #b45309); }
-.danger .label svg { color: var(--error-600, #dc2626); }
 
 /* ── Kelompok ukuran ─────────────────────────────────────────────────────── */
 
@@ -102,7 +66,7 @@
   height: 7px;
   margin-top: var(--space-3);
   background: var(--track-bg, rgba(15, 23, 42, 0.06));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
 }
 
@@ -111,7 +75,7 @@
 .fill {
   width: 100%;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   transform: scaleX(var(--fill, 0));
   transform-origin: left center;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
@@ -120,9 +84,9 @@
   .fill { transition: none; }
 }
 
-.good .fill { background: var(--success-600, #059669); }
-.warn .fill { background: var(--warn-600, #d97706); }
-.danger .fill { background: var(--error-600, #dc2626); }
+.good .fill { background: var(--teal-600); }
+.warn .fill { background: var(--amber-600); }
+.danger .fill { background: var(--red-600); }
 /* Kartu acuan: barnya penuh dan netral — tolok ukur yang membuat dua bar
    berwarna di kartu sebelahnya terbaca sebagai bagian dari keseluruhan. */
 .base .fill { background: var(--text-tertiary); }
@@ -135,40 +99,17 @@
   gap: 5px;
   margin-top: var(--space-2);
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.4;
   letter-spacing: 0.005em;
-  background: color-mix(in srgb, var(--error-600, #dc2626) 13%, transparent);
-  color: var(--error-700, #b91c1c);
+  background: var(--danger-100);
+  color: var(--danger-800);
 }
 .badgeAman {
-  background: color-mix(in srgb, var(--success-600, #059669) 13%, transparent);
-  color: var(--success-700, #047857);
-}
-
-/* ── Mode gelap ──────────────────────────────────────────────────────────── */
-
-:global([data-theme='dark']) .kolom {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px -6px rgba(0, 0, 0, 0.55);
-}
-:global([data-theme='dark']) .kolom:hover {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 26px -8px rgba(0, 0, 0, 0.65);
-}
-:global([data-theme='dark']) .good { background: color-mix(in srgb, #4ade80 7%, var(--surface)); }
-:global([data-theme='dark']) .warn { background: color-mix(in srgb, #f0c34d 8%, var(--surface)); }
-:global([data-theme='dark']) .danger { background: color-mix(in srgb, #f87171 8%, var(--surface)); }
-:global([data-theme='dark']) .good .label svg { color: #4ade80; }
-:global([data-theme='dark']) .warn .label svg { color: #f0c34d; }
-:global([data-theme='dark']) .danger .label svg { color: #f87171; }
-:global([data-theme='dark']) .badge {
-  background: color-mix(in srgb, #f87171 18%, transparent);
-  color: #fca5a5;
-}
-:global([data-theme='dark']) .badgeAman {
-  background: color-mix(in srgb, #4ade80 18%, transparent);
-  color: #86efac;
+  background: var(--teal-100);
+  color: var(--teal-800);
 }
 
 /* ── Adaptasi ────────────────────────────────────────────────────────────── */
@@ -177,28 +118,22 @@
    di tiap kartu rupiah & paket berdampingan — ruang mendatar yang tadinya
    memisahkan kartu kini dipakai menyandingkan dua ukuran. */
 @media (max-width: 1100px) {
-  .papan { grid-template-columns: 1fr; gap: var(--space-4); }
-  .kolom {
+  .papan { grid-template-columns: 1fr; }
+  /* Kelas digandakan untuk mengalahkan display:flex bawaan .card tanpa
+     bergantung pada urutan berkas CSS di bundel. */
+  .isi.isi {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      'label label'
-      'utama pendamping';
     column-gap: var(--space-6);
+    align-items: start;
   }
-  .label { grid-area: label; min-height: 0; }
-  .blokUtama { grid-area: utama; }
-  .blokPendamping { grid-area: pendamping; margin-top: 0; padding-top: 0; }
+  .blokPendamping { margin-top: 0; padding-top: 0; }
   /* Berdampingan, jadi dasar kedua angka disejajarkan supaya barnya satu garis. */
   .nilaiPendamping { min-height: 33px; display: flex; align-items: flex-end; }
 }
 
 @media (max-width: 560px) {
-  .kolom {
-    grid-template-columns: 1fr;
-    grid-template-areas: 'label' 'utama' 'pendamping';
-    padding: var(--space-5);
-  }
+  .isi.isi { grid-template-columns: 1fr; }
   .blokPendamping { padding-top: var(--space-5); }
   .nilaiUtama { font-size: 26px; }
   .nilaiPendamping { font-size: 22px; min-height: 0; display: block; }

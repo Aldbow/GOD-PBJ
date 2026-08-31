@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { BookOpen, ChevronDown, ChevronUp, Info, ShieldAlert, Banknote, Clock, Tag, Briefcase, Building } from 'lucide-react';
+import { Card } from '@/components/ui/Card';
 import styles from './PedomanRisikoCard.module.css';
 
 interface PedomanRow {
@@ -268,22 +269,19 @@ export function PedomanRisikoCard() {
   const activeComp = PEDOMAN_RISIKO.find((c) => c.code === openCode);
 
   return (
-    <div className={styles.card}>
-      <div className={styles.header}>
-        <div className={styles.headerTitleWrap}>
-          <div className={styles.headerIcon}>
-            <BookOpen size={18} />
-          </div>
-          <div>
-            <h3 className={styles.title}>Pedoman Penilaian Risiko Pengadaan</h3>
-            <p className={styles.subtitle}>
-              Rincian bobot skor (1-3) untuk masing-masing parameter penyebab risiko, 
-              serta perhitungan penetapan Kategori Risiko Keseluruhan.
-            </p>
-          </div>
+    <Card className={styles.card}>
+      <Card.Header className={styles.header}>
+        <Card.Icon tone="neutral"><BookOpen /></Card.Icon>
+        <div className={styles.titleWrap}>
+          <Card.Title>Pedoman Penilaian Risiko Pengadaan</Card.Title>
+          <p className={styles.subtitle}>
+            Rincian bobot skor (1-3) untuk masing-masing parameter penyebab risiko,
+            serta perhitungan penetapan Kategori Risiko Keseluruhan.
+          </p>
         </div>
-      </div>
-      
+      </Card.Header>
+
+      <Card.Body className={styles.body}>
       <div className={styles.compList}>
         {PEDOMAN_RISIKO.map((comp) => {
           const isOpen = openCode === comp.code;
@@ -311,6 +309,7 @@ export function PedomanRisikoCard() {
           <PedomanComponentContent comp={activeComp} />
         </div>
       )}
-    </div>
+      </Card.Body>
+    </Card>
   );
 }

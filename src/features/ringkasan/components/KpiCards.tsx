@@ -6,6 +6,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { RingkasanKpi } from '../lib/ringkasanData';
 import { fmtInt, fmtPct } from '@/lib/format';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Card, type CardTone } from '@/components/ui/Card';
 import styles from './KpiCards.module.css';
 
 // Format nilai anggaran gaya KPI: "Rp125,8 Miliar".
@@ -31,6 +32,15 @@ function triwulanBerjalan(now: Date = new Date()): 1 | 2 | 3 | 4 {
 }
 
 type Tone = 'base' | 'good' | 'warn' | 'danger';
+
+// Rona status kini hanya hidup di tint Card.Icon — badan kartu tetap putih,
+// tanpa latar berwarna maupun garis aksen.
+const TINT: Record<Tone, CardTone> = {
+  base: 'neutral',
+  good: 'positive',
+  warn: 'warning',
+  danger: 'risk',
+};
 
 /** Satu ukuran di dalam kartu: nilai + persentase pembandingnya. */
 interface UkuranData {
@@ -90,21 +100,26 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
     return (
       <div className={styles.papan}>
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className={styles.kolom}>
-            <Skeleton width="52%" height={12} />
+          <Card key={i} className={styles.kolom} aria-hidden>
+            <Card.Header>
+              <Skeleton width={30} height={30} />
+              <Skeleton width="52%" height={12} />
+            </Card.Header>
             {/* Rangka mengikuti bentuk akhir termasuk barnya, supaya tinggi papan
                 tidak melonjak saat data masuk. */}
-            <div className={styles.blokUtama}>
-              <Skeleton width="78%" height={28} />
-              <Skeleton width="100%" height={4} style={{ marginTop: 10 }} />
-              <Skeleton width="45%" height={11} style={{ marginTop: 8 }} />
-            </div>
-            <div className={styles.blokPendamping}>
-              <Skeleton width="46%" height={19} />
-              <Skeleton width="100%" height={4} style={{ marginTop: 10 }} />
-              <Skeleton width="40%" height={11} style={{ marginTop: 8 }} />
-            </div>
-          </div>
+            <Card.Body className={styles.isi}>
+              <div className={styles.blokUtama}>
+                <Skeleton width="78%" height={28} />
+                <Skeleton width="100%" height={4} style={{ marginTop: 10 }} />
+                <Skeleton width="45%" height={11} style={{ marginTop: 8 }} />
+              </div>
+              <div className={styles.blokPendamping}>
+                <Skeleton width="46%" height={19} />
+                <Skeleton width="100%" height={4} style={{ marginTop: 10 }} />
+                <Skeleton width="40%" height={11} style={{ marginTop: 8 }} />
+              </div>
+            </Card.Body>
+          </Card>
         ))}
       </div>
     );
@@ -195,14 +210,22 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
       {kolom.map((k) => {
         const Icon = k.icon;
         return (
-          <section key={k.key} className={`${styles.kolom} ${styles[k.tone]}`} aria-label={k.label} title={k.tooltip}>
-            <h3 className={styles.label}>
-              <Icon size={14} aria-hidden="true" />
-              {k.label}
-            </h3>
-            <Ukuran data={k.rupiah} size="utama" />
-            <Ukuran data={k.paket} size="pendamping" />
-          </section>
+          <Card
+            key={k.key}
+            as="section"
+            className={`${styles.kolom} ${styles[k.tone]}`}
+            aria-label={k.label}
+            title={k.tooltip}
+          >
+            <Card.Header>
+              <Card.Icon tone={TINT[k.tone]}><Icon /></Card.Icon>
+              <Card.Label as="h3">{k.label}</Card.Label>
+            </Card.Header>
+            <Card.Body className={styles.isi}>
+              <Ukuran data={k.rupiah} size="utama" />
+              <Ukuran data={k.paket} size="pendamping" />
+            </Card.Body>
+          </Card>
         );
       })}
     </div>

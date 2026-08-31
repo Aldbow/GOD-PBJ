@@ -1,25 +1,12 @@
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  height: 100%;
-}
-
-.head {
-  display: flex;
+.head.head {
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 18px;
   flex-wrap: wrap;
+  margin-bottom: 18px;
 }
 
-.title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
+.titleWrap {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .sub {
@@ -28,7 +15,7 @@
   margin: 3px 0 0;
 }
 
-.actions { display: flex; gap: 8px; }
+.actions { display: flex; gap: 8px; margin-left: auto; }
 
 .btn {
   display: inline-flex;
@@ -59,11 +46,17 @@
 .spin { animation: kurasiSpin 1s linear infinite; }
 @keyframes kurasiSpin { to { transform: rotate(360deg); } }
 
+/* Kolom kiri: cincin akurasi + ringkasan angka. */
 .body {
   display: flex;
   gap: 22px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+/* Card.Body membungkus dua kolom; jaraknya diatur .mainLayoutFullWidth. */
+.mainLayout {
+  gap: 0;
 }
 
 .ringWrap {
@@ -123,7 +116,7 @@
 .stackBar {
   display: flex;
   height: 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
   background: var(--surface-2);
 }
@@ -131,9 +124,9 @@
 .stackBar span { display: block; height: 100%; }
 .stackBar span + span { box-shadow: -2px 0 0 var(--surface); }
 
-.segAkurat { background: #00B676; }
-.segKoreksi { background: #d03b3b; }
-.segBelum { background: var(--border-strong, #cbd5e1); }
+.segAkurat { background: var(--teal-600); }
+.segKoreksi { background: var(--red-600); }
+.segBelum { background: var(--border-strong); }
 
 .progressNote {
   font-size: 12px;
@@ -213,7 +206,7 @@
 }
 
 /* Mode isFullWidth (3-column layout) */
-.mainLayoutFullWidth {
+.mainLayoutFullWidth.mainLayoutFullWidth {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 32px;

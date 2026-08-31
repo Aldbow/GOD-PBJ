@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Filter, RotateCcw, Check } from 'lucide-react';
 import { SearchableSelect } from '@/components/paket/SearchableSelect';
 import type { RingkasanFilterValue } from '../lib/ringkasanData';
+import { Card } from '@/components/ui/Card';
 import styles from './RingkasanFilter.module.css';
 
 interface Props {
@@ -43,12 +44,12 @@ export function RingkasanFilter({ satkerOptions, getPpkOptions, getSatkerByPpk, 
   };
 
   return (
-    <div className={styles.wrap}>
-      <div className={styles.row}>
-        <span className={styles.iconLabel}>
-          <Filter size={15} /> Filter
-        </span>
-
+    <Card padding="tight" className={styles.wrap}>
+      <Card.Header className={styles.head}>
+        <Card.Icon tone="neutral"><Filter /></Card.Icon>
+        <Card.Title>Filter Data</Card.Title>
+      </Card.Header>
+      <Card.Body className={styles.row}>
         <div className={styles.field}>
           <label className={styles.fieldLabel}>Satuan Kerja</label>
           <SearchableSelect
@@ -89,11 +90,11 @@ export function RingkasanFilter({ satkerOptions, getPpkOptions, getSatkerByPpk, 
             <RotateCcw size={14} /> Reset
           </button>
         </div>
-      </div>
+      </Card.Body>
 
-      <p className={styles.activeInfo}>
+      <Card.Footer className={styles.activeInfo}>
         Menampilkan data: <b>{applied.satker || 'Semua Satker'}</b> — <b>{applied.ppk || 'Semua PPK'}</b>
-      </p>
-    </div>
+      </Card.Footer>
+    </Card>
   );
 }

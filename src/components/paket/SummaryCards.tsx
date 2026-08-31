@@ -2,8 +2,10 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
+import { Card, type CardTone } from '@/components/ui/Card';
 import styles from './SummaryCards.module.css';
 
 export interface MetricCardDef {
@@ -15,6 +17,17 @@ export interface MetricCardDef {
   badgeTone?: 'good' | 'warn';
   accent?: 'info' | 'teal' | 'amber' | 'indigo' | 'purple' | 'neutral';
 }
+
+// Aksen kartu hanya hidup di tint Card.Icon. Palet lama dipetakan ke empat
+// rona resmi: netral/anggaran, positif/realisasi, peringatan, risiko.
+const TINT: Record<NonNullable<MetricCardDef['accent']>, CardTone> = {
+  info: 'neutral',
+  neutral: 'neutral',
+  indigo: 'neutral',
+  purple: 'neutral',
+  teal: 'positive',
+  amber: 'warning',
+};
 
 interface MetricGridProps {
   title: string;
@@ -31,12 +44,12 @@ export function MetricGrid({ title, icon: TitleIcon, cards }: MetricGridProps) {
       </h3>
       <div className={styles.grid}>
         {cards.map((card) => (
-          <motion.div key={card.key} whileHover={{ y: -2 }} className={`${styles.card} ${styles[`accent-${card.accent || 'neutral'}`]}`}>
-            <div className={`${styles.iconWrap} ${styles[`iconWrap-${card.accent || 'neutral'}`]}`}>
-              <card.icon size={24} />
-            </div>
-            <div className={styles.cardBody}>
-              <p className={styles.cardLabel}>{card.label}</p>
+          <Card key={card.key}>
+            <Card.Header>
+              <Card.Icon tone={TINT[card.accent || 'neutral']}><card.icon /></Card.Icon>
+              <Card.Label>{card.label}</Card.Label>
+            </Card.Header>
+            <Card.Body className={styles.cardBody}>
               <div className={styles.cardValueRow}>
                 <p className={styles.cardValue}>{card.value}</p>
                 {card.badge && (
@@ -45,8 +58,8 @@ export function MetricGrid({ title, icon: TitleIcon, cards }: MetricGridProps) {
                   </Badge>
                 )}
               </div>
-            </div>
-          </motion.div>
+            </Card.Body>
+          </Card>
         ))}
       </div>
     </div>
@@ -64,11 +77,13 @@ interface DualProgressBarProps {
 
 export function DualProgressBar({ title, totalLabel, donePct, remainingPct, doneLabel, remainingLabel }: DualProgressBarProps) {
   return (
-    <div className={styles.progressCard}>
-      <div className={styles.progressHead}>
-        <span className={styles.progressTitle}>{title}</span>
+    <Card>
+      <Card.Header>
+        <Card.Icon tone="positive"><TrendingUp /></Card.Icon>
+        <Card.Title>{title}</Card.Title>
         <span className={styles.progressTotal}>{totalLabel}</span>
-      </div>
+      </Card.Header>
+      <Card.Body>
       <div className={styles.progressTrack}>
         <motion.div
           initial={{ width: 0 }}
@@ -91,6 +106,7 @@ export function DualProgressBar({ title, totalLabel, donePct, remainingPct, done
           <span className={`${styles.legendDot} ${styles.legendDotRemaining}`} /> {remainingLabel} ({remainingPct.toFixed(1)}%)
         </span>
       </div>
-    </div>
+      </Card.Body>
+    </Card>
   );
 }

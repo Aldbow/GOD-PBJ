@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, Variants } from 'framer-motion';
 import { RefreshCw, Download, PieChart, BarChart3, ChevronUp, ChevronDown, ChevronsUpDown, Printer, Percent, Package, Building2, Route, Tags, Trophy, Gauge, Sparkles, ShieldAlert, ExternalLink, Landmark, Lock, SlidersHorizontal, ArrowUpRight } from 'lucide-react';
+import { Card } from '@/components/ui/Card';
 import { ErrorBox } from '@/components/ui/ErrorBox';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
@@ -27,24 +28,23 @@ import {
 
 function AccordionTableWrapper({ title, count, isOpen, onToggle, children }: any) {
   return (
-    <div style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--surface)', overflow: 'hidden' }}>
-      <button 
+    <Card variant="flush" className={styles.accordionCard}>
+      <Card.Header
+        as="button"
         type="button"
         onClick={onToggle}
-        style={{ width: '100%', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isOpen ? 'color-mix(in srgb, var(--c) 4%, var(--surface))' : 'var(--surface)', border: 'none', borderBottom: isOpen ? '1px solid var(--border)' : 'none', cursor: 'pointer', textAlign: 'left', fontWeight: 600, fontSize: '13.5px', color: 'var(--text-primary)' }}
+        aria-expanded={isOpen}
+        className={styles.accordionHead}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>{title}</span>
-          <span style={{ fontSize: '12px', background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>{count} baris data</span>
-        </div>
-        {isOpen ? <ChevronUp size={16} color="var(--text-secondary)" /> : <ChevronDown size={16} color="var(--text-secondary)" />}
-      </button>
-      {isOpen && (
-        <div>
-          {children}
-        </div>
-      )}
-    </div>
+        <Card.Icon tone="neutral"><Tags /></Card.Icon>
+        <Card.Title as="span">{title}</Card.Title>
+        <span className={styles.accordionCount}>{count} baris data</span>
+        <Card.Action as="span" aria-hidden>
+          {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </Card.Action>
+      </Card.Header>
+      {isOpen && <Card.Body className={styles.accordionBody}>{children}</Card.Body>}
+    </Card>
   );
 }
 
@@ -104,12 +104,12 @@ function PpkScopeBar({
   const noSatkerHint = 'Profil Anda belum memiliki Satuan Kerja. Hubungi admin UKPBJ.';
 
   return (
-    <div className={styles.scopeBar}>
-      <div className={styles.scopeBarRow}>
-        <span className={styles.scopeBarLabel}>
-          <SlidersHorizontal size={15} /> Lingkup data
-        </span>
-
+    <Card padding="tight" className={styles.scopeBar}>
+      <Card.Header className={styles.scopeBarHead}>
+        <Card.Icon tone="neutral"><SlidersHorizontal /></Card.Icon>
+        <Card.Title>Lingkup data</Card.Title>
+      </Card.Header>
+      <Card.Body className={styles.scopeBarRow}>
         <div className={styles.segmentedControl} role="group" aria-label="Lingkup data">
           <div
             className={styles.segmentedBg}
@@ -137,22 +137,22 @@ function PpkScopeBar({
             Kementerian
           </button>
         </div>
-      </div>
+      </Card.Body>
 
       {scope === 'kementerian' ? (
-        <p className={styles.scopeNote}>
+        <Card.Footer className={styles.scopeNote}>
           <Lock size={13} className={styles.scopeNoteIcon} />
           <span>
             Menampilkan agregat seluruh kementerian. export dan laporan tetap terbatas pada satuan kerja Anda.
             {!hasSatker && ` ${noSatkerHint}`}
           </span>
-        </p>
+        </Card.Footer>
       ) : (
-        <p className={styles.scopeInfo}>
+        <Card.Footer className={styles.scopeInfo}>
           Menampilkan data: <b>{satkerName}</b>
-        </p>
+        </Card.Footer>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -553,13 +553,19 @@ export function RingkasanView() {
           caption="Proporsi paket Penyedia vs Swakelola dari RUP terumumkan (bukan dari realisasi)"
         />
         <div className={styles.methodGrid}>
-          <div className={styles.panel}>
-            <div className={styles.panelTitle}><PieChart size={15} /> Proporsi Jumlah Paket</div>
-            <CategoryDonutChart data={agg.sumber} getLabel={getSumberLabel} getColor={sumberColor} totalPaket={agg.sumber.reduce((s, x) => s + x.jumlahPaket, 0)} />
-          </div>
-          <div className={styles.panel}>
-            <div className={styles.panelHeaderRow}>
-              <div className={styles.panelTitle}><BarChart3 size={15} /> Realisasi per Cara Pengadaan</div>
+          <Card>
+            <Card.Header>
+              <Card.Icon tone="neutral"><PieChart /></Card.Icon>
+              <Card.Title>Proporsi Jumlah Paket</Card.Title>
+            </Card.Header>
+            <Card.Body>
+              <CategoryDonutChart data={agg.sumber} getLabel={getSumberLabel} getColor={sumberColor} totalPaket={agg.sumber.reduce((s, x) => s + x.jumlahPaket, 0)} />
+            </Card.Body>
+          </Card>
+          <Card>
+            <Card.Header className={styles.panelHeaderRow}>
+              <Card.Icon tone="positive"><BarChart3 /></Card.Icon>
+              <Card.Title>Realisasi per Cara Pengadaan</Card.Title>
               <div className={styles.segmentedControl}>
                 <div className={styles.segmentedBg} style={{ transform: sumberChartMode === 'paket' ? 'translateX(100%)' : 'translateX(0)' }} />
                 <button
@@ -579,9 +585,11 @@ export function RingkasanView() {
                   Jumlah Paket
                 </button>
               </div>
-            </div>
-            <CategoryBarChart data={agg.sumber} getLabel={getSumberLabel} getColor={sumberColor} mode={sumberChartMode} />
-          </div>
+            </Card.Header>
+            <Card.Body>
+              <CategoryBarChart data={agg.sumber} getLabel={getSumberLabel} getColor={sumberColor} mode={sumberChartMode} />
+            </Card.Body>
+          </Card>
         </div>
 
         <AccordionTableWrapper 
@@ -632,13 +640,19 @@ export function RingkasanView() {
           caption="Distribusi paket, pagu & realisasi per metode"
         />
         <div className={styles.methodGrid}>
-          <div className={styles.panel}>
-            <div className={styles.panelTitle}><PieChart size={15} /> Proporsi Jumlah Paket</div>
-            <CategoryDonutChart data={agg.metode} getLabel={getMetodeLabel} getColor={metodeColor} totalPaket={totalPaketSemua} getLink={linkMetode} />
-          </div>
-          <div className={styles.panel}>
-            <div className={styles.panelHeaderRow}>
-              <div className={styles.panelTitle}><BarChart3 size={15} /> Realisasi per Metode</div>
+          <Card>
+            <Card.Header>
+              <Card.Icon tone="neutral"><PieChart /></Card.Icon>
+              <Card.Title>Proporsi Jumlah Paket</Card.Title>
+            </Card.Header>
+            <Card.Body>
+              <CategoryDonutChart data={agg.metode} getLabel={getMetodeLabel} getColor={metodeColor} totalPaket={totalPaketSemua} getLink={linkMetode} />
+            </Card.Body>
+          </Card>
+          <Card>
+            <Card.Header className={styles.panelHeaderRow}>
+              <Card.Icon tone="positive"><BarChart3 /></Card.Icon>
+              <Card.Title>Realisasi per Metode</Card.Title>
               <div className={styles.segmentedControl}>
                 <div className={styles.segmentedBg} style={{ transform: barChartMode === 'paket' ? 'translateX(100%)' : 'translateX(0)' }} />
                 <button
@@ -658,9 +672,11 @@ export function RingkasanView() {
                   Jumlah Paket
                 </button>
               </div>
-            </div>
-            <CategoryBarChart data={agg.metode} getLabel={getMetodeLabel} getColor={metodeColor} mode={barChartMode} getLink={linkMetode} />
-          </div>
+            </Card.Header>
+            <Card.Body>
+              <CategoryBarChart data={agg.metode} getLabel={getMetodeLabel} getColor={metodeColor} mode={barChartMode} getLink={linkMetode} />
+            </Card.Body>
+          </Card>
         </div>
 
         <AccordionTableWrapper 
@@ -728,13 +744,19 @@ export function RingkasanView() {
           caption="Distribusi paket, pagu & realisasi per jenis (Barang, Jasa, Konstruksi, Swakelola)"
         />
         <div className={styles.methodGrid}>
-          <div className={styles.panel}>
-            <div className={styles.panelTitle}><PieChart size={15} /> Proporsi Jumlah Paket</div>
-            <CategoryDonutChart data={agg.jenis} getLabel={getJenisLabel} getColor={jenisColor} totalPaket={totalPaketSemua} getLink={linkJenis} />
-          </div>
-          <div className={styles.panel}>
-            <div className={styles.panelHeaderRow}>
-              <div className={styles.panelTitle}><BarChart3 size={15} /> Realisasi per Jenis</div>
+          <Card>
+            <Card.Header>
+              <Card.Icon tone="neutral"><PieChart /></Card.Icon>
+              <Card.Title>Proporsi Jumlah Paket</Card.Title>
+            </Card.Header>
+            <Card.Body>
+              <CategoryDonutChart data={agg.jenis} getLabel={getJenisLabel} getColor={jenisColor} totalPaket={totalPaketSemua} getLink={linkJenis} />
+            </Card.Body>
+          </Card>
+          <Card>
+            <Card.Header className={styles.panelHeaderRow}>
+              <Card.Icon tone="positive"><BarChart3 /></Card.Icon>
+              <Card.Title>Realisasi per Jenis</Card.Title>
               <div className={styles.segmentedControl}>
                 <div className={styles.segmentedBg} style={{ transform: jenisChartMode === 'paket' ? 'translateX(100%)' : 'translateX(0)' }} />
                 <button
@@ -754,9 +776,11 @@ export function RingkasanView() {
                   Jumlah Paket
                 </button>
               </div>
-            </div>
-            <CategoryBarChart data={agg.jenis} getLabel={getJenisLabel} getColor={jenisColor} mode={jenisChartMode} getLink={linkJenis} />
-          </div>
+            </Card.Header>
+            <Card.Body>
+              <CategoryBarChart data={agg.jenis} getLabel={getJenisLabel} getColor={jenisColor} mode={jenisChartMode} getLink={linkJenis} />
+            </Card.Body>
+          </Card>
         </div>
 
         <AccordionTableWrapper 
@@ -833,12 +857,18 @@ export function RingkasanView() {
               </button>
             }
           />
-          <div className={styles.panel}>
-            <SatkerRankingChart satker={agg.satker} selectedSatker={applied.satker} />
-          </div>
+          <Card className={styles.chartCard}>
+            <Card.Header>
+              <Card.Icon tone="neutral"><Trophy /></Card.Icon>
+              <Card.Title>Peringkat Realisasi Satuan Kerja</Card.Title>
+            </Card.Header>
+            <Card.Body>
+              <SatkerRankingChart satker={agg.satker} selectedSatker={applied.satker} />
+            </Card.Body>
+          </Card>
 
-          <div className={`${styles.panel} ${styles.tablePanel}`}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center' }}>
+          <Card variant="flush">
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center' }}>
               <input
                 type="text"
                 placeholder="Cari nama satuan kerja..."
@@ -954,7 +984,7 @@ export function RingkasanView() {
                 </span>
               </p>
             )}
-          </div>
+          </Card>
         </motion.div>
       )}
 

@@ -1,43 +1,206 @@
+/* ============================================================
+   Card — satu-satunya bentuk kartu di DEWA-PBJ.
+   Seluruh radius/border/shadow/padding datang dari token
+   --card-* di globals.css. Jangan hardcode apa pun di sini.
+
+   PENTING soal specificity. Tiap *.module.css jadi stylesheet
+   terpisah, dan urutan muatnya ditentukan graf chunk — bukan
+   urutan import. Jadi aturan bawaan subkomponen dibungkus
+   :where() (specificity 0) supaya kelas lokal milik pemakai
+   SELALU menang tanpa bergantung urutan berkas. Sebaliknya,
+   cangkang kartu (.card + varian padding) sengaja dibiarkan
+   di 0,1,0; kartu yang benar-benar perlu menyimpang menggandakan
+   kelasnya sendiri (mis. .wrap.wrap) agar menang pasti.
+   ============================================================ */
+
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  /* Tinggi seragam dalam satu baris grid didapat dari align-self: stretch
+     bawaan grid/flex item — BUKAN height: 100%. Setiap halaman adalah flex
+     item dari .mainArea (flex column, >=100vh), dan flex item punya tinggi
+     definit; height:100% di sini akan resolve ke tinggi seluruh halaman
+     sehingga kartu yang bukan grid item membengkak setinggi halaman. */
+  align-self: stretch;
+  min-width: 0;
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
-  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease,
-    box-shadow var(--dur-med) ease, transform var(--dur-med) ease;
+  /* Supaya tabel & chart di dalamnya ikut terpotong mengikuti radius. */
+  overflow: hidden;
+  color: var(--text-primary);
+  text-decoration: none;
 }
 
+/* Padding isi — varian flush sengaja nol agar tabel/chart menempel tepi. */
+.padNormal { padding: var(--card-pad); }
+.padTight { padding: var(--card-pad-tight); }
+.flush { padding: 0; }
+
+/* Hanya kartu interaktif yang bergerak. Kartu biasa diam total. */
 .interactive {
   cursor: pointer;
+  transition: transform 0.25s var(--ease-spring), box-shadow 0.25s var(--ease-spring);
 }
 .interactive:hover {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+}
+.interactive:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
 }
 
-/* Lift dekoratif untuk kartu non-klik (stat/KPI) — tanpa cursor:pointer agar
-   tidak menyiratkan afordansi klik yang tidak ada. */
-.elevateOnHover:hover {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
-  box-shadow: var(--shadow-md);
+/* ---------- Header ---------- */
+
+:where(.header) {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
 }
 
-/* Semantic variants — subtle tint + colored left rail */
-.danger {
-  background: var(--red-100);
-  border-color: color-mix(in srgb, var(--red-600) 22%, transparent);
-  box-shadow: none;
+/* Kartu akordeon: seluruh baris judul jadi tombol. Reset tampilan tombol
+   supaya headernya tetap terbaca sebagai judul kartu. */
+:where(.header:is(button)) {
+  width: 100%;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-.warning {
-  background: var(--amber-100);
-  border-color: color-mix(in srgb, var(--amber-600) 22%, transparent);
-  box-shadow: none;
+/* Di kartu flush, header tetap punya padding horizontal var(--card-pad)
+   sementara badan kartu (tabel/chart) tetap penuh sampai tepi. */
+.headerFlush {
+  padding: var(--card-pad) var(--card-pad) 0;
 }
 
-.info {
-  background: var(--info-100);
-  border-color: color-mix(in srgb, var(--info-600) 22%, transparent);
-  box-shadow: none;
+:where(.icon) {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:where(.icon) svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.8;
+}
+
+/* Satu-satunya sumber warna aksen sebuah kartu. */
+.toneNeutral { background: var(--brand-100); color: var(--brand-700); }
+.tonePositive { background: var(--teal-100); color: var(--teal-800); }
+.toneWarning { background: var(--amber-100); color: var(--amber-800); }
+.toneRisk { background: var(--danger-100); color: var(--danger-800); }
+
+:where(.title) {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+
+:where(.label) {
+  margin: 0;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: var(--lh-snug);
+  color: var(--text-secondary);
+}
+
+:where(.action) {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--brand-600);
+  text-decoration: none;
+  cursor: pointer;
+}
+.action:hover { text-decoration: underline; }
+.action:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- Body ---------- */
+
+:where(.body) {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  /* Menyerap sisa tinggi supaya Footer terdorong ke dasar kartu dan
+     seluruh kartu dalam satu baris grid punya tinggi yang sama. */
+  flex: 1 1 auto;
+}
+
+.bodyFlush {
+  padding: 0;
+}
+
+/* ---------- Footer ---------- */
+
+:where(.footer) {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+.footerFlush {
+  padding: 14px var(--card-pad) var(--card-pad);
+}
+
+/* ---------- Skeleton & empty state ---------- */
+
+.skeletonLine {
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  animation: cardPulse 1.4s ease-in-out infinite;
+}
+
+.skeletonIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: var(--surface-2);
+  animation: cardPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes cardPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.empty {
+  min-height: 120px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
 }

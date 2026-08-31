@@ -111,38 +111,57 @@
 
 .sectionEyebrow svg { color: var(--info-600); flex-shrink: 0; }
 
-/* Panel generik untuk chart */
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
-  margin-bottom: 16px;
+/* Kartu chart yang berdiri sendiri (bukan di dalam grid) tetap butuh
+   jarak ke kartu berikutnya. */
+.chartCard {
+  margin-bottom: var(--card-gap);
 }
 
-.panelTitle {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 14px;
-}
-
-.panelTitle svg { color: var(--info-600); }
-
-.panelHeaderRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* Header kartu chart yang menampung segmented control di ujung kanan. */
+.panelHeaderRow.panelHeaderRow {
   flex-wrap: wrap;
   gap: 10px 16px;
-  margin-bottom: 14px;
 }
 
-.panelHeaderRow .panelTitle {
+.panelHeaderRow .segmentedControl {
+  margin-left: auto;
+}
+
+/* ---- Kartu akordeon tabel rincian ---- */
+
+.accordionCard {
+  margin-top: 16px;
+}
+
+.accordionHead.accordionHead {
+  gap: 9px;
+  padding: 12px var(--card-pad);
   margin-bottom: 0;
+  border-bottom: 1px solid transparent;
+  transition: background-color var(--dur-fast) ease;
+}
+
+.accordionHead[aria-expanded="true"] {
+  border-bottom-color: var(--border-subtle);
+}
+
+.accordionHead:hover {
+  background: var(--surface-hover);
+}
+
+.accordionCount {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.accordionBody.accordionBody {
+  gap: 0;
 }
 
 .segmentedControl {
@@ -164,8 +183,8 @@
   left: 3px;
   width: calc(50% - 3px);
   background: var(--surface);
-  border-radius: var(--radius-pill, 999px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
 }
@@ -224,16 +243,14 @@
 .methodGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--card-gap);
+  margin-bottom: var(--card-gap);
+  align-items: stretch;
 }
 
 @media (max-width: 900px) {
   .methodGrid { grid-template-columns: 1fr; }
 }
-
-/* Tabel ringkas metode */
-.tablePanel { padding: 0; overflow: hidden; }
 
 .tableScroll { overflow-x: auto; }
 
@@ -370,30 +387,30 @@
   align-items: center;
   justify-content: center;
   padding: 4px 10px;
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
 
 .badgeRed {
-  background: var(--error-50, rgba(239, 68, 68, 0.15));
-  color: var(--error-600, #dc2626);
+  background: var(--danger-100);
+  color: var(--danger-800);
 }
 
 .badgeYellow {
-  background: var(--warn-50, rgba(245, 158, 11, 0.15));
-  color: var(--warn-700, #b45309);
+  background: var(--amber-100);
+  color: var(--amber-800);
 }
 
 .badgeBlue {
-  background: var(--info-50, rgba(59, 130, 246, 0.15));
-  color: var(--info-600, #2563eb);
+  background: var(--brand-100);
+  color: var(--brand-700);
 }
 
 .badgeGreen {
-  background: var(--success-50, rgba(16, 185, 129, 0.15));
-  color: var(--success-600, #059669);
+  background: var(--teal-100);
+  color: var(--teal-800);
 }
 
 .rowHighlight td {
@@ -412,32 +429,18 @@
    pergantian peran tidak mengubah bentuk halaman. Mekanik toggle-nya diwarisi
    utuh dari .segmentedControl di atas. */
 .scopeBar {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
   margin-bottom: 24px;
 }
 
-.scopeBarRow {
-  display: flex;
+.scopeBarHead.scopeBarHead {
+  margin-bottom: 12px;
+}
+
+.scopeBarRow.scopeBarRow {
+  flex-direction: row;
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
-}
-
-.scopeBarLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.scopeBarLabel svg {
-  color: var(--info-600);
-  flex-shrink: 0;
 }
 
 /* Menjelaskan absennya rincian per-paket, jadi harus terbaca sebagai batasan
@@ -446,22 +449,18 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin: 12px 0 0;
-  font-size: 13px;
+  margin-top: 12px;
   line-height: 1.5;
-  color: var(--text-secondary);
 }
 
 .scopeNoteIcon {
-  color: var(--warn-700, #b45309);
+  color: var(--amber-800);
   flex-shrink: 0;
   margin-top: 2px;
 }
 
 .scopeInfo {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin: 12px 0 0;
+  margin-top: 12px;
 }
 .scopeInfo b { color: var(--text-primary); font-weight: 600; }
 
@@ -484,6 +483,6 @@
 .stackedFull {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--card-gap);
   margin-bottom: 20px;
 }

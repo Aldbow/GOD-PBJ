@@ -29,6 +29,7 @@ import {
 } from '@/lib/notifikasi/alerts';
 import { fetchNotifikasiDetail, type NotifikasiDetail } from '@/lib/notifikasi/detail';
 import { NotifikasiDetailBody } from './NotifikasiDetailBody';
+import { Card, type CardTone } from '@/components/ui/Card';
 import styles from './NotifikasiView.module.css';
 
 type FetchState = 'idle' | 'ready' | 'error';
@@ -193,30 +194,32 @@ export function NotifikasiView() {
           <p className={styles.stateText}>Memuat notifikasi...</p>
         </div>
       ) : state === 'error' ? (
-        <div className={styles.stateCard}>
-          <div className={`${styles.stateIcon} ${styles.errorIcon}`}>
-            <AlertTriangle size={28} />
-          </div>
-          <h2 className={styles.stateTitle}>Gagal memuat notifikasi</h2>
-          <p className={styles.stateText}>
-            Data tidak dapat diambil dari server. Periksa koneksi Anda lalu coba lagi.
-          </p>
-          <button type="button" className={styles.refreshBtn} onClick={refresh} disabled={refreshing}>
-            <RefreshCw size={14} aria-hidden="true" className={refreshing ? styles.spin : undefined} />
-            Coba lagi
-          </button>
-        </div>
+        <Card>
+          <Card.Header>
+            <Card.Icon tone="risk"><AlertTriangle /></Card.Icon>
+            <Card.Title as="h2">Gagal memuat notifikasi</Card.Title>
+          </Card.Header>
+          <Card.Body className={styles.stateCard}>
+            <p className={styles.stateText}>
+              Data tidak dapat diambil dari server. Periksa koneksi Anda lalu coba lagi.
+            </p>
+            <button type="button" className={styles.refreshBtn} onClick={refresh} disabled={refreshing}>
+              <RefreshCw size={14} aria-hidden="true" className={refreshing ? styles.spin : undefined} />
+              Coba lagi
+            </button>
+          </Card.Body>
+        </Card>
       ) : rows.length === 0 ? (
-        <div className={styles.stateCard}>
-          <div className={`${styles.stateIcon} ${styles.okIcon}`}>
-            <CheckCircle2 size={28} />
-          </div>
-          <h2 className={styles.stateTitle}>Tidak ada notifikasi</h2>
-          <p className={styles.stateText}>
+        <Card>
+          <Card.Header>
+            <Card.Icon tone="positive"><CheckCircle2 /></Card.Icon>
+            <Card.Title as="h2">Tidak ada notifikasi</Card.Title>
+          </Card.Header>
+          <Card.Body className={styles.stateCard}>
             Belum ada paket di bawah pantauan Anda yang tercatat pada modul Risiko maupun
             Realisasi.
-          </p>
-        </div>
+          </Card.Body>
+        </Card>
       ) : (
         <>
           <div className={styles.statRow}>
@@ -282,17 +285,18 @@ export function NotifikasiView() {
           </div>
 
           {visibleRows.length === 0 ? (
-            <div className={styles.stateCard}>
-              <div className={`${styles.stateIcon} ${styles.okIcon}`}>
-                <CheckCircle2 size={28} />
-              </div>
-              <p className={styles.stateText}>Tidak ada paket pada saringan ini.</p>
-            </div>
+            <Card>
+              <Card.Header>
+                <Card.Icon tone="positive"><CheckCircle2 /></Card.Icon>
+                <Card.Title>Hasil saringan</Card.Title>
+              </Card.Header>
+              <Card.Body className={styles.stateCard}>Tidak ada paket pada saringan ini.</Card.Body>
+            </Card>
           ) : (
             <ul className={styles.list}>
               {visibleRows.map((row) => (
                   <li key={row.kd_rup}>
-                    <div className={styles.card}>
+                    <Card interactive padding="tight" className={styles.card}>
                       <div className={styles.cardMain}>
                         <div className={styles.cardTags}>
                           {row.types.map((type) => (
@@ -355,7 +359,7 @@ export function NotifikasiView() {
                           <ChevronRight size={14} aria-hidden="true" />
                         </button>
                       </div>
-                    </div>
+                    </Card>
                   </li>
               ))}
             </ul>
@@ -480,6 +484,12 @@ function FilterChip({
   );
 }
 
+const STAT_TINT: Record<'warning' | 'danger' | 'base', CardTone> = {
+  base: 'neutral',
+  warning: 'warning',
+  danger: 'risk',
+};
+
 function StatCard({
   icon,
   label,
@@ -491,16 +501,15 @@ function StatCard({
   value: string;
   tone?: 'warning' | 'danger';
 }) {
-  const toneClass = tone === 'warning' ? styles.statWarning : tone === 'danger' ? styles.statDanger : '';
   return (
-    <div className={styles.stat}>
-      <span className={`${styles.statIcon} ${toneClass}`} aria-hidden="true">
-        {icon}
-      </span>
-      <div className={styles.statBody}>
-        <span className={styles.statLabel}>{label}</span>
+    <Card padding="tight" className={styles.stat}>
+      <Card.Header>
+        <Card.Icon tone={STAT_TINT[tone ?? 'base']}>{icon}</Card.Icon>
+        <Card.Label>{label}</Card.Label>
+      </Card.Header>
+      <Card.Body className={styles.statBody}>
         <span className={styles.statValue}>{value}</span>
-      </div>
-    </div>
+      </Card.Body>
+    </Card>
   );
 }

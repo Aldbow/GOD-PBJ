@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, TriangleAlert } from 'lucide-react';
 import type { AnomaliDetail } from '../lib/ringkasanData';
 import { ANOMALI_LABEL, type AnomaliJenis } from '@/lib/anomali';
 import { fmtRupiah, fmtInt } from '@/lib/format';
+import { Card } from '@/components/ui/Card';
 import styles from './AnomaliTable.module.css';
 
 const PER_PAGE = 5;
@@ -31,22 +32,24 @@ export function AnomaliTable({ rows }: { rows: AnomaliDetail[] }) {
   const showBody = isOpen;
 
   return (
-    <div className={styles.card}>
-      <button 
+    <Card variant="flush" className={styles.card}>
+      <Card.Header
+        as="button"
         type="button"
-        className={styles.headBtn} 
+        className={styles.headBtn}
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={showBody}
       >
-        <div className={styles.headTitleWrap}>
-          <span className={styles.title}>Rincian Paket Anomali</span>
-          <span className={styles.count}>{fmtInt(rows.length)} paket</span>
-        </div>
-        {showBody ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-      </button>
+        <Card.Icon tone="risk"><TriangleAlert /></Card.Icon>
+        <Card.Title as="span">Rincian Paket Anomali</Card.Title>
+        <span className={styles.count}>{fmtInt(rows.length)} paket</span>
+        <Card.Action as="span" aria-hidden>
+          {showBody ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </Card.Action>
+      </Card.Header>
 
       {showBody && (
-        <div className={styles.body}>
+        <Card.Body className={styles.body}>
           <div className={styles.scroll}>
             <table className={styles.table}>
               <thead>
@@ -117,8 +120,8 @@ export function AnomaliTable({ rows }: { rows: AnomaliDetail[] }) {
               </button>
             </div>
           </div>
-        </div>
+        </Card.Body>
       )}
-    </div>
+    </Card>
   );
 }

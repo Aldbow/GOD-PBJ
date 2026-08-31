@@ -28,43 +28,21 @@
 .chartGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: var(--card-gap);
+  align-items: stretch;
 }
 
 @media (max-width: 1100px) {
   .chartGrid { grid-template-columns: 1fr; }
 }
 
-.chartCard {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 16px;
+/* Bentuk kartunya dari komponen Card. */
+.cardHeader.cardHeader {
+  align-items: flex-start;
 }
 
-.cardHeader {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.cardIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--info-600) 12%, transparent);
-  color: var(--info-600);
-  flex-shrink: 0;
-}
-
-.cardTitle {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
+.titleWrap {
+  min-width: 0;
 }
 
 .cardSubtitle {
