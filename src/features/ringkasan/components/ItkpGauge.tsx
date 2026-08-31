@@ -12,6 +12,8 @@ import { normSatker } from '@/lib/itkp/crosswalk';
 import { predikatOf, nextPredikatLabel } from '@/lib/itkp/itkpModel';
 import { fmtDec, fmtPct } from '@/lib/format';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { usePublishPrintSection } from '../lib/pdf/printSections';
+import type { ItkpPrintData } from '../lib/pdf/types';
 import styles from './ItkpGauge.module.css';
 
 // Skala total ITKP = A(30) + B(30) + C(30) + D(10).
@@ -97,6 +99,78 @@ export function ItkpGauge({ satker, forceComponentA = false, rows, rowsLoading }
   const resultA = useMemo(() => (input ? computeItkpA(input) : null), [input]);
   const bcd = useMemo(() => computeItkpBCD(getDummyBCDForUnit(scopeLabel)), [scopeLabel]);
 
+  // Seluruh turunan skor dihitung di SATU memo sebelum early-return apa pun.
+  // Bukan sekadar rapi: `usePublishPrintSection` di bawah adalah hook, jadi ia
+  // wajib dipanggil di setiap render — termasuk saat kartu ini masih skeleton —
+  // sehingga angka yang diterbitkannya tidak boleh lahir setelah early-return.
+  const view = useMemo(() => {
+    if (!resultA) return null;
+    const totalA = resultA.total;
+    const totalItkp = totalA + bcd.total;
+
+    const isSatker = !!matchedUnit;
+    // forceComponentA: dipaksa dari luar (mis. filter PPK aktif) walau ITKP tidak
+    // punya granularitas per-PPK — tetap tampilkan Komponen A saja sebagai pendekatan.
+    const componentAOnly = isSatker || forceComponentA;
+    const displayTotal = componentAOnly ? totalA : totalItkp;
+    const displayMax = componentAOnly ? resultA.totalMaxSaatIni : MAX_TOTAL;
+
+    const ratio = displayMax > 0 ? Math.max(0, Math.min(displayTotal / displayMax, 1)) : 0;
+
+    // Normalisasi predikat jika khusus komponen A agar tidak anjlok (karena max 30)
+    const normTotal = componentAOnly ? ratio * 100 : totalItkp;
+    const band = predikatOf(normTotal);
+    const nextLabel = nextPredikatLabel(band.level);
+
+    const komponen: Komponen[] = componentAOnly ? [
+      { key: 'A', label: 'A. Pemanfaatan Sistem', score: totalA, max: resultA.totalMaxSaatIni, bobot: 100, color: '#1A5D91' }
+    ] : [
+      { key: 'A', label: 'A. Pemanfaatan Sistem', score: totalA, max: resultA.totalMaxSaatIni, bobot: 30, color: '#1A5D91' },
+      { key: 'B', label: 'B. Kompetensi SDM PBJ', score: bcd.nilaiB, max: 30, bobot: 30, color: '#1FA89A' },
+      { key: 'C', label: 'C. Kematangan UKPBJ', score: bcd.nilaiC, max: 30, bobot: 30, color: '#5B61D6' },
+      { key: 'D', label: 'D. Integritas Pengadaan', score: bcd.nilaiD, max: 10, bobot: 10, color: '#27B6D6' },
+    ];
+
+    return { isSatker, componentAOnly, displayTotal, displayMax, ratio, band, nextLabel, komponen };
+  }, [resultA, bcd, matchedUnit, forceComponentA]);
+
+  const judul = view?.isSatker
+    ? `Skor ITKP Pemanfaatan Sistem Satuan Kerja ${scopeLabel}`
+    : forceComponentA
+      ? 'Skor ITKP Pemanfaatan Sistem (Hasil Filter)'
+      : 'Skor ITKP 2026';
+
+  // Catatan yang sama dengan yang tampil di kaki kartu — cetakan tidak boleh
+  // menyembunyikan alasan skornya dihitung pada lingkup yang berbeda.
+  const catatan = !matchedUnit && satker && !forceComponentA
+    ? 'Skor ITKP dihitung per unit penilaian; Satker terpilih tidak terpetakan ke unit ITKP, jadi ditampilkan total Kementerian.'
+    : !matchedUnit && forceComponentA
+      ? 'ITKP dihitung per satuan kerja, bukan per PPK — skor Komponen A berikut adalah pendekatan tingkat Kementerian.'
+      : null;
+
+  const printData = useMemo<ItkpPrintData | null>(() => {
+    if (!view || !resultA) return null;
+    return {
+      headline: judul,
+      scopeLabel,
+      componentAOnly: view.componentAOnly,
+      total: view.displayTotal,
+      max: view.displayMax,
+      ratioPct: view.ratio * 100,
+      predikat: view.componentAOnly ? null : `${view.band.kode} · ${view.band.label}`,
+      komponen: view.komponen.map((k) => ({ label: k.label, score: k.score, max: k.max, bobot: k.bobot })),
+      indikatorA: resultA.rows.map((r) => ({
+        label: r.label,
+        skor: r.skor,
+        skorMax: r.skorMax,
+        applicable: r.applicable,
+      })),
+      note: catatan,
+    };
+  }, [view, resultA, judul, scopeLabel, catatan]);
+
+  usePublishPrintSection('itkp', printData);
+
   if (loading) {
     return (
       <div className={styles.card}>
@@ -107,47 +181,17 @@ export function ItkpGauge({ satker, forceComponentA = false, rows, rowsLoading }
     );
   }
 
-  if (error || !resultA) {
+  if (error || !resultA || !view) {
     return <div className={styles.card}><p className={styles.errText}>{error || 'Data ITKP tidak tersedia.'}</p></div>;
   }
 
-  const totalA = resultA.total;
-  const totalItkp = totalA + bcd.total;
-  
-  const isSatker = !!matchedUnit;
-  // forceComponentA: dipaksa dari luar (mis. filter PPK aktif) walau ITKP tidak
-  // punya granularitas per-PPK — tetap tampilkan Komponen A saja sebagai pendekatan.
-  const componentAOnly = isSatker || forceComponentA;
-  const displayTotal = componentAOnly ? totalA : totalItkp;
-  const displayMax = componentAOnly ? resultA.totalMaxSaatIni : MAX_TOTAL;
-
-  const ratio = displayMax > 0 ? Math.max(0, Math.min(displayTotal / displayMax, 1)) : 0;
-
-  // Normalisasi predikat jika khusus komponen A agar tidak anjlok (karena max 30)
-  const normTotal = componentAOnly ? ratio * 100 : totalItkp;
-  const band = predikatOf(normTotal);
-  const nextLabel = nextPredikatLabel(band.level);
-
-  const komponen: Komponen[] = componentAOnly ? [
-    { key: 'A', label: 'A. Pemanfaatan Sistem', score: totalA, max: resultA.totalMaxSaatIni, bobot: 100, color: '#1A5D91' }
-  ] : [
-    { key: 'A', label: 'A. Pemanfaatan Sistem', score: totalA, max: resultA.totalMaxSaatIni, bobot: 30, color: '#1A5D91' },
-    { key: 'B', label: 'B. Kompetensi SDM PBJ', score: bcd.nilaiB, max: 30, bobot: 30, color: '#1FA89A' },
-    { key: 'C', label: 'C. Kematangan UKPBJ', score: bcd.nilaiC, max: 30, bobot: 30, color: '#5B61D6' },
-    { key: 'D', label: 'D. Integritas Pengadaan', score: bcd.nilaiD, max: 10, bobot: 10, color: '#27B6D6' },
-  ];
+  const { componentAOnly, displayTotal, displayMax, ratio, band, nextLabel, komponen } = view;
 
   return (
     <div className={`${styles.card} ${componentAOnly ? styles.cardComponentAOnly : ''}`}>
       <div className={styles.head}>
         <div>
-          <h3 className={styles.title}>
-            {isSatker
-              ? `Skor ITKP Pemanfaatan Sistem Satuan Kerja ${scopeLabel}`
-              : forceComponentA
-                ? 'Skor ITKP Pemanfaatan Sistem (Hasil Filter)'
-                : 'Skor ITKP 2026'}
-          </h3>
+          <h3 className={styles.title}>{judul}</h3>
           {!componentAOnly && <p className={styles.scope}>{scopeLabel}</p>}
         </div>
         <div className={styles.headActions}>
@@ -295,14 +339,11 @@ export function ItkpGauge({ satker, forceComponentA = false, rows, rowsLoading }
         </div>
       </div>
 
-      {!matchedUnit && satker && !forceComponentA && (
+      {/* Satu sumber teks dengan catatan yang ikut tercetak di PDF — kalau
+          dibiarkan terpisah, keduanya cepat berbeda bunyi. */}
+      {catatan && (
         <p className={styles.note}>
-          <Info size={12} /> Skor ITKP dihitung per unit penilaian; Satker terpilih tidak terpetakan ke unit ITKP, jadi ditampilkan total Kementerian.
-        </p>
-      )}
-      {!matchedUnit && forceComponentA && (
-        <p className={styles.note}>
-          <Info size={12} /> ITKP dihitung per satuan kerja, bukan per PPK — skor Komponen A berikut adalah pendekatan tingkat Kementerian.
+          <Info size={12} /> {catatan}
         </p>
       )}
     </div>
