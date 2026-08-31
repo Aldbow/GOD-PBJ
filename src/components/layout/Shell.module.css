@@ -3,10 +3,12 @@
   min-height: 100vh;
 }
 
+/* Rail melayang di luar aliran dokumen (position: fixed), jadi lorongnya
+   dibuat di sini: 16px offset + 60px rail + 24px napas. */
 .mainArea {
   flex: 1;
   min-width: 0;
-  padding: 0 36px 56px;
+  padding: 0 36px 56px 100px;
   display: flex;
   flex-direction: column;
 }
@@ -15,7 +17,9 @@
   .appShell {
     flex-direction: column;
   }
+  /* Dock pindah ke tepi bawah; halaman menyisakan ruang agar baris terakhir
+     tidak berakhir di baliknya. */
   .mainArea {
-    padding: 0 16px 32px;
+    padding: 0 16px 108px;
   }
 }

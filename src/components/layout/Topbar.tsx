@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import styles from './Topbar.module.css';
 
 import { ThemeToggle } from './ThemeToggle';
@@ -10,57 +10,23 @@ import { useSession } from '@/components/auth/SessionProvider';
 import { ROLE_LABEL } from '@/lib/auth/access';
 import { logout } from '@/lib/auth/actions';
 import { findActiveEntry } from '@/lib/nav';
-import { CommandPalette } from './CommandPalette';
 import { PpkNotificationBell } from './PpkNotificationBell';
 
-export function Topbar() {
+export function Topbar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const pathname = usePathname();
   const { full_name, role } = useSession();
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [isHidden, setIsHidden] = useState(false);
 
   const activeEntry = findActiveEntry(pathname);
   const title = activeEntry?.link.name ?? 'Ringkasan Kementerian';
   const breadcrumbGroup = activeEntry?.group.label;
-  
+
   // Get initials for avatar
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setPaletteOpen(true);
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, []);
-
-  useEffect(() => {
-    let lastScrollY = window.scrollY;
-    
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      // Hide topbar when scrolling down, show when scrolling up
-      if (currentScrollY > lastScrollY && currentScrollY > 60) {
-        setIsHidden(true);
-      } else {
-        setIsHidden(false);
-      }
-      
-      lastScrollY = currentScrollY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
-    <header className={`${styles.topbar} ${isHidden ? styles.hidden : ''}`}>
+    <header className={styles.topbar}>
       <div className={styles.titleWrap}>
         <div className={styles.inlineBreadcrumb}>
           <span className={styles.eyebrow}>DEWA-PBJ</span>
@@ -74,12 +40,12 @@ export function Topbar() {
           <h1 className={styles.pageTitle}>{title}</h1>
         </div>
       </div>
-      
+
       <div className={styles.controlsRow}>
         <button
           type="button"
           className={styles.iconBtn}
-          onClick={() => setPaletteOpen(true)}
+          onClick={onOpenPalette}
           aria-label="Pencarian"
           title="Pencarian (Ctrl+K)"
         >
@@ -108,8 +74,6 @@ export function Topbar() {
           </form>
         </div>
       </div>
-
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </header>
   );
 }

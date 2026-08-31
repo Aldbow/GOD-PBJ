@@ -1,0 +1,314 @@
+/* ============================================================
+   CommandRail — navigasi utama.
+
+   Rail MELAYANG, tidak menempel tepi: jarak 16px di kiri yang membuatnya
+   terbaca sebagai lapisan di atas halaman, bukan kolom yang memotongnya.
+   Vertikal, bukan dock bawah, karena halaman ini penuh tabel panjang dan
+   dock bawah menutupi baris terakhir — persis baris yang sedang dibaca.
+   ============================================================ */
+
+/* JANGAN beri .dock transform apa pun. Elemen ber-transform menjadi containing
+   block bagi turunan position:fixed, dan .flyout memakai koordinat viewport —
+   translateY(-50%) di sini membuat panelnya mendarat jauh dari tombolnya.
+   Pemusatan dikerjakan flex; strip ini tembus pandang terhadap pointer supaya
+   tidak menelan klik di kolom kirinya. */
+.dock {
+  position: fixed;
+  left: 16px;
+  top: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.rail,
+.flyout {
+  pointer-events: auto;
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: var(--radius-pill);
+
+  /* Permukaan SOLID. Kaca sempat dicoba di sini dan gagal untuk alasan yang
+     tepat: rail diam sementara tabel bergulir di baliknya, jadi apa pun yang
+     lewat ikut terbaca di balik ikon. Chrome navigasi harus terbaca setiap
+     saat — melayangnya dibawa bayangan, border, dan radius, bukan tembus
+     pandang. Material ini sengaja identik dengan .topbar. */
+  background: var(--surface);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 12px 32px -8px rgba(0, 0, 0, 0.12),
+    0 4px 12px -4px rgba(0, 0, 0, 0.06);
+}
+
+.rule {
+  width: 20px;
+  height: 1px;
+  background: var(--border-strong);
+  margin: 5px 0;
+  flex-shrink: 0;
+}
+
+.railBtn,
+.cmdBtn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 15px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+/* Di atas rail yang kini putih solid, --surface-hover (#F7F8FA) nyaris tak
+   terbaca sebagai umpan balik. Naik satu langkah ke --surface-2. */
+.railBtn:hover,
+.cmdBtn:hover {
+  color: var(--text-primary);
+  background: var(--surface-2);
+  transform: scale(1.06);
+}
+
+.railBtn:focus-visible,
+.cmdBtn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.railBtn[data-active],
+.railBtn[data-active]:hover {
+  color: #fff;
+  background: transparent;
+}
+
+.cmdBtn {
+  color: var(--brand-700);
+  background: var(--brand-100);
+}
+
+.cmdBtn:hover {
+  color: var(--brand-700);
+  background: var(--brand-100);
+}
+
+/* Pil aktif meluncur antar ikon lewat layoutId framer-motion — satu momen
+   gerak yang menjawab "saya sekarang di mana", bukan efek tambahan. */
+.activePill {
+  position: absolute;
+  inset: 0;
+  border-radius: 15px;
+  background: linear-gradient(140deg, var(--brand-500), var(--brand-600));
+  box-shadow: 0 6px 16px -4px color-mix(in srgb, var(--brand-600) 55%, transparent);
+}
+
+.railIcon {
+  position: relative;
+  z-index: 1;
+}
+
+/* Label untuk tombol utilitas. Grup navigasi tidak memerlukannya: flyout-nya
+   sendiri sudah menjadi label yang muncul saat hover. */
+.tip {
+  position: absolute;
+  left: calc(100% + 12px);
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: var(--text-primary);
+  color: var(--surface);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-4px);
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.cmdBtn:hover .tip,
+.cmdBtn:focus-visible .tip {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* --- Flyout ---------------------------------------------------------------
+   Diposisikan sejajar tombol pemanggilnya (--flyout-top diisi komponen dan
+   sudah di-clamp ke viewport), bukan di tengah rail: mata sudah ada di ikon
+   itu, dan panel yang muncul 200px jauhnya memutus jejaknya. */
+.flyout {
+  position: fixed;
+  left: 86px;
+  top: var(--flyout-top, 50%);
+  min-width: 248px;
+  padding: 10px;
+  border-radius: var(--card-radius);
+  background: var(--surface);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 16px 40px -10px rgba(0, 0, 0, 0.16),
+    0 4px 12px -4px rgba(0, 0, 0, 0.07);
+}
+
+.flyout[data-compact] {
+  min-width: 0;
+}
+
+.flyoutTitle {
+  margin: 4px 10px 8px;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-md);
+  line-height: var(--lh-snug);
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.item:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.item[data-current] {
+  background: var(--brand-100);
+  color: var(--brand-700);
+  font-weight: 600;
+}
+
+.itemIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.item:hover .itemIcon {
+  color: var(--text-secondary);
+}
+
+.item[data-current] .itemIcon {
+  color: inherit;
+}
+
+.itemLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Di mode gelap elevasi dibangun dari cahaya, bukan bayangan — mengikuti
+   catatan --card-shadow di globals.css. */
+[data-theme='dark'] .activePill {
+  background: linear-gradient(140deg, var(--brand-400), var(--brand-500));
+}
+
+[data-theme='dark'] .railBtn[data-active],
+[data-theme='dark'] .railBtn[data-active]:hover {
+  color: var(--navy-900);
+}
+
+/* Di latar segelap --bg-page bayangan hitam praktis tak terlihat, jadi elevasi
+   dibangun dari cahaya — mengikuti catatan --card-shadow di globals.css. */
+[data-theme='dark'] .rail,
+[data-theme='dark'] .flyout {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+/* --- Mobile: rail yang sama, diputar ke dock bawah -------------------------
+   Satu breakpoint, satu model interaksi. Ibu jari menjangkau tepi bawah;
+   tabel di layar sempit sudah bergulir horizontal di dalam wadahnya sendiri,
+   jadi dock di sini tidak menutupi data yang tidak bisa digeser. */
+@media (max-width: 860px) {
+  .dock {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 14px;
+    justify-content: center;
+    align-items: flex-end;
+  }
+
+  .rail {
+    flex-direction: row;
+  }
+
+  .rule {
+    width: 1px;
+    height: 20px;
+    margin: 0 4px;
+  }
+
+  .tip {
+    left: 50%;
+    bottom: calc(100% + 12px);
+    transform: translate(-50%, 4px);
+  }
+
+  .cmdBtn:hover .tip,
+  .cmdBtn:focus-visible .tip {
+    transform: translate(-50%, 0);
+  }
+
+  .flyout {
+    left: 16px;
+    right: 16px;
+    top: auto;
+    bottom: 84px;
+    min-width: 0;
+    max-height: 58vh;
+    overflow-y: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .railBtn,
+  .cmdBtn,
+  .item,
+  .tip {
+    transition: none;
+  }
+
+  .railBtn:hover,
+  .cmdBtn:hover {
+    transform: none;
+  }
+}
