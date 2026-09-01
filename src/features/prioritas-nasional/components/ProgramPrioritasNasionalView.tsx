@@ -269,8 +269,17 @@ export function ProgramPrioritasNasionalView() {
     ],
     []
   );
-  const exportAllData = useMemo(() => baseData.map(toExportRow), [baseData]);
-  const exportFilteredData = useMemo(() => filteredData.map(toExportRow), [filteredData]);
+  // Pemetaan ekspor menyalin setiap baris yang lolos filter. Modal ekspor
+  // hampir selalu tertutup, jadi jangan bayar salinan itu di tiap ketikan
+  // pencarian — hitung saat modalnya dibuka.
+  const exportAllData = useMemo(
+    () => (isExportModalOpen ? baseData.map(toExportRow) : []),
+    [isExportModalOpen, baseData]
+  );
+  const exportFilteredData = useMemo(
+    () => (isExportModalOpen ? filteredData.map(toExportRow) : []),
+    [isExportModalOpen, filteredData]
+  );
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>

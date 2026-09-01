@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useMemo } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { replaceQueryParams } from '@/lib/urlParams';
 
 /** Identitas stabil untuk keadaan "tidak ada filter". */
 const KOSONG: string[] = [];
@@ -14,15 +15,14 @@ const KOSONG: string[] = [];
  * dengan pill Metode sudah aktif. Dengan useState biasa, nilai awalnya selalu
  * kosong dan pengguna harus memfilter ulang sendiri di halaman tujuan.
  *
- * Memakai router.replace (bukan push), sama seperti useOrgFilters: mengubah
- * filter bukan perpindahan halaman, jadi jangan memenuhi riwayat browser.
- * Kontrak param dijaga terpisah dari useOrgFilters (e1/s/p/q) supaya keduanya
- * bisa aktif bersamaan di satu URL tanpa saling menimpa.
+ * Menulis lewat `replaceQueryParams` (history.replaceState), sama seperti
+ * useOrgFilters: mengubah filter bukan perpindahan halaman, jadi jangan
+ * memenuhi riwayat browser dan jangan memicu permintaan RSC untuk segmen yang
+ * sama. Kontrak param dijaga terpisah dari useOrgFilters (e1/s/p/q) supaya
+ * keduanya bisa aktif bersamaan di satu URL tanpa saling menimpa.
  */
 export function useUrlPillFilter(param: string): [string[], (next: string[]) => void] {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
 
   const raw = searchParams.get(param) ?? '';
 
@@ -33,13 +33,12 @@ export function useUrlPillFilter(param: string): [string[], (next: string[]) => 
 
   const setSelected = useCallback(
     (next: string[]) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (next.length > 0) params.set(param, next.join(','));
-      else params.delete(param);
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      replaceQueryParams((params) => {
+        if (next.length > 0) params.set(param, next.join(','));
+        else params.delete(param);
+      });
     },
-    [router, pathname, searchParams, param]
+    [param]
   );
 
   return [selected, setSelected];

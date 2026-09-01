@@ -27,25 +27,45 @@ type DebouncedSearchInputProps = Omit<
 export function DebouncedSearchInput({
   value,
   onValueChange,
-  delay = 250,
+  delay = 180,
   ...rest
 }: DebouncedSearchInputProps) {
   const [draft, setDraft] = useState(value);
+  /**
+   * Cermin `draft` yang selalu mutakhir. React membatch onChange dan onBlur yang
+   * terjadi dalam satu interaksi (ketik lalu klik ke luar), jadi `draft` yang
+   * tertangkap closure onBlur bisa tertinggal satu huruf; flush harus membaca
+   * huruf terakhir, bukan huruf sebelum terakhir.
+   */
+  const draftRef = useRef(value);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** Nilai terakhir yang diangkat komponen ini sendiri, untuk mengenali gema induk. */
-  const committedRef = useRef(value);
+  /**
+   * Nilai-nilai yang sudah dikomit komponen ini tapi belum terlihat kembali
+   * lewat prop `value`. Antrean, bukan satu nilai: induk menyalurkan komit lewat
+   * state React dan URL, dan gema bisa datang terlambat atau terkoalesi.
+   * Mencocokkan hanya dengan komit terakhir membuat gema lama ("a") lolos
+   * sebagai perintah induk lalu menimpa draft yang lebih baru ("ab") — itulah
+   * yang dulu terlihat sebagai huruf yang terhapus sendiri.
+   */
+  const pendingRef = useRef<string[]>([]);
 
   // Induk boleh menyetir ulang kotak ini: tombol back, "Reset Semua Filter",
-  // atau tautan yang sudah membawa ?q=. Tapi gema dari komit kita sendiri wajib
-  // diabaikan — menyalinnya kembali ke draft akan menimpa huruf yang terlanjur
-  // diketik selama navigasi berjalan, dan itulah yang dulu terasa seperti
-  // karakter hilang dan kursor melompat.
+  // atau tautan yang sudah membawa ?q=. Tapi hanya kalau tidak ada komit kita
+  // sendiri yang masih menggantung.
   useEffect(() => {
-    if (value === committedRef.current) return;
-    // Komit yang masih menggantung sudah tidak relevan begitu induk memaksakan
-    // nilai lain; tanpa ini reset filter bisa dianulir timer lama.
-    if (timerRef.current) clearTimeout(timerRef.current);
-    committedRef.current = value;
+    const i = pendingRef.current.indexOf(value);
+    if (i !== -1) {
+      pendingRef.current = pendingRef.current.slice(i + 1);
+      return;
+    }
+    if (pendingRef.current.length > 0) return;
+    // Perintah induk yang sungguhan. Komit yang masih menunggu timer sudah tidak
+    // relevan; tanpa ini reset filter bisa dianulir timer lama.
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    draftRef.current = value;
     setDraft(value);
   }, [value]);
 
@@ -55,13 +75,27 @@ export function DebouncedSearchInput({
     };
   }, []);
 
+  const commit = (next: string) => {
+    timerRef.current = null;
+    pendingRef.current.push(next);
+    onValueChange(next);
+  };
+
   const handleChange = (next: string) => {
+    draftRef.current = next;
     setDraft(next);
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      committedRef.current = next;
-      onValueChange(next);
-    }, delay);
+    timerRef.current = setTimeout(() => commit(next), delay);
+  };
+
+  // Enter dan blur mengangkat nilainya seketika: menunggu jeda setelah pengguna
+  // jelas-jelas sudah selesai mengetik hanya terasa seperti aplikasi yang lambat.
+  const flush = (next: string = draftRef.current) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    // Tanpa timer yang menggantung, nilai ini sudah pernah dikomit — kecuali
+    // pemanggilnya memaksakan nilai lain (Escape).
+    else if (next === draftRef.current) return;
+    commit(next);
   };
 
   return (
@@ -69,6 +103,19 @@ export function DebouncedSearchInput({
       {...rest}
       value={draft}
       onChange={(e) => handleChange(e.target.value)}
+      onBlur={(e) => {
+        flush();
+        rest.onBlur?.(e);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') flush();
+        else if (e.key === 'Escape' && draft) {
+          setDraft('');
+          flush('');
+          draftRef.current = '';
+        }
+        rest.onKeyDown?.(e);
+      }}
     />
   );
 }
