@@ -7,6 +7,7 @@ import type { RingkasanKpi } from '../lib/ringkasanData';
 import { fmtInt, fmtPct } from '@/lib/format';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Card, type CardTone } from '@/components/ui/Card';
+import { TARGET_TRIWULAN, triwulanBerjalan } from '../lib/targetTriwulan';
 import styles from './KpiCards.module.css';
 
 // Format nilai anggaran gaya KPI: "Rp125,8 Miliar".
@@ -20,16 +21,6 @@ function fmtRupiahKpi(m: number): string {
   return `Rp${fmtInt(n)}`;
 }
 
-// Target realisasi kumulatif per triwulan (persen dari pagu). Dinilai dari
-// pctRealisasi dan ditandai pada kolom Sudah Realisasi — kolom yang angkanya
-// memang dinilai. Indeks 0 = TW1.
-const TARGET_TRIWULAN = [20, 50, 80, 100] as const;
-
-// Triwulan berjalan menurut tanggal saat ini. Halaman Ringkasan tidak punya
-// pemilih periode, jadi acuannya kalender.
-function triwulanBerjalan(now: Date = new Date()): 1 | 2 | 3 | 4 {
-  return (Math.floor(now.getMonth() / 3) + 1) as 1 | 2 | 3 | 4;
-}
 
 type Tone = 'base' | 'good' | 'warn' | 'danger';
 

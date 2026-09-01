@@ -53,6 +53,8 @@ import { KpiCards } from './KpiCards';
 import { CategoryDonutChart } from './charts/CategoryDonutChart';
 import { CategoryBarChart } from './charts/CategoryBarChart';
 import { SatkerRankingChart } from './charts/SatkerRankingChart';
+import { KurvaRealisasiTarget } from './charts/KurvaRealisasiTarget';
+import { fetchPetaWaktu, bangunKurva, type PetaWaktu } from '../lib/realisasiTimeline';
 import { metodeColor, jenisColor, sumberColor, useIsDark } from './charts/chartTheme';
 import { ItkpGauge } from './ItkpGauge';
 import { PedomanLengkapCard } from '@/features/itkp/components/PedomanLengkapCard';
@@ -207,6 +209,11 @@ export function RingkasanView() {
   const [ppkScope, setPpkScope] = useState<PpkScope>(hasSatker ? 'satker' : 'kementerian');
 
   const [rows, setRows] = useState<GabunganRow[]>([]);
+  // Bobot waktu realisasi. Dimuat terpisah dari baris view karena tanggalnya
+  // memang tidak ada di view mana pun — lihat lib/realisasiTimeline.ts.
+  const [petaWaktu, setPetaWaktu] = useState<PetaWaktu | null>(null);
+  /** Kurva gagal dimuat sementara sisa halaman baik-baik saja. */
+  const [kurvaError, setKurvaError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -247,12 +254,24 @@ export function RingkasanView() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setKurvaError(null);
     try {
       // Baris dimuat utuh untuk semua peran — agregat kementerian butuh itu.
       // Pembatasan role PPK ditegakkan pada tingkat tampilan (canSeePaketDetail)
       // dan pada baris export, bukan dengan memotong dataset di sini.
-      const data = await fetchGabunganRows();
+      // Keduanya diambil berbarengan; menunggunya berurutan menambah satu
+      // putaran jaringan penuh. Kegagalan bobot waktu ditangkap sendiri: kurva
+      // adalah pelengkap kartu KPI, dan menjatuhkan seluruh Ringkasan hanya
+      // karena satu grafik tidak bisa disusun jelas bukan pertukaran yang benar.
+      const [data, peta] = await Promise.all([
+        fetchGabunganRows(),
+        fetchPetaWaktu().catch((e) => {
+          setKurvaError(e instanceof Error ? e.message : 'Gagal memuat sumbu waktu realisasi.');
+          return new Map() as PetaWaktu;
+        }),
+      ]);
       setRows(data);
+      setPetaWaktu(peta);
       setLastUpdate(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal memuat data ringkasan.');
@@ -266,6 +285,12 @@ export function RingkasanView() {
   }, [load]);
 
   const agg = useMemo(() => aggregate(rows, applied), [rows, applied]);
+  // Kurva memakai baris yang SUDAH difilter, dengan pagu dari agregat yang sama
+  // dengan kartu KPI — supaya ujung kurva dan kartu tidak pernah berbeda angka.
+  const kurva = useMemo(
+    () => bangunKurva(filterRows(rows, applied), petaWaktu ?? new Map(), agg.kpi.totalPagu),
+    [rows, applied, petaWaktu, agg.kpi.totalPagu]
+  );
   const satkerOptions = useMemo(() => listSatker(rows), [rows]);
   const getPpkOptions = useCallback((satker: string) => listPpk(rows, satker), [rows]);
   const getSatkerByPpk = useCallback((ppk: string) => getSatkerForPpk(rows, ppk), [rows]);
@@ -544,6 +569,16 @@ export function RingkasanView() {
       {/* Baris 3 — KPI Cards */}
       <motion.div variants={item}>
         <KpiCards kpi={agg.kpi} loading={loading} />
+      </motion.div>
+
+      {/* Baris 3a — Kurva realisasi vs target triwulan. Ditaruh tepat di bawah
+          KPI karena inilah bentuk waktu dari angka "Sudah Realisasi" di atasnya. */}
+      <motion.div variants={item}>
+        <KurvaRealisasiTarget
+          kurva={kurva}
+          loading={loading || petaWaktu === null}
+          error={kurvaError}
+        />
       </motion.div>
 
       {/* Baris 3b — Ringkasan Sumber Pengadaan (dari RUP, bukan dari realisasi) */}

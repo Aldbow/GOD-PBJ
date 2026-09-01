@@ -1,0 +1,223 @@
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.headText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.caption {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  line-height: 1.45;
+}
+
+/* Ringkasan angka di atas kurva: tiga ukuran yang menjawab "sekarang di mana,
+   seharusnya di mana, selisihnya berapa" tanpa harus menyusuri garis. */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border-subtle);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.stat {
+  background: var(--surface);
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.statLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.statValue {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.statNote {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.35;
+}
+
+.statValue.behind { color: var(--danger-600, #d03b3b); }
+.statValue.ahead { color: var(--teal-600, #00B676); }
+
+/* Swatch legenda dibuat meniru bentuk garisnya, bukan kotak warna: pembaca
+   mencocokkan garis putus-putus di legenda dengan garis putus-putus di kurva. */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  align-items: center;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.swatch {
+  width: 22px;
+  height: 0;
+  border-top-width: 2.5px;
+  border-top-style: solid;
+  flex: none;
+}
+
+.swatchArea {
+  width: 22px;
+  height: 11px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.canvasWrap {
+  position: relative;
+  height: 320px;
+  padding: 16px 20px 4px;
+}
+
+@media (max-width: 720px) {
+  .stats { grid-template-columns: 1fr; }
+  .canvasWrap { height: 260px; padding: 12px 8px 4px; }
+}
+
+/* Tooltip dilukis sendiri, bukan tooltip bawaan Chart.js, supaya nilai selisih
+   bisa diberi warnanya sendiri — tooltip bawaan hanya bisa mewarnai per baris
+   dataset, bukan sepotong teks di dalam baris. */
+.tip {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5;
+  background: #141A26;
+  color: #E6EDF5;
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  min-width: 168px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  transform: translate(-50%, -100%);
+  transition: opacity 120ms ease, transform 120ms ease;
+  white-space: nowrap;
+}
+
+.tipTitle {
+  font-weight: 700;
+  font-size: 11.5px;
+  color: #FFFFFF;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tipTag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #141A26;
+  background: #3BE0B6;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.tipRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tipKey {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #93A4B8;
+}
+
+.tipDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.tipVal {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.tipSep {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 6px 0 5px;
+}
+
+/* Nilai selisih — warna mint yang diminta saat capaian menyamai/melampaui
+   target, merah saat tertinggal. Mewarnai ketertinggalan dengan warna sukses
+   akan membuat tooltip membaca terbalik dari isinya. */
+.tipDelta {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.tipDelta.ahead { color: #3BE0B6; }
+.tipDelta.behind { color: #FF8B8B; }
+
+.foot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}
+
+.note svg { flex: none; margin-top: 1px; }
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: 0 20px;
+}
