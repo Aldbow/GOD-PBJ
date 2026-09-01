@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useSession } from '@/components/auth/SessionProvider';
+import { replaceQueryParams } from '@/lib/urlParams';
 
 export interface OrgFilters {
   eselon1: string | null;
@@ -18,10 +19,24 @@ export interface OrgFilters {
 }
 
 /**
+ * Jeda antara kata kunci dikomit dan `?q=` ikut diperbarui. Menyalin kata kunci
+ * ke URL cuma melayani satu hal: tautannya bisa dibagikan. Itu tidak perlu
+ * terjadi secepat penyaringannya, dan menaruhnya di jalur ketikan berarti tiap
+ * pencarian menunggu satu putaran router. Jadi hasil pencarian muncul dari state
+ * seketika, dan URL menyusul setelah pengguna benar-benar berhenti.
+ */
+const URL_SYNC_DELAY = 500;
+
+/**
  * Syncs the "filter utama" (Eselon I / Satker / PPK / pencarian) to the URL
  * as independent, optional query params (e1/s/p/q) — cascading (memilih
  * Eselon I mempersempit Satker/PPK) tapi tidak wajib berurutan diisi.
- * Uses router.replace (not push) so filter tweaks don't spam browser history.
+ *
+ * URL ditulis lewat `replaceQueryParams` (history.replaceState), bukan
+ * router.replace: semua filter di sini disaring di klien, tidak ada satu pun
+ * Server Component yang membaca searchParams, jadi navigasi Next hanya menambah
+ * satu Transition (dan berpotensi satu permintaan RSC) tanpa mengubah apa pun
+ * yang dirender server.
  *
  * Soal pencarian: `search` di sini adalah nilai yang SUDAH dikomit, bukan
  * ketikan mentah. Peredaman ketikan dilakukan `DebouncedSearchInput` di ujung
@@ -29,10 +44,8 @@ export interface OrgFilters {
  * memicu render ulang seluruh view.
  */
 export function useOrgFilters(): OrgFilters {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const { role, ppk_name, satker: profileSatker } = useSession();
+  const { role, satker: profileSatker } = useSession();
 
   // Role PPK: scope dikunci ke satkernya, tapi masih bisa memfilter PPK di satkernya.
   const isPpkScoped = role === 'ppk';
@@ -42,83 +55,114 @@ export function useOrgFilters(): OrgFilters {
   const ppk = searchParams.get('p');
   const urlSearch = searchParams.get('q') || '';
 
-  // Sumber kebenaran penyaringan adalah state ini, bukan URL. router.replace
-  // menjalankan navigasi client-side di dalam sebuah Transition; kalau hasil
-  // pencarian menunggu `q` kembali dari router, setiap pencarian tertahan satu
-  // putaran render penuh. Di sini nilainya dikomit seketika dan URL menyusul
-  // belakangan, semata supaya tautannya tetap bisa dibagikan.
+  // Sumber kebenaran penyaringan adalah state ini, bukan URL.
   const [search, setSearchState] = useState(urlSearch);
 
-  /** Nilai `q` terakhir yang ditulis hook ini sendiri, untuk mengenali gema router. */
-  const selfWriteRef = useRef(urlSearch);
+  /** Penulisan `?q=` yang masih dijadwalkan; selama ada, state lebih baru dari URL. */
+  const urlSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * Nilai `q` yang sudah kita tulis sendiri tapi belum terlihat kembali lewat
+   * useSearchParams. Antrean, bukan satu nilai: router menyalurkan perubahan URL
+   * lewat sebuah Transition, jadi gema bisa datang terlambat, terkoalesi, atau
+   * lewat render antara. Mencocokkannya dengan "tulisan terakhir" saja membuat
+   * gema lama ("a") lolos sebagai navigasi sungguhan lalu menimpa kata kunci
+   * yang lebih baru ("ab") — persis gejala huruf yang terhapus sendiri.
+   */
+  const pendingEchoesRef = useRef<string[]>([]);
 
   useEffect(() => {
-    // Gema dari tulisan sendiri: state sudah memegang nilai itu, jangan disalin
-    // ulang. Salinan balik inilah yang dulu menimpa ketikan pengguna.
-    if (urlSearch === selfWriteRef.current) return;
+    const i = pendingEchoesRef.current.indexOf(urlSearch);
+    if (i !== -1) {
+      // Gema dari tulisan sendiri. Buang antrean sampai gema ini, termasuk
+      // gema-gema lebih lama yang terlewat karena terkoalesi.
+      pendingEchoesRef.current = pendingEchoesRef.current.slice(i + 1);
+      return;
+    }
+    // Masih ada tulisan sendiri yang menggantung — di timer atau di router.
+    // Apa pun yang datang sekarang lebih tua dari state kita.
+    if (pendingEchoesRef.current.length > 0 || urlSyncTimerRef.current) return;
     // Navigasi sungguhan — tombol back/forward, atau tautan yang membawa ?q=.
-    selfWriteRef.current = urlSearch;
     setSearchState(urlSearch);
   }, [urlSearch]);
 
-  const replaceParams = useCallback(
-    (mutate: (params: URLSearchParams) => void) => {
-      const params = new URLSearchParams(searchParams.toString());
-      mutate(params);
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  useEffect(() => {
+    return () => {
+      if (urlSyncTimerRef.current) clearTimeout(urlSyncTimerRef.current);
+    };
+  }, []);
+
+  const writeSearchToUrl = useCallback((value: string) => {
+    pendingEchoesRef.current.push(value);
+    replaceQueryParams((params) => {
+      if (value) params.set('q', value);
+      else params.delete('q');
+    });
+  }, []);
+
+  const cancelPendingUrlSync = () => {
+    if (!urlSyncTimerRef.current) return;
+    clearTimeout(urlSyncTimerRef.current);
+    urlSyncTimerRef.current = null;
+  };
+
+  const setEselon1 = useCallback(
+    (value: string | null) => {
+      if (isPpkScoped) return; // scope terkunci
+      replaceQueryParams((params) => {
+        if (value) params.set('e1', value);
+        else params.delete('e1');
+        params.delete('s');
+        params.delete('p');
+      });
     },
-    [router, pathname, searchParams]
+    [isPpkScoped]
   );
 
-  const setEselon1 = (value: string | null) => {
-    if (isPpkScoped) return; // scope terkunci
-    replaceParams((params) => {
-      if (value) params.set('e1', value);
-      else params.delete('e1');
-      params.delete('s');
-      params.delete('p');
-    });
-  };
+  const setSatker = useCallback(
+    (value: string | null) => {
+      if (isPpkScoped) return;
+      replaceQueryParams((params) => {
+        if (value) params.set('s', value);
+        else params.delete('s');
+        params.delete('p');
+      });
+    },
+    [isPpkScoped]
+  );
 
-  const setSatker = (value: string | null) => {
-    if (isPpkScoped) return;
-    replaceParams((params) => {
-      if (value) params.set('s', value);
-      else params.delete('s');
-      params.delete('p');
-    });
-  };
-
-  const setPpk = (value: string | null) => {
-    replaceParams((params) => {
+  const setPpk = useCallback((value: string | null) => {
+    replaceQueryParams((params) => {
       if (value) params.set('p', value);
       else params.delete('p');
     });
-  };
+  }, []);
 
   const setSearch = useCallback(
     (value: string) => {
       setSearchState(value);
-      selfWriteRef.current = value;
-      replaceParams((params) => {
-        if (value) params.set('q', value);
-        else params.delete('q');
-      });
+      cancelPendingUrlSync();
+      urlSyncTimerRef.current = setTimeout(() => {
+        urlSyncTimerRef.current = null;
+        writeSearchToUrl(value);
+      }, URL_SYNC_DELAY);
     },
-    [replaceParams]
+    [writeSearchToUrl]
   );
 
-  const resetAll = () => {
+  const resetAll = useCallback(() => {
     setSearchState('');
-    selfWriteRef.current = '';
-    replaceParams((params) => {
+    // Penulisan `q` yang terjadwal memegang kata kunci lama; membiarkannya
+    // menyala setelah reset akan menghidupkan kembali filter yang baru dibuang.
+    cancelPendingUrlSync();
+    pendingEchoesRef.current.push('');
+    replaceQueryParams((params) => {
       params.delete('e1');
       params.delete('s');
       params.delete('p');
       params.delete('q');
     });
-  };
+  }, []);
 
   return { eselon1, satker, ppk, search, setEselon1, setSatker, setPpk, setSearch, resetAll };
 }

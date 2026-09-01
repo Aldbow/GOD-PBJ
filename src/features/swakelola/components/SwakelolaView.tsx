@@ -314,8 +314,17 @@ export function SwakelolaView() {
     rekomendasi_kurasi: item.rekomendasi_kurasi || '-'
   });
 
-  const exportAllData = useMemo(() => baseData.map(mapForExport), [baseData]);
-  const exportFilteredData = useMemo(() => sortedPackages.map(mapForExport), [sortedPackages]);
+  // Pemetaan ekspor menyalin setiap baris yang lolos filter. Modal ekspor
+  // hampir selalu tertutup, jadi jangan bayar salinan itu di tiap ketikan
+  // pencarian — hitung saat modalnya dibuka.
+  const exportAllData = useMemo(
+    () => (isExportModalOpen ? baseData.map(mapForExport) : []),
+    [isExportModalOpen, baseData]
+  );
+  const exportFilteredData = useMemo(
+    () => (isExportModalOpen ? sortedPackages.map(mapForExport) : []),
+    [isExportModalOpen, sortedPackages]
+  );
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>
