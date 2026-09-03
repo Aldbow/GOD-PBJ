@@ -63,6 +63,18 @@ function capaianColorVar(p: number): string {
   return 'var(--red-600)';
 }
 
+/**
+ * Versi teks dari capaianColorVar. Varian -600 dipakai sebagai isi bar/badge dan
+ * memang bersaturasi penuh, tapi sebagai teks di atas surface terang rasio
+ * kontrasnya cuma 2,0–3,3:1 (di bawah ambang WCAG 4,5:1). Varian -700 adalah
+ * yang disiapkan token untuk teks dan sudah menyesuaikan diri di tema gelap.
+ */
+function capaianTextColorVar(p: number): string {
+  if (p >= 65) return 'var(--teal-700)';
+  if (p >= 50) return 'var(--amber-700)';
+  return 'var(--red-700)';
+}
+
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 const CARD_CONTAINER_VARIANTS = {
@@ -99,6 +111,56 @@ function useCountUp(value: number, duration = 0.9) {
   }, [value, duration]);
 
   return display;
+}
+
+/**
+ * Meter satu tahap penilaian (A1–A3 atau A4–A7). Dipakai di kartu skor untuk
+ * menunjukkan dari mana total skor berasal — pertanyaan pertama yang muncul
+ * setelah orang membaca angka totalnya, dan sebelumnya tidak terjawab tanpa
+ * menggulir ke kartu A1–A7 di bawah.
+ */
+function StageMeter({
+  label,
+  caption,
+  nilai,
+  nilaiMax,
+}: {
+  label: string;
+  caption: string;
+  nilai: number;
+  nilaiMax: number;
+}) {
+  const persen = nilaiMax > 0 ? (nilai / nilaiMax) * 100 : 0;
+  const warnaIsi = capaianColorVar(persen);
+  const warnaTeks = capaianTextColorVar(persen);
+
+  return (
+    <div className={styles.meter}>
+      <div className={styles.meterHead}>
+        <span className={styles.meterLabel}>{label}</span>
+        <span className={styles.meterValue}>
+          {fmtDec(nilai, 2)}
+          <span className={styles.meterMax}> / {fmtDec(nilaiMax, 2)}</span>
+        </span>
+      </div>
+      <div
+        className={styles.meterTrack}
+        role="img"
+        aria-label={`${label}: skor ${fmtDec(nilai, 2)} dari ${fmtDec(nilaiMax, 2)}`}
+      >
+        <div
+          className={styles.meterFill}
+          style={{ transform: `scaleX(${Math.max(0, Math.min(persen / 100, 1))})`, background: warnaIsi }}
+        />
+      </div>
+      <div className={styles.meterFoot}>
+        <span className={styles.meterCaption}>{caption}</span>
+        <span className={styles.meterPct} style={{ color: warnaTeks }}>
+          {fmtPct(persen, 1)}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 type SortKey = 'name' | 'total' | 'capaian' | string;
@@ -227,6 +289,36 @@ export function PemanfaatanSistemDetailView() {
     [unitsInEselon1]
   );
 
+  // Bahan zona "yang perlu diperhatikan" di kartu skor. Keduanya sudah dihitung
+  // computeItkpA, tapi sebelumnya baru terlihat kalau pengguna membuka kartu
+  // A1–A7 satu per satu — padahal justru ini yang menjelaskan kenapa skor
+  // maksimum saat ini bisa lebih kecil dari maksimum menurut Kepka.
+  const heroDiagnosa = useMemo(() => {
+    const tidakBerlaku = result.rows.filter((r) => !r.applicable);
+    const defisit = result.rows
+      .filter((r) => r.applicable)
+      .map((r) => ({ row: r, selisih: r.skorMax - r.skor }))
+      .sort((a, b) => b.selisih - a.selisih);
+    return {
+      tidakBerlaku,
+      terbesar: defisit.length > 0 && defisit[0].selisih > 0.005 ? defisit[0] : null,
+    };
+  }, [result]);
+
+  // Peringkat hanya bermakna kalau satu satker sedang dipilih DAN ada pembanding
+  // di lingkup yang sama. Diurutkan sendiri, bukan memakai sortedSatkerRows,
+  // supaya tidak ikut berubah saat pengguna menyortir tabel di bawah.
+  const peringkatSatker = useMemo(() => {
+    if (!effectiveUnit || satkerRows.length < 2) return null;
+    const urut = [...satkerRows].sort((a, b) => b.result.total - a.result.total);
+    const idx = urut.findIndex((r) => r.name === effectiveUnit);
+    return idx === -1 ? null : { posisi: idx + 1, dari: urut.length };
+  }, [effectiveUnit, satkerRows]);
+
+  const lingkupLabel =
+    effectiveUnit ||
+    (selectedEselon1 && selectedEselon1 !== SEMUA_ESELON1 ? selectedEselon1 : KEMENTERIAN_LABEL);
+
   const sortedSatkerRows = useMemo(() => {
     const rows = [...satkerRows];
     rows.sort((a, b) => {
@@ -349,53 +441,141 @@ export function PemanfaatanSistemDetailView() {
               </Card.Header>
 
               <Card.Body className={styles.heroBody}>
-                <div className={styles.heroGaugeWrap}>
-                  <svg
-                    viewBox="0 0 200 110"
-                    className={styles.heroGauge}
-                    role="img"
-                    aria-label={`Skor total ${fmtDec(result.total, 2)} dari ${fmtDec(result.totalMaxSaatIni, 2)}`}
-                  >
-                    <defs>
-                      <linearGradient id="pemanfaatanGaugeGrad" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="#163B63" />
-                        <stop offset="55%" stopColor="#1A5D91" />
-                        <stop offset="100%" stopColor="#27B6D6" />
-                      </linearGradient>
-                    </defs>
-                    <path d={GAUGE_ARC_PATH} className={styles.heroGaugeTrack} strokeLinecap="round" fill="transparent" strokeWidth="15" />
-                    <path
-                      d={GAUGE_ARC_PATH}
-                      className={styles.heroGaugeValue}
-                      strokeLinecap="round"
-                      fill="transparent"
-                      strokeWidth="15"
-                      style={{ strokeDasharray: GAUGE_ARC_LEN, strokeDashoffset: GAUGE_ARC_LEN * (1 - drawnGaugeRatio) }}
-                    />
-                  </svg>
-                  <div className={styles.heroGaugeCenter}>
-                    <span className={styles.heroGaugeScore}>{fmtDec(displayTotal, 2)}</span>
-                    <span className={styles.heroGaugeMax}>/ {fmtDec(result.totalMaxSaatIni, 2)}</span>
-                  </div>
-                </div>
-
-                <div className={styles.heroStats}>
-                  <div className={styles.heroStatsRow}>
-                    <div className={styles.heroStat}>
-                      <span className={styles.heroStatLabel}>Skor Max Saat Ini</span>
-                      <span className={styles.heroStatValue}>{fmtDec(result.totalMaxSaatIni, 2)}</span>
-                    </div>
-                    <div className={styles.heroStat}>
-                      <span className={styles.heroStatLabel}>Skor Max Kepka</span>
-                      <span className={styles.heroStatValue}>{fmtDec(result.totalMaxKepka, 0)}</span>
+                <div className={styles.heroScore}>
+                  <div className={styles.heroGaugeWrap}>
+                    <svg
+                      viewBox="0 0 200 110"
+                      className={styles.heroGauge}
+                      role="img"
+                      aria-label={`Skor total ${fmtDec(result.total, 2)} dari ${fmtDec(result.totalMaxSaatIni, 2)}`}
+                    >
+                      <defs>
+                        <linearGradient id="pemanfaatanGaugeGrad" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#163B63" />
+                          <stop offset="55%" stopColor="#1A5D91" />
+                          <stop offset="100%" stopColor="#27B6D6" />
+                        </linearGradient>
+                      </defs>
+                      <path d={GAUGE_ARC_PATH} className={styles.heroGaugeTrack} strokeLinecap="round" fill="transparent" strokeWidth="15" />
+                      <path
+                        d={GAUGE_ARC_PATH}
+                        className={styles.heroGaugeValue}
+                        strokeLinecap="round"
+                        fill="transparent"
+                        strokeWidth="15"
+                        style={{ strokeDasharray: GAUGE_ARC_LEN, strokeDashoffset: GAUGE_ARC_LEN * (1 - drawnGaugeRatio) }}
+                      />
+                    </svg>
+                    <div className={styles.heroGaugeCenter}>
+                      <span className={styles.heroGaugeScore}>{fmtDec(displayTotal, 2)}</span>
+                      <span className={styles.heroGaugeMax}>/ {fmtDec(result.totalMaxSaatIni, 2)}</span>
                     </div>
                   </div>
-                  <p className={styles.heroFormula}>
-                    Penilaian ini bersifat kumulatif dari seluruh komponen A1–A7. Jika ada indikator yang tidak
-                    tersedia/tidak berlaku, skor maksimum saat ini menyesuaikan parameter yang berlaku.
+                  <p className={styles.heroKepka}>
+                    Maksimum saat ini <span className={styles.heroKepkaNum}>{fmtDec(result.totalMaxSaatIni, 2)}</span> dari{' '}
+                    <span className={styles.heroKepkaNum}>{fmtDec(result.totalMaxKepka, 0)}</span> menurut Kepka
                   </p>
                 </div>
+
+                <div className={styles.heroZone}>
+                  <h3 className={styles.heroZoneTitle}>Asal skor</h3>
+                  <StageMeter
+                    label="Tahap Perencanaan"
+                    caption="A1–A3 · kelengkapan RUP"
+                    nilai={result.nilaiRencana}
+                    nilaiMax={result.nilaiRencanaMaxSaatIni}
+                  />
+                  <StageMeter
+                    label="Tahap Realisasi"
+                    caption="A4–A7 · pelaksanaan elektronik"
+                    nilai={result.nilaiRealisasi}
+                    nilaiMax={result.nilaiRealisasiMaxSaatIni}
+                  />
+                </div>
+
+                <div className={styles.heroZone}>
+                  <h3 className={styles.heroZoneTitle}>Yang perlu diperhatikan</h3>
+
+                  <div className={styles.heroFacts}>
+                    <div className={styles.heroFact}>
+                      <span className={styles.heroFactLabel}>Kehilangan skor terbesar</span>
+                      {heroDiagnosa.terbesar ? (
+                        <>
+                          <span className={styles.heroFactValue}>
+                            <span>{heroDiagnosa.terbesar.row.label}</span>
+                            <span className={styles.heroFactNum} style={{ color: 'var(--red-700)' }}>
+                              −{fmtDec(heroDiagnosa.terbesar.selisih, 2)}
+                            </span>
+                          </span>
+                          <span className={styles.heroFactNote}>
+                            Bernilai {fmtDec(heroDiagnosa.terbesar.row.skor, 2)} dari maksimum{' '}
+                            {fmtDec(heroDiagnosa.terbesar.row.skorMax, 2)}.
+                          </span>
+                        </>
+                      ) : (
+                        <span className={styles.heroFactValue}>Semua indikator sudah bernilai penuh</span>
+                      )}
+                    </div>
+
+                    <div className={styles.heroFact}>
+                      <span className={styles.heroFactLabel}>Indikator tidak berlaku</span>
+                      {heroDiagnosa.tidakBerlaku.length > 0 ? (
+                        <>
+                          <span className={styles.heroFactValue}>
+                            <span className={styles.heroFactNum}>{heroDiagnosa.tidakBerlaku.length}</span>
+                            <span>dari {result.rows.length} indikator</span>
+                          </span>
+                          <span className={styles.heroFactNote}>
+                            {heroDiagnosa.tidakBerlaku.map((r) => r.label).join(', ')} — penyebutnya nol, jadi
+                            dikeluarkan dari skor maksimum saat ini.
+                          </span>
+                        </>
+                      ) : (
+                        <span className={styles.heroFactValue}>
+                          Seluruh {result.rows.length} indikator dapat dinilai
+                        </span>
+                      )}
+                    </div>
+
+                    <div className={styles.heroFact}>
+                      {peringkatSatker ? (
+                        <>
+                          <span className={styles.heroFactLabel}>Posisi terhadap satker lain</span>
+                          <span className={styles.heroFactValue}>
+                            <span>Peringkat</span>
+                            <span className={styles.heroFactNum}>
+                              {peringkatSatker.posisi} dari {peringkatSatker.dari}
+                            </span>
+                          </span>
+                          <span className={styles.heroFactNote}>Diurutkan menurut total skor dalam lingkup ini.</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className={styles.heroFactLabel}>Cakupan penilaian</span>
+                          <span className={styles.heroFactValue}>
+                            <span className={styles.heroFactNum}>{unitsInEselon1.length}</span>
+                            <span>unit penilaian</span>
+                          </span>
+                          <span className={styles.heroFactNote}>
+                            Skor di atas adalah agregat seluruh unit dalam lingkup ini.
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </Card.Body>
+
+              <Card.Footer className={styles.heroFoot}>
+                <span className={styles.heroFootScope}>
+                  Lingkup
+                  <span className={styles.heroFootScopeName}>{lingkupLabel}</span>
+                </span>
+                <p className={styles.heroFormula}>
+                  Penilaian kumulatif A1–A7. Indikator yang penyebutnya nol dikeluarkan dari perhitungan, sehingga
+                  skor maksimum saat ini bisa lebih kecil daripada {fmtDec(result.totalMaxKepka, 0)} menurut Kepka.
+                </p>
+              </Card.Footer>
             </Card>
 
             {/* A1-A7 dikelompokkan sesuai tahapnya (bukan dibagi rata per baris grid):

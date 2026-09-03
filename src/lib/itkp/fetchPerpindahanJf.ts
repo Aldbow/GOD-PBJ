@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { compareJenjang } from '@/lib/itkp/jenjang';
 
 export interface PerpindahanJfPerson {
   id: string;
@@ -38,7 +39,10 @@ export async function fetchPerpindahanJfData(): Promise<PerpindahanJfPerson[]> {
   return data ?? [];
 }
 
-const JENJANG_URUTAN = ['Ahli Pertama', 'Ahli Muda', 'Ahli Madya'];
+// Urut dari jenjang tertinggi ke terendah, seragam dengan tabel jenjang lain di
+// modal ITKP (lihat lib/itkp/jenjang.ts). Daftar ini juga menentukan baris baku
+// yang selalu tampil, jadi 'Ahli Utama' sengaja TIDAK masuk — lihat catatan di bawah.
+const JENJANG_URUTAN = ['Ahli Madya', 'Ahli Muda', 'Ahli Pertama'];
 
 // Ahli Utama belum diatur untuk perpindahan ke JF PBJ pada peraturan saat ini —
 // dikeluarkan sepenuhnya dari ringkasan (bukan cuma tidak dijadikan baris baku),
@@ -61,7 +65,8 @@ export function groupByJenjang(rows: PerpindahanJfPerson[]): PerpindahanJfSummar
   }));
   const rest = Array.from(counts.entries())
     .filter(([jenjang]) => !JENJANG_URUTAN.includes(jenjang))
-    .map(([jenjang, jumlahPengajuan]) => ({ jenjang, jumlahPengajuan }));
+    .map(([jenjang, jumlahPengajuan]) => ({ jenjang, jumlahPengajuan }))
+    .sort((a, b) => compareJenjang(a.jenjang, b.jenjang));
 
   return [...known, ...rest];
 }

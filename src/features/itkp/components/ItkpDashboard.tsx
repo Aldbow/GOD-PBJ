@@ -29,6 +29,7 @@ import { computeItkpBCD, type ItkpBCDResult } from '@/lib/itkp/calcBCD';
 import { fetchItkpBCDData } from '@/lib/itkp/fetchBCD';
 import { fetchItkpAData } from '@/lib/itkp/fetchA';
 import { fetchPerpindahanJfData, groupByJenjang, groupBySatuanKerja, type PerpindahanJfPerson } from '@/lib/itkp/fetchPerpindahanJf';
+import { compareJenjang } from '@/lib/itkp/jenjang';
 import { fmtDec, fmtPct } from '@/lib/format';
 import {
   buildComponents,
@@ -172,6 +173,32 @@ export function ItkpDashboard() {
   const perpindahanJfDetailBySatker = useMemo(
     () => groupBySatuanKerja(perpindahanJf.filter((p) => p.jenjang_jf === selectedJenjangPerpindahan)),
     [perpindahanJf, selectedJenjangPerpindahan]
+  );
+
+  // Tabel jenjang di modal JF PBJ ditampilkan dari jenjang tertinggi (Madya) ke
+  // terendah. Urutannya ditetapkan di sini, bukan diandalkan dari tabel sumber:
+  // `formasi_jf_ukpbj` kebetulan tersimpan menaik (Ahli Pertama lebih dulu) dan
+  // `data_jf_kemnaker` tidak berurut jenjang sama sekali.
+  const formasiRows = useMemo(
+    () =>
+      modalData?.type === 'formasi' && Array.isArray(modalData.data)
+        ? [...modalData.data].sort((a, b) => compareJenjang(a?.['Jenjang'], b?.['Jenjang']))
+        : [],
+    [modalData]
+  );
+
+  // Daftar penugasan berisi orang, jadi sesama jenjang diurutkan lagi menurut nama
+  // supaya posisi baris tidak berubah-ubah antar pemuatan.
+  const penugasanRows = useMemo(
+    () =>
+      modalData?.type === 'penugasan' && Array.isArray(modalData.data)
+        ? [...modalData.data].sort(
+            (a, b) =>
+              compareJenjang(a?.['Jenjang'], b?.['Jenjang']) ||
+              String(a?.['Nama'] ?? '').localeCompare(String(b?.['Nama'] ?? ''), 'id')
+          )
+        : [],
+    [modalData]
   );
 
   const selectComponent = (code: ComponentCode) => {
@@ -395,7 +422,7 @@ export function ItkpDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {modalData.data.map((row: any, i: number) => {
+                      {formasiRows.map((row: any, i: number) => {
                         const kebutuhan = Number(row['Formasi Kebutuhan']) || 0;
                         const eksisting = Number(row['Formasi Terpenuhi']) || 0;
                         const kekurangan = Number(row['Kekurangan']) || 0;
@@ -561,7 +588,7 @@ export function ItkpDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {modalData.data.map((row: any, i: number) => {
+                {penugasanRows.map((row: any, i: number) => {
                   const p = String(row['Penugasan'] || '').toUpperCase();
                   let bg = 'var(--surface-2)';
                   let color = 'var(--text-secondary)';
