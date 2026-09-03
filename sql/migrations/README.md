@@ -47,6 +47,11 @@ untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak d
 | 64 | 64_table_risiko_pengadaan.sql | risiko_pengadaan | tabel baru — hasil agregat modul Risiko Pengadaan, diisi oleh API recalculate |
 | 65 | 65_alter_tender_selesai_nilai_kolom_lokasi.sql | tender_selesai_nilai | tambah kolom provinsi, lokasi_pekerjaan, kabkota (CSV 2026) |
 | 66 | 66_alter_master_data_ro_kolom_realisasi.sql | master_data_ro | tambah kolom jenis_pengadaan, lokasi, waktu_pengadaan, kendala, mitigasi, realisasi |
+| 67 | 67_alter_pencatatan_non_tender_kode_penyedia.sql | pencatatan_non_tender_realisasi | tambah kolom kode_penyedia (field baru dari endpoint) |
+| 68 | 68_alter_pencatatan_non_tender_hps.sql | pencatatan_non_tender_realisasi | tambah kolom hps (field baru dari endpoint) |
+| 69 | 69_table_data_perpindahan_jf.sql | data_perpindahan_jf | tabel baru — pengajuan Perpindahan JF ke JF PBJ, level person |
+| 70 | 70_alter_paket_e_purchasing_products.sql | paket_e_purchasing | tambah kolom products TEXT (field baru dari endpoint e-Katalog) |
+| 71 | 71_alter_paket_e_purchasing_is_swasta.sql | paket_e_purchasing | tambah kolom is_swasta BOOLEAN (field baru, tarikan 3 Sep 2026) |
 
 ## Kenapa view realisasi (40–44) dijalankan berlapis?
 
