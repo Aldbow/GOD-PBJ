@@ -113,14 +113,16 @@ function Ukuran({ data, size }: { data: UkuranData; size: 'utama' | 'pendamping'
  * Dua kartu putih di sampingnya adalah bagian; plat gelap ini alasnya.
  *
  * Isinya neraca, bukan pengukur: nilai pagu UTUH sampai rupiah terakhir, satu
- * garis cahaya, lalu jumlah paket dengan rata-rata pagunya. Tidak ada bentuk
- * ringkas "Rp1,5 Triliun" di sini — kartu ini justru dipakai orang saat butuh
- * angka yang bisa disalin ke nota dinas, dan pembulatan menghapus persis
- * bagian yang dicari.
+ * garis cahaya, lalu jumlah paketnya. Tidak ada bentuk ringkas "Rp1,5 Triliun"
+ * di sini — kartu ini justru dipakai orang saat butuh angka yang bisa disalin
+ * ke nota dinas, dan pembulatan menghapus persis bagian yang dicari.
+ *
+ * Hanya dua angka, dan keduanya angka yang benar-benar tercatat. Rata-rata
+ * pagu per paket sempat ada di sini lalu dicabut: nilainya rerata aritmetik
+ * atas seluruh baris termasuk paket ber-pagu nol, jadi angkanya menyesatkan
+ * justru pada cakupan filter yang sempit — tempat orang paling butuh percaya.
  */
 function KartuAcuan({ kpi }: { kpi: RingkasanKpi }) {
-  const adaPaket = kpi.totalPaket > 0;
-
   return (
     <Card
       as="section"
@@ -155,11 +157,7 @@ function KartuAcuan({ kpi }: { kpi: RingkasanKpi }) {
               <span className={styles.satuan}>paket</span>
             </span>
           </div>
-          <div className={styles.keterangan}>
-            {adaPaket
-              ? `Rata-rata ${fmtRupiahKpi(kpi.totalPagu / kpi.totalPaket)} per paket`
-              : 'Belum ada paket pada cakupan filter aktif'}
-          </div>
+          <div className={styles.keterangan}>Jumlah paket keseluruhan</div>
         </div>
       </Card.Body>
     </Card>

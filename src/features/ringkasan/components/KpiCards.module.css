@@ -234,9 +234,12 @@
   letter-spacing: 0;
   color: var(--accent-on-dark);
 }
+/* Penanda "paket" sekarang satu-satunya keterangan yang menempel pada
+   angkanya, jadi ukurannya dinaikkan sampai terbaca sebagai kata — bukan
+   sebagai hiasan di ekor angka. */
 .satuan {
-  margin-left: 0.2em;
-  font-size: 0.46em;
+  margin-left: 0.22em;
+  font-size: 0.6em;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--accent-on-dark);
