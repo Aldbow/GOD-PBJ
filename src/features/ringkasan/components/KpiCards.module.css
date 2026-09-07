@@ -87,9 +87,182 @@
 .good .fill { background: var(--teal-600); }
 .warn .fill { background: var(--amber-600); }
 .danger .fill { background: var(--red-600); }
-/* Kartu acuan: barnya penuh dan netral — tolok ukur yang membuat dua bar
-   berwarna di kartu sebelahnya terbaca sebagai bagian dari keseluruhan. */
-.base .fill { background: var(--text-tertiary); }
+
+/* ── Kartu acuan ─────────────────────────────────────────────────────────── */
+
+/* Kartu acuan sengaja tidak punya bar. Angkanya tidak sedang menuju ke
+   mana-mana, jadi tidak ada yang bisa digambarkan sebagai proses; yang
+   ditawarkan justru ketepatan — nilai pagu utuh sampai rupiah terakhir dan
+   rata-rata pagu per paket.
+
+   Karena bedanya beda JENIS, bedanya dibuat terbaca dari jauh: satu-satunya
+   plat gelap di baris ini. Gradien navy, kisi bercahaya, dan aksen
+   --accent-on-dark bukan kosakata baru — persis yang dipakai sidebar dan hero
+   halaman muka; di sini ditarik masuk ke area konten. Dua kartu putih di
+   sampingnya adalah bagian, plat ini alasnya.
+
+   Kelas digandakan (.acuan.acuan) karena tiap *.module.css jadi stylesheet
+   terpisah dan urutan muatnya ditentukan graf chunk — tanpa digandakan,
+   background/border/shadow bawaan .card bisa menang. */
+
+/* Dua token ditimpa di lingkup plat supaya komponen yang dipakai bersama —
+   Skeleton menggambar batangnya dari --surface-2, kilatnya dari
+   --text-tertiary — ikut menggelap tanpa perlu prop tema sendiri.
+   Plat ini juga jadi container query bagi .nilaiAcuan; alasannya di sana. */
+.acuan {
+  --surface-2: rgba(255, 255, 255, 0.10);
+  --text-tertiary: rgba(255, 255, 255, 0.55);
+  container-type: inline-size;
+}
+
+.acuan.acuan {
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(158deg, var(--navy-700) 0%, var(--navy-900) 48%, #070C15 100%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow:
+    0 1px 2px rgba(9, 17, 30, 0.28),
+    0 12px 30px rgba(9, 17, 30, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+/* Di mode gelap, token navy ikut turun sampai hampir sewarna --bg-page.
+   Platnya dinaikkan lagi dan tepinya diberi rona brand supaya tetap terbaca
+   terpisah dari dua kartu --surface di sampingnya. */
+[data-theme="dark"] .acuan.acuan {
+  background: linear-gradient(158deg, #172B49 0%, #101E33 55%, #0B1424 100%);
+  border-color: rgba(126, 178, 232, 0.22);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+/* Isi kartu naik di atas dua lapis latar. */
+.lapisAtas {
+  position: relative;
+  z-index: 1;
+}
+
+/* Nyala brand di pojok yang sama dengan ikonnya — sumber cahaya kartu ini.
+   Terpotong sendiri oleh overflow:hidden milik .card. */
+.cahaya {
+  position: absolute;
+  top: -58%;
+  right: -26%;
+  width: 78%;
+  aspect-ratio: 1;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--accent-on-dark) 38%, transparent) 0%,
+    color-mix(in srgb, var(--accent-on-dark) 9%, transparent) 45%,
+    transparent 72%
+  );
+  filter: blur(24px);
+  pointer-events: none;
+}
+
+/* Satu-satunya gerak di kartu ini: nyala tadi hanyut pelan, seperti blob di
+   hero. Transform saja, jadi dikomposit GPU dan tak pernah memicu layout. */
+@media (prefers-reduced-motion: no-preference) {
+  .cahaya {
+    animation: hanyut 26s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+}
+@keyframes hanyut {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-8%, 6%, 0) scale(1.14); }
+}
+
+/* Kisi halus milik hero, dipotong topeng radial supaya hanya hidup di sekitar
+   sumber cahaya dan hilang sebelum menyentuh angkanya. */
+.kisi {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(ellipse 92% 100% at 90% -4%, #000 0%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse 92% 100% at 90% -4%, #000 0%, transparent 72%);
+  pointer-events: none;
+}
+
+/* Ikon & judul mengikuti bahasa sidebar: keping tembus pandang, isian aksen. */
+.ikon.ikon {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--accent-on-dark);
+}
+
+.judul {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* Nilai pagu ditampilkan utuh sampai rupiah terakhir — belasan digit, bukan
+   "Rp1,5 Triliun". Panjangnya jadi tak bisa dipatok satu ukuran font: pada
+   layar 1280 dengan sidebar terbuka, satu kartu cuma menyisakan ~270px isi.
+   Jadi ukurannya diikatkan ke lebar kartunya sendiri lewat container query,
+   bukan ke lebar viewport — sidebar yang menguncup pun langsung terhitung.
+   8.6cqw menyisakan sekitar seperlima ruang, cukup untuk nilai yang lebih
+   panjang dari pagu hari ini. Baris px pertama adalah cadangan untuk mesin
+   tanpa dukungan container query. */
+.nilaiAcuan {
+  font-size: 26px;
+  font-size: clamp(19px, 8.6cqw, 34px);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  /* Deretan digit berpemisah titik tak punya titik putus alami, jadi tanpa ini
+     nilai yang kepanjangan akan terpotong overflow:hidden milik kartu —
+     digitnya hilang diam-diam. Lebih baik turun baris daripada raib. */
+  overflow-wrap: anywhere;
+}
+
+/* "Rp" dan satuan "paket" turun bobot dan pindah ke warna aksen: angkanya yang
+   memimpin, penandanya yang mewarnai. */
+.rp {
+  margin-right: 0.12em;
+  font-size: 0.52em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--accent-on-dark);
+}
+.satuan {
+  margin-left: 0.2em;
+  font-size: 0.46em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--accent-on-dark);
+}
+
+/* Garis cahaya pemisah dua ukuran — pengganti bar. Memudar ke kanan supaya
+   terbaca sebagai garis neraca, bukan sebagai bar yang terisi separuh. */
+.garis {
+  height: 1px;
+  margin-bottom: var(--space-4);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent-on-dark) 60%, transparent) 0%,
+    color-mix(in srgb, var(--accent-on-dark) 16%, transparent) 42%,
+    transparent 100%
+  );
+}
+
+.blokPendampingAcuan {
+  padding-top: var(--space-5);
+}
+
+/* Isi kartu acuan berdiri di atas plat gelap, jadi tiga tingkat teksnya
+   diturunkan dari putih — bukan dari token teks yang dipakai kartu putih. */
+.acuan .nilaiPendamping { color: #fff; }
+.acuan .keterangan { color: rgba(255, 255, 255, 0.52); }
 
 /* ── Badge peringatan target ─────────────────────────────────────────────── */
 
@@ -130,6 +303,14 @@
   .blokPendamping { margin-top: 0; padding-top: 0; }
   /* Berdampingan, jadi dasar kedua angka disejajarkan supaya barnya satu garis. */
   .nilaiPendamping { min-height: 33px; display: flex; align-items: flex-end; }
+  /* Dua ukuran kini bersebelahan, jadi pemisahnya ikut memutar: garis rambut
+     mendatar diganti garis tegak di antara kedua kolom. */
+  .blokPendampingAcuan {
+    padding-top: 0;
+    padding-left: var(--space-6);
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .blokPendampingAcuan .garis { display: none; }
 }
 
 @media (max-width: 560px) {
@@ -137,4 +318,14 @@
   .blokPendamping { padding-top: var(--space-5); }
   .nilaiUtama { font-size: 26px; }
   .nilaiPendamping { font-size: 22px; min-height: 0; display: block; }
+  /* Kembali menumpuk, jadi pemisahnya kembali mendatar. */
+  .blokPendampingAcuan {
+    padding-top: var(--space-5);
+    padding-left: 0;
+    border-left: none;
+  }
+  .blokPendampingAcuan .garis { display: block; }
+  /* .nilaiAcuan tidak ditimpa di sini: ukurannya sudah mengikuti lebar
+     kartunya sendiri lewat container query, jadi breakpoint hanya akan
+     bertengkar dengannya. */
 }

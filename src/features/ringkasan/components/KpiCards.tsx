@@ -20,6 +20,12 @@ function fmtRupiahKpi(m: number): string {
   return `Rp${fmtInt(n)}`;
 }
 
+// Digit rupiah utuh, tanpa "Rp" dan tanpa pembulatan ke satuan besar. Kartu
+// acuan memakai ini: angka pagu di situ dipakai apa adanya, bukan diringkas.
+function digitRupiah(m: number): string {
+  return fmtInt(Math.round(Number(m) || 0));
+}
+
 // Target realisasi kumulatif per triwulan (persen dari pagu). Dinilai dari
 // pctRealisasi dan ditandai pada kolom Sudah Realisasi — kolom yang angkanya
 // memang dinilai. Indeks 0 = TW1.
@@ -31,25 +37,23 @@ function triwulanBerjalan(now: Date = new Date()): 1 | 2 | 3 | 4 {
   return (Math.floor(now.getMonth() / 3) + 1) as 1 | 2 | 3 | 4;
 }
 
-type Tone = 'base' | 'good' | 'warn' | 'danger';
+const TOOLTIP_ACUAN =
+  'Acuan pembanding: seluruh nilai pagu dan seluruh jumlah paket pengadaan pada cakupan filter aktif.';
+
+type Tone = 'good' | 'warn' | 'danger';
 
 // Rona status kini hanya hidup di tint Card.Icon — badan kartu tetap putih,
 // tanpa latar berwarna maupun garis aksen.
 const TINT: Record<Tone, CardTone> = {
-  base: 'neutral',
   good: 'positive',
   warn: 'warning',
   danger: 'risk',
 };
 
-/** Satu ukuran di dalam kartu: nilai + persentase pembandingnya. */
+/** Satu ukuran di dalam kartu terukur: nilai + persentase pembandingnya. */
 interface UkuranData {
   nilai: string;
-  /**
-   * Kartu acuan memakai 100: barnya penuh dan netral. Bukan sekadar penyelaras
-   * tinggi — bar penuh itulah tolok ukur yang membuat dua bar di kartu sebelahnya
-   * terbaca sebagai bagian dari keseluruhan, bukan angka yang berdiri sendiri.
-   */
+  /** Porsi terhadap kartu acuan, 0..100. */
   pct: number;
   keterangan: React.ReactNode;
   /** Penanda status target, ditempel di bawah keterangan sebagai badge. */
@@ -95,32 +99,112 @@ function Ukuran({ data, size }: { data: UkuranData; size: 'utama' | 'pendamping'
   );
 }
 
+/**
+ * Kartu acuan berbeda JENIS dari dua kartu di sebelahnya: isinya keadaan yang
+ * sudah tetap — berapa uangnya, berapa paketnya — bukan proses yang sedang
+ * berjalan. Bar 100% yang dipakai sebelumnya memaksakan bentuk "progres" pada
+ * angka yang tidak pernah bergerak; yang tersisa hanya dekorasi yang selalu
+ * penuh.
+ *
+ * Karena bedanya beda jenis, bedanya dibuat terbaca sejak satu meter dari
+ * layar: kartu ini satu-satunya plat gelap di barisnya. Bahasanya bukan bahasa
+ * baru — gradien navy, kisi bercahaya, dan aksen --accent-on-dark itu persis
+ * yang dipakai sidebar dan hero halaman muka, ditarik masuk ke area konten.
+ * Dua kartu putih di sampingnya adalah bagian; plat gelap ini alasnya.
+ *
+ * Isinya neraca, bukan pengukur: nilai pagu UTUH sampai rupiah terakhir, satu
+ * garis cahaya, lalu jumlah paket dengan rata-rata pagunya. Tidak ada bentuk
+ * ringkas "Rp1,5 Triliun" di sini — kartu ini justru dipakai orang saat butuh
+ * angka yang bisa disalin ke nota dinas, dan pembulatan menghapus persis
+ * bagian yang dicari.
+ */
+function KartuAcuan({ kpi }: { kpi: RingkasanKpi }) {
+  const adaPaket = kpi.totalPaket > 0;
+
+  return (
+    <Card
+      as="section"
+      className={`${styles.kolom} ${styles.acuan}`}
+      aria-label="Total Anggaran"
+      title={TOOLTIP_ACUAN}
+    >
+      {/* Dua lapis latar. Keduanya murni dekor — dijaga aria-hidden dan
+          pointer-events:none supaya tak pernah ikut terbaca atau tertekan. */}
+      <span className={styles.cahaya} aria-hidden="true" />
+      <span className={styles.kisi} aria-hidden="true" />
+      <Card.Header className={styles.lapisAtas}>
+        <Card.Icon tone="neutral" className={styles.ikon}><Wallet /></Card.Icon>
+        <Card.Label as="h3" className={styles.judul}>Total Anggaran</Card.Label>
+      </Card.Header>
+      <Card.Body className={`${styles.isi} ${styles.lapisAtas}`}>
+        <div className={styles.blokUtama}>
+          <div className={styles.nilaiAcuan}>
+            <span className={styles.rp}>Rp</span>
+            {digitRupiah(kpi.totalPagu)}
+          </div>
+          <div className={styles.keterangan}>Nilai pagu keseluruhan</div>
+        </div>
+        <div className={`${styles.blokPendamping} ${styles.blokPendampingAcuan}`}>
+          <div className={styles.garis} aria-hidden="true" />
+          {/* Dibungkus satu span: di layar sempit .nilaiPendamping jadi flex
+              container, dan angka telanjang akan terpisah jadi item sendiri
+              sehingga satuannya tak lagi sebaris dasar dengan angkanya. */}
+          <div className={styles.nilaiPendamping}>
+            <span>
+              {fmtInt(kpi.totalPaket)}
+              <span className={styles.satuan}>paket</span>
+            </span>
+          </div>
+          <div className={styles.keterangan}>
+            {adaPaket
+              ? `Rata-rata ${fmtRupiahKpi(kpi.totalPagu / kpi.totalPaket)} per paket`
+              : 'Belum ada paket pada cakupan filter aktif'}
+          </div>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+}
+
 export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolean }) {
   if (loading) {
     return (
       <div className={styles.papan}>
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className={styles.kolom} aria-hidden>
-            <Card.Header>
-              <Skeleton width={30} height={30} />
-              <Skeleton width="52%" height={12} />
-            </Card.Header>
-            {/* Rangka mengikuti bentuk akhir termasuk barnya, supaya tinggi papan
-                tidak melonjak saat data masuk. */}
-            <Card.Body className={styles.isi}>
-              <div className={styles.blokUtama}>
-                <Skeleton width="78%" height={28} />
-                <Skeleton width="100%" height={4} style={{ marginTop: 10 }} />
-                <Skeleton width="45%" height={11} style={{ marginTop: 8 }} />
-              </div>
-              <div className={styles.blokPendamping}>
-                <Skeleton width="46%" height={19} />
-                <Skeleton width="100%" height={4} style={{ marginTop: 10 }} />
-                <Skeleton width="40%" height={11} style={{ marginTop: 8 }} />
-              </div>
-            </Card.Body>
-          </Card>
-        ))}
+        {/* Rangka mengikuti bentuk akhir tiap kartu — plat gelap tanpa bar di
+            kiri, dua kartu terukur dengan bar — supaya tidak ada lompatan
+            tinggi maupun kedip putih-ke-gelap saat data masuk. Di dalam plat,
+            batang rangka ikut menggelap lewat --surface-2 yang ditimpa .acuan. */}
+        {Array.from({ length: 3 }).map((_, i) => {
+          const plat = i === 0;
+          return (
+            <Card
+              key={i}
+              className={plat ? `${styles.kolom} ${styles.acuan}` : styles.kolom}
+              aria-hidden
+            >
+              {plat && <span className={styles.cahaya} />}
+              {plat && <span className={styles.kisi} />}
+              <Card.Header className={styles.lapisAtas}>
+                <Skeleton width={30} height={30} />
+                <Skeleton width="52%" height={12} />
+              </Card.Header>
+              <Card.Body className={`${styles.isi} ${styles.lapisAtas}`}>
+                <div className={styles.blokUtama}>
+                  {/* Rangka plat lebih lebar: yang menggantikannya nanti angka
+                      rupiah utuh, bukan bentuk ringkasnya. */}
+                  <Skeleton width={plat ? '92%' : '78%'} height={plat ? 30 : 28} />
+                  {!plat && <Skeleton width="100%" height={4} style={{ marginTop: 10 }} />}
+                  <Skeleton width="45%" height={11} style={{ marginTop: 8 }} />
+                </div>
+                <div className={styles.blokPendamping}>
+                  <Skeleton width="46%" height={19} />
+                  {!plat && <Skeleton width="100%" height={4} style={{ marginTop: 10 }} />}
+                  <Skeleton width="40%" height={11} style={{ marginTop: 8 }} />
+                </div>
+              </Card.Body>
+            </Card>
+          );
+        })}
       </div>
     );
   }
@@ -142,16 +226,6 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
   const dibawahTarget = adaPagu && targetDinilai !== null && kpi.pctRealisasi < targetDinilai;
 
   const kolom: Kolom[] = [
-    {
-      key: 'total',
-      label: 'Total Anggaran',
-      icon: Wallet,
-      tone: 'base',
-      tooltip:
-        'Acuan pembanding: seluruh nilai pagu dan seluruh jumlah paket pengadaan pada cakupan filter aktif.',
-      rupiah: { nilai: fmtRupiahKpi(kpi.totalPagu), pct: 100, keterangan: 'Pagu keseluruhan — acuan pembanding' },
-      paket: { nilai: `${fmtInt(kpi.totalPaket)} paket`, pct: 100, keterangan: 'Seluruh paket — acuan pembanding' },
-    },
     {
       key: 'sudah',
       label: 'Sudah Realisasi',
@@ -207,6 +281,7 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
 
   return (
     <div className={styles.papan}>
+      <KartuAcuan kpi={kpi} />
       {kolom.map((k) => {
         const Icon = k.icon;
         return (
