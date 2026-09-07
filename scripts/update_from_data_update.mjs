@@ -55,6 +55,8 @@ const TABLES = [
   { table: 'paket_anggaran_swakelola', mode: 'upsert', keyCol: 'id_paket_anggaran_swakelola', idCol: 'id_paket_anggaran_swakelola' },
   { table: 'paket_e_purchasing', mode: 'upsert', keyCol: 'order_id', idCol: 'order_id' },
   { table: 'pencatatan_non_tender_realisasi', mode: 'replace', keyCol: null, idCol: 'id' },
+  // level paket (1 baris per kd_nontender_pct); pasangan 1:N dari tabel realisasi di atas
+  { table: 'pencatatan_non_tender', mode: 'upsert', keyCol: 'kd_nontender_pct', idCol: 'kd_nontender_pct' },
   { table: 'non_tender_selesai', mode: 'replace', keyCol: null, idCol: 'id' },
   { table: 'tender_selesai_nilai', mode: 'upsert', keyCol: 'kd_tender', idCol: 'kd_tender' },
   { table: 'data_afirmasi_pdn_perencanaan', mode: 'replace', keyCol: null, idCol: 'id' },

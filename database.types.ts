@@ -1163,6 +1163,114 @@ export type Database = {
         }
         Relationships: []
       }
+      pencatatan_non_tender: {
+        Row: {
+          alasan_pembatalan: string | null
+          bukti_pembayaran: string | null
+          created_at: string
+          hps: string | null
+          informasi_lainnya: string | null
+          jenis_klpd: string | null
+          kategori_pengadaan: string | null
+          kd_klpd: string | null
+          kd_lpse: string | null
+          kd_nontender_pct: string
+          kd_pkt_dce: string | null
+          kd_rup: string | null
+          kd_satker: string | null
+          kd_satker_str: string | null
+          last_update_ref: string | null
+          mtd_pemilihan: string | null
+          nama_klpd: string | null
+          nama_paket: string | null
+          nama_ppk: string | null
+          nama_satker: string | null
+          nilai_pdn_pct: string | null
+          nilai_umk_pct: string | null
+          nip_ppk: string | null
+          pagu: string | null
+          status_nontender_pct: string | null
+          status_nontender_pct_ket: string | null
+          sumber_dana: string | null
+          tahun_anggaran: string | null
+          tgl_buat_paket: string | null
+          tgl_mulai_paket: string | null
+          tgl_selesai_paket: string | null
+          total_realisasi: string | null
+          uraian_pekerjaan: string | null
+        }
+        Insert: {
+          alasan_pembatalan?: string | null
+          bukti_pembayaran?: string | null
+          created_at?: string
+          hps?: string | null
+          informasi_lainnya?: string | null
+          jenis_klpd?: string | null
+          kategori_pengadaan?: string | null
+          kd_klpd?: string | null
+          kd_lpse?: string | null
+          kd_nontender_pct: string
+          kd_pkt_dce?: string | null
+          kd_rup?: string | null
+          kd_satker?: string | null
+          kd_satker_str?: string | null
+          last_update_ref?: string | null
+          mtd_pemilihan?: string | null
+          nama_klpd?: string | null
+          nama_paket?: string | null
+          nama_ppk?: string | null
+          nama_satker?: string | null
+          nilai_pdn_pct?: string | null
+          nilai_umk_pct?: string | null
+          nip_ppk?: string | null
+          pagu?: string | null
+          status_nontender_pct?: string | null
+          status_nontender_pct_ket?: string | null
+          sumber_dana?: string | null
+          tahun_anggaran?: string | null
+          tgl_buat_paket?: string | null
+          tgl_mulai_paket?: string | null
+          tgl_selesai_paket?: string | null
+          total_realisasi?: string | null
+          uraian_pekerjaan?: string | null
+        }
+        Update: {
+          alasan_pembatalan?: string | null
+          bukti_pembayaran?: string | null
+          created_at?: string
+          hps?: string | null
+          informasi_lainnya?: string | null
+          jenis_klpd?: string | null
+          kategori_pengadaan?: string | null
+          kd_klpd?: string | null
+          kd_lpse?: string | null
+          kd_nontender_pct?: string
+          kd_pkt_dce?: string | null
+          kd_rup?: string | null
+          kd_satker?: string | null
+          kd_satker_str?: string | null
+          last_update_ref?: string | null
+          mtd_pemilihan?: string | null
+          nama_klpd?: string | null
+          nama_paket?: string | null
+          nama_ppk?: string | null
+          nama_satker?: string | null
+          nilai_pdn_pct?: string | null
+          nilai_umk_pct?: string | null
+          nip_ppk?: string | null
+          pagu?: string | null
+          status_nontender_pct?: string | null
+          status_nontender_pct_ket?: string | null
+          sumber_dana?: string | null
+          tahun_anggaran?: string | null
+          tgl_buat_paket?: string | null
+          tgl_mulai_paket?: string | null
+          tgl_selesai_paket?: string | null
+          total_realisasi?: string | null
+          uraian_pekerjaan?: string | null
+        }
+        Relationships: []
+      }
       pencatatan_non_tender_realisasi: {
         Row: {
           created_at: string | null
