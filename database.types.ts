@@ -539,6 +539,39 @@ export type Database = {
         }
         Relationships: []
       }
+      data_update_log: {
+        Row: {
+          finished_at: string
+          id: number
+          mode: string | null
+          rows_after: number | null
+          rows_before: number | null
+          source_file: string | null
+          source_pulled_at: string | null
+          table_name: string
+        }
+        Insert: {
+          finished_at?: string
+          id?: number
+          mode?: string | null
+          rows_after?: number | null
+          rows_before?: number | null
+          source_file?: string | null
+          source_pulled_at?: string | null
+          table_name: string
+        }
+        Update: {
+          finished_at?: string
+          id?: number
+          mode?: string | null
+          rows_after?: number | null
+          rows_before?: number | null
+          source_file?: string | null
+          source_pulled_at?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       formasi_jf_ukpbj: {
         Row: {
           created_at: string

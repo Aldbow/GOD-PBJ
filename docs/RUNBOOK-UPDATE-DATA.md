@@ -150,8 +150,49 @@ Kalau **satu tabel saja** gagal periksa, script berhenti dan **tidak menulis apa
 6. Backup isi tabel ke `data/backup/<tabel>_<timestamp>.json` (folder ini di-gitignore).
 7. Tulis (upsert / delete-all+insert), lalu hapus baris usang untuk mode upsert.
 8. Verifikasi jumlah baris akhir = jumlah baris file. Kalau tidak sama → dilaporkan `[BEDA]` dan exit code 1.
+9. Catat satu baris ke tabel `data_update_log` (lihat §5a). Gagal mencatat **tidak** membatalkan update — datanya sudah masuk.
 
 Nilai **tidak pernah diubah/dinormalisasi**. Yang dikirim persis isi file; konversi tipe diserahkan ke Postgres (mis. boolean JSON masuk ke kolom TEXT jadi `"true"`, angka masuk kolom TEXT jadi digit polos).
+
+---
+
+## 5a. Stempel "Diperbarui ..." di topbar
+
+Topbar aplikasi menampilkan teks halus seperti **"Diperbarui 3 jam lalu"**. Angkanya
+berasal dari tabel `data_update_log`, bukan dari file di `data/data_update/`.
+
+| Bagian | Berkas |
+| ------ | ------ |
+| DDL tabel | [`sql/migrations/74_table_data_update_log.sql`](../sql/migrations/74_table_data_update_log.sql) |
+| Yang mengisi | `logUpdate()` di [`scripts/update_from_data_update.mjs`](../scripts/update_from_data_update.mjs) |
+| Yang membaca | [`src/lib/data-update/lastUpdate.ts`](../src/lib/data-update/lastUpdate.ts) |
+| Yang menampilkan | [`src/components/layout/DataFreshness.tsx`](../src/components/layout/DataFreshness.tsx) |
+
+### Kenapa bukan `lastUpdated` di `*.meta.json`
+
+`meta.json` mencatat kapan data **ditarik dari API**. Itu bukan pertanyaan yang
+dijawab topbar. Dua bedanya nyata:
+
+- File bisa mengendap berhari-hari sebelum scriptnya dijalankan, atau tertahan
+  gerbang `DROP_GUARD` dan tidak pernah masuk DB sama sekali — stempelnya akan
+  bohong.
+- File hanya sampai ke production lewat commit + deploy. Update yang dijalankan
+  dari komputer lain tanpa deploy ulang tidak akan terlihat.
+
+`source_pulled_at` di `data_update_log` tetap menyimpan nilai `meta.json` itu
+sebagai pembanding; selisihnya dengan `finished_at` = berapa lama file mengendap
+sebelum masuk DB.
+
+### Kalau stempelnya tidak muncul / tidak maju
+
+| Gejala | Sebab | Tindakan |
+| ------ | ----- | -------- |
+| Topbar tidak menampilkan stempel sama sekali | tabel `data_update_log` belum ada, atau belum ada satu pun baris | jalankan migration 74 di Supabase SQL Editor, lalu jalankan updater sekali |
+| Script berkata "GAGAL menulis data_update_log" | migration 74 belum dijalankan, atau RLS diperketat | jalankan migration 74; kalau galat `42501`, isi `SUPABASE_SERVICE_ROLE_KEY` di `.env.local` |
+| Stempel ada tapi tidak maju setelah update | tabel yang dijalankan gagal validasi (tidak ada yang ditulis) | baca ringkasan di akhir output script |
+
+Stempel **tidak pernah maju karena `--dry-run`** — dry run tidak menulis apa pun,
+termasuk log.
 
 ---
 

@@ -52,6 +52,7 @@ untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak d
 | 69 | 69_table_data_perpindahan_jf.sql | data_perpindahan_jf | tabel baru — pengajuan Perpindahan JF ke JF PBJ, level person |
 | 70 | 70_alter_paket_e_purchasing_products.sql | paket_e_purchasing | tambah kolom products TEXT (field baru dari endpoint e-Katalog) |
 | 71 | 71_alter_paket_e_purchasing_is_swasta.sql | paket_e_purchasing | tambah kolom is_swasta BOOLEAN (field baru, tarikan 3 Sep 2026) |
+| 74 | 74_table_data_update_log.sql | data_update_log | tabel baru — jejak kapan tiap tabel terakhir ditulis; dibaca stempel "Diperbarui ..." di topbar |
 
 ## Kenapa view realisasi (40–44) dijalankan berlapis?
 

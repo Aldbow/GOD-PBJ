@@ -28,6 +28,12 @@
 //             Alur: backup -> hapus semua -> insert. Ada jeda tabel kosong;
 //             kalau insert gagal, isi lama dipulihkan otomatis dari backup.
 //
+// JEJAK UPDATE
+//   Setiap tabel yang berhasil ditulis dicatat satu baris di tabel
+//   data_update_log (lihat sql/migrations/74_table_data_update_log.sql).
+//   Topbar aplikasi membaca baris terbaru dari situ untuk menampilkan
+//   "Diperbarui N jam lalu". --dry-run tidak pernah menulis catatan ini.
+//
 // YANG TIDAK DILAKUKAN SCRIPT INI
 //   Tidak mengubah/menormalisasi nilai apa pun. Nilai dari file dikirim apa
 //   adanya; hanya key yang bukan kolom tabel yang ditolak (dan script berhenti,
@@ -66,6 +72,13 @@ const CHUNK_WRITE = 500; // baris per request insert/upsert
 const CHUNK_DELETE = 100; // nilai per request delete .in() — jaga panjang URL
 const PAGE = 1000; // batas baris per request select PostgREST
 const DROP_GUARD = 0.8; // batal kalau baris baru < 80% baris DB, kecuali --force
+
+// Tabel jejak "kapan data terakhir masuk DB". Dibaca topbar aplikasi lewat
+// src/lib/data-update/lastUpdate.ts. DDL-nya di
+// sql/migrations/74_table_data_update_log.sql. Sengaja TIDAK ada di TABLES —
+// tabel ini mencatat proses, bukan data pengadaan, jadi tidak boleh ikut
+// dihapus/diganti oleh script ini.
+const LOG_TABLE = 'data_update_log';
 
 // ---------------------------------------------------------------- argumen CLI
 const argv = process.argv.slice(2);
@@ -161,6 +174,20 @@ function findSourceFile(table) {
   const csv = files.find((f) => f.toLowerCase().endsWith('.csv'));
   if (csv) return { file: path.join(dir, csv), kind: 'csv' };
   return null;
+}
+
+// 'lastUpdated' dari <nama file>.meta.json — kapan file itu DITARIK dari API.
+// Bukan waktu tulis-ke-DB (itu finished_at di data_update_log), hanya disimpan
+// sebagai pembanding. File meta boleh tidak ada / rusak; jangan sampai itu
+// menggagalkan update.
+function readSourcePulledAt(src) {
+  const meta = src.file.replace(/\.(json|csv)$/i, '.meta.json');
+  try {
+    const t = JSON.parse(fs.readFileSync(meta, 'utf8')).lastUpdated;
+    return t && !Number.isNaN(Date.parse(t)) ? new Date(t).toISOString() : null;
+  } catch {
+    return null;
+  }
 }
 
 // Parser CSV RFC4180 seadanya: cukup untuk file ekspor SIRUP (kutip ganda,
@@ -340,6 +367,31 @@ async function deleteAll(cfg) {
   if (left !== 0) throw new Error('tabel masih berisi ' + left + ' baris setelah delete — dibatalkan');
 }
 
+// ------------------------------------------------------------- catat jejak
+// Satu baris per tabel per kali jalan, ditulis SETELAH tulis-ke-DB selesai.
+// Dibaca topbar aplikasi untuk menampilkan "Diperbarui N jam lalu".
+//
+// Kegagalan di sini TIDAK boleh menggagalkan update — datanya sudah masuk dan
+// itu yang penting; log hanya metadata. Penyebab paling mungkin: migration
+// sql/migrations/74_table_data_update_log.sql belum dijalankan di Supabase.
+async function logUpdate(cfg, v, after) {
+  const { error } = await sb.from(LOG_TABLE).insert({
+    table_name: cfg.table,
+    mode: cfg.mode,
+    rows_before: v.dbCount,
+    rows_after: after,
+    source_file: path.relative(ROOT, v.src.file).split(path.sep).join('/'),
+    source_pulled_at: readSourcePulledAt(v.src),
+  });
+  if (error) {
+    console.log('   catatan : GAGAL menulis ' + LOG_TABLE + ' (' + error.message + ')');
+    console.log('             Data tabel sendiri sudah aman. Kalau tabel lognya belum ada,');
+    console.log('             jalankan sql/migrations/74_table_data_update_log.sql di Supabase.');
+    return false;
+  }
+  return true;
+}
+
 // -------------------------------------------------------------- jalankan 1
 async function run(cfg, v) {
   console.log('\n== ' + cfg.table + ' (' + cfg.mode + ') ==');
@@ -373,7 +425,12 @@ async function run(cfg, v) {
   const after = await countRows(cfg.table);
   const ok = after === v.payload.length;
   console.log('   hasil   : ' + rupiahless(v.dbCount) + ' -> ' + rupiahless(after) + ' baris ' + (ok ? '[OK]' : '[TIDAK COCOK, harusnya ' + rupiahless(v.payload.length) + ']'));
-  return { table: cfg.table, before: v.dbCount, after, expected: v.payload.length, ok };
+
+  // dicatat walau jumlah baris tidak cocok — tulisannya tetap terjadi, dan
+  // topbar harus mencerminkan kapan isi DB terakhir berubah, apa adanya.
+  const logged = await logUpdate(cfg, v, after);
+
+  return { table: cfg.table, before: v.dbCount, after, expected: v.payload.length, ok, logged };
 }
 
 // ------------------------------------------------------------------- main
@@ -438,4 +495,13 @@ for (const h of hasil) {
 }
 const gagal = hasil.filter((h) => !h.ok);
 console.log(gagal.length ? '\n' + gagal.length + ' tabel jumlah barisnya tidak sesuai file. Periksa manual.' : '\nSemua tabel sesuai jumlah baris file sumber.');
+
+const tanpaLog = hasil.filter((h) => !h.logged);
+if (tanpaLog.length) {
+  console.log('\n' + tanpaLog.length + ' tabel tidak tercatat di ' + LOG_TABLE + ' — stempel "Diperbarui ..." di topbar');
+  console.log('tidak ikut maju. Data tabelnya sendiri sudah masuk.');
+} else {
+  console.log('Stempel "Diperbarui ..." di topbar sudah maju ke waktu sekarang.');
+}
+
 process.exit(gagal.length ? 1 : 0);

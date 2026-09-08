@@ -12,8 +12,14 @@ import { logout } from '@/lib/auth/actions';
 import { findActiveEntry } from '@/lib/nav';
 import { CommandPalette } from './CommandPalette';
 import { PpkNotificationBell } from './PpkNotificationBell';
+import { DataFreshness } from './DataFreshness';
 
-export function Topbar() {
+/**
+ * `lastDataUpdate` diteruskan dari server (AppLayout -> Shell -> sini), bukan
+ * di-fetch di client: nilainya sudah tersedia saat layout dirender, jadi tidak
+ * perlu request tambahan dan tidak ada kedipan kosong setelah mount.
+ */
+export function Topbar({ lastDataUpdate }: { lastDataUpdate: string | null }) {
   const pathname = usePathname();
   const { full_name, role } = useSession();
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -76,6 +82,8 @@ export function Topbar() {
       </div>
       
       <div className={styles.controlsRow}>
+        <DataFreshness finishedAt={lastDataUpdate} />
+
         <button
           type="button"
           className={styles.iconBtn}
