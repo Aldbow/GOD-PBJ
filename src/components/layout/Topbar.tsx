@@ -13,6 +13,7 @@ import { findActiveEntry } from '@/lib/nav';
 import { CommandPalette } from './CommandPalette';
 import { PpkNotificationBell } from './PpkNotificationBell';
 import { DataFreshness } from './DataFreshness';
+import { LastUpdatePill } from './LastUpdatePill';
 
 /**
  * `lastDataUpdate` diteruskan dari server (AppLayout -> Shell -> sini), bukan
@@ -83,6 +84,7 @@ export function Topbar({ lastDataUpdate }: { lastDataUpdate: string | null }) {
       
       <div className={styles.controlsRow}>
         <DataFreshness finishedAt={lastDataUpdate} />
+        <LastUpdatePill finishedAt={lastDataUpdate} />
 
         <button
           type="button"

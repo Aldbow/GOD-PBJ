@@ -57,3 +57,53 @@ export function formatExactUpdate(iso: string): string | null {
 
   return tanggal + ' WIB';
 }
+
+/**
+ * Bagian-bagian stempel update dalam WIB, siap dirangkai jadi pil di topbar.
+ *
+ * Dipisah per bagian (bukan satu string jadi) supaya tiap bagian bisa diberi
+ * bobot visual sendiri — tanggal tebal, tahun redup — dan dianimasikan
+ * bergiliran. Merangkainya dari satu string berarti memotong-motong teks hasil
+ * format, yang rapuh begitu format lokal berubah.
+ *
+ * WIB dipaksa dengan alasan yang sama seperti formatExactUpdate: finished_at
+ * tersimpan UTC, dan pemakai aplikasi ini bekerja dengan tenggat WIB. Sebagai
+ * bonus, keluarannya jadi deterministik — server dan browser menghasilkan teks
+ * yang sama persis, jadi pil ini aman dirender saat SSR tanpa hydration
+ * mismatch (beda dengan teks relatif yang bergantung pada "sekarang").
+ */
+export type BagianUpdate = {
+  hari: string;
+  bulan: string;
+  tahun: string;
+  jam: string;
+  menit: string;
+};
+
+// hourCycle 'h23' dipaksa: tanpa itu sebagian lingkungan menuliskan tengah
+// malam sebagai "24.00", bukan "00.00".
+const BAGIAN_WIB = new Intl.DateTimeFormat('id-ID', {
+  timeZone: 'Asia/Jakarta',
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+export function pecahBagianUpdate(iso: string): BagianUpdate | null {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return null;
+
+  const p: Record<string, string> = {};
+  for (const bagian of BAGIAN_WIB.formatToParts(new Date(t))) p[bagian.type] = bagian.value;
+
+  return {
+    hari: p.day ?? '',
+    bulan: (p.month ?? '').replace('.', ''), // id-ID menulis "Sep." / "Agu."
+    tahun: p.year ?? '',
+    jam: p.hour ?? '',
+    menit: p.minute ?? '',
+  };
+}

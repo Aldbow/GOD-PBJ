@@ -1,0 +1,309 @@
+/*
+ * Pil stempel update. Kosakata visualnya dipinjam dari .userSection di
+ * Topbar.module.css — permukaan, border, radius pil, bayangan tipis yang sama —
+ * supaya terbaca sebagai anggota keluarga kontrol topbar, bukan tempelan.
+ *
+ * SOAL GERAK
+ * Isi pil ini diam: ia menyatakan satu momen yang sudah lewat, bukan sesuatu
+ * yang berdetak. Jadi geraknya hanya SEKALI, saat muncul, dan sesudah itu
+ * benar-benar berhenti — tidak ada denyut abadi yang menarik mata terus-menerus
+ * padahal tidak ada kabar baru.
+ *
+ * Yang bergerak:
+ *   1. .pil naik + memudar masuk, isinya menyusul bergiliran (stagger)
+ *   2. satu sapuan cahaya melintas, sekali, lalu hilang
+ *   3. hover: mengangkat, umpan balik bahwa ini satu objek utuh
+ * Semuanya transform + opacity: tidak memicu layout maupun repaint mahal.
+ * prefers-reduced-motion sudah dimatikan global di globals.css:328.
+ */
+
+.pil {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  height: 36px; /* sejajar .iconBtn dan .userSection di Topbar.module.css */
+  padding: 0 11px;
+  border-radius: var(--radius-pill);
+
+  /* Aksen biru diambil dari tangga --brand yang sudah dipakai .eyebrow dan
+     .avatar di topbar yang sama, bukan biru baru. Kadarnya sengaja rendah:
+     pil ini bertetangga dengan tiga tombol bundar putih, dan tint yang terlalu
+     pekat akan membuatnya terbaca sebagai tombol utama yang bisa diklik. */
+  background: color-mix(in srgb, var(--brand-100) 55%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--brand-400) 24%, var(--border));
+  box-shadow: 0 2px 8px rgba(19, 65, 107, 0.05);
+
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+
+  /* Menjaga sapuan cahaya tetap di dalam lengkung pil. clip, bukan hidden,
+     supaya tidak memunculkan konteks scroll baru. */
+  overflow: clip;
+
+  animation: pilMasuk 0.5s var(--ease-spring) both;
+
+  transition:
+    transform var(--dur-med) var(--ease-spring),
+    border-color var(--dur-med) ease,
+    box-shadow var(--dur-med) ease;
+}
+
+@keyframes pilMasuk {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Sapuan cahaya — sekali jalan, lalu opacity 0 selamanya (animation-fill-mode
+   both menahan keadaan akhir). Sudutnya miring supaya terbaca sebagai pantulan
+   pada permukaan, bukan garis yang lewat. */
+.pil::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--brand-400) 22%, transparent) 50%,
+    transparent 70%
+  );
+  animation: sapuan 1.15s 0.28s var(--ease-out) both;
+}
+
+@keyframes sapuan {
+  from { transform: translateX(-100%); opacity: 0; }
+  35%  { opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0; }
+}
+
+.pil:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--brand-400) 50%, var(--border));
+  box-shadow: 0 6px 18px rgba(19, 65, 107, 0.16);
+}
+
+/* ------------------------------------------------------------ nafas
+   Cahaya biru yang naik-turun perlahan dari dalam pil. Inilah yang membuat
+   pil terasa hidup alih-alih tercetak mati.
+   Digambar di lapisan sendiri dan yang dianimasikan hanya opacity-nya —
+   bukan box-shadow pada .pil langsung — supaya seluruh siklusnya ditangani
+   compositor: tanpa layout, tanpa repaint per frame.
+   Siklus 4,2 detik: cukup lambat untuk terbaca sebagai bernapas, bukan
+   berkedip yang menuntut perhatian. */
+.pil::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 14px color-mix(in srgb, var(--brand-400) 30%, transparent),
+    inset 0 0 3px color-mix(in srgb, var(--brand-400) 22%, transparent);
+  animation: nafas 4.2s var(--ease-out) infinite;
+}
+
+@keyframes nafas {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 1; }
+}
+
+/* Di tema gelap --brand-100 sudah berupa rgba transparan, jadi tintnya
+   ditumpuk langsung di atas --surface-2 tanpa color-mix. */
+[data-theme="dark"] .pil {
+  background: linear-gradient(var(--brand-100), var(--brand-100)), var(--surface-2);
+  border-color: rgba(80, 155, 226, 0.22);
+  box-shadow: none;
+}
+
+[data-theme="dark"] .pil:hover {
+  border-color: rgba(80, 155, 226, 0.45);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+/* ---------------------------------------------------------------- isi
+   Empat bagian menyusul pilnya sendiri, 55ms berselang. Urutannya kiri ke
+   kanan mengikuti arah baca, jadi matanya dituntun sekali lalu selesai. */
+.ikonWadah,
+.label,
+.tanggal,
+.pemisah,
+.jam,
+.zona {
+  animation: isiMasuk 0.42s var(--ease-spring) both;
+}
+
+.ikonWadah { animation-delay: 0.06s; }
+.label   { animation-delay: 0.10s; }
+.tanggal { animation-delay: 0.15s; }
+.pemisah { animation-delay: 0.19s; }
+.jam     { animation-delay: 0.23s; }
+.zona    { animation-delay: 0.27s; }
+
+@keyframes isiMasuk {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Jam kecil ini yang membawa aksen birunya sekaligus jadi denyut hidupnya.
+   Dipakai ulang begitu — bukan menambah titik status terpisah — supaya pil
+   tidak jadi berjejal: satu elemen, dua tugas. */
+.ikonWadah {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.ikon {
+  position: relative;
+  z-index: 1;
+  color: var(--accent);
+  transition: transform var(--dur-med) var(--ease-spring);
+}
+
+/* Halo yang mengembang lalu memudar, sekali tiap 2,8 detik. transform +
+   opacity saja. */
+.ikonWadah::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--brand-400) 55%, transparent) 0%,
+    transparent 70%
+  );
+  animation: halo 2.8s var(--ease-out) infinite;
+}
+
+@keyframes halo {
+  0%   { transform: scale(0.55); opacity: 0.9; }
+  70%  { transform: scale(1.5);  opacity: 0; }
+  100% { transform: scale(1.5);  opacity: 0; }
+}
+
+.pil:hover .ikon {
+  transform: rotate(-18deg);
+}
+
+/* --------------------------------------------------------------- label
+   "Data per" — frasa baku statistik resmi Indonesia (BPS, LKPP, lampiran
+   nota dinas). Dipilih supaya labelnya menyatu jadi satu kalimat dengan
+   tanggalnya, bukan kata benda yang ditempel di depan angka.
+   Bobotnya paling ringan di dalam pil: ia keterangan, tanggalnya isi. */
+.label {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1;
+  margin-right: -2px; /* rapat ke tanggal; keduanya satu kalimat */
+}
+
+/* ------------------------------------------------------------- tanggal */
+.tanggal {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  line-height: 1;
+}
+
+/* Tanggalnya biru: satu-satunya angka di pil ini yang orang cari lebih dulu.
+   --accent = --brand-600, ~9:1 di tema terang dan ~5,4:1 di tema gelap, jadi
+   aksennya tidak dibayar dengan keterbacaan. */
+.hari {
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.bulan {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Tahun paling redup: dari isi pil ini, tahun yang paling jarang jadi alasan
+   orang melirik ke sini. */
+.tahun {
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pemisah {
+  width: 1px;
+  height: 15px;
+  background: color-mix(in srgb, var(--brand-400) 35%, transparent);
+  flex-shrink: 0;
+}
+
+/* ----------------------------------------------------------------- jam
+   Mono + tabular-nums supaya lebar pil tidak berubah antara "11.09" dan
+   "08.44" — pil yang berkedut lebarnya akan menggeser seluruh deret kontrol
+   di kanannya setiap kali data diperbarui. */
+.jam {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.titikDua {
+  padding: 0 1px;
+  color: var(--text-tertiary);
+}
+
+/* ---------------------------------------------------------------- zona
+   Sempat dibungkus chip ber-latar --surface-2. Dibatalkan: di atas --surface
+   yang putih, chip itu nyaris tak terlihat, jadi ia hanya menambah bentuk
+   tanpa menambah arti — sementara teks --text-tertiary di dalamnya cuma
+   ~2,6:1 terhadap latarnya, di ukuran 9px pula.
+   Sebagai teks polos, "14.00 WIB" justru terbaca sebagaimana orang menulis
+   waktu, dan --text-secondary membawanya ke ~5,5:1. */
+.zona {
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  line-height: 1;
+  margin-left: -3px; /* rapat ke jam; keduanya satu satuan baca */
+}
+
+/*
+ * URUTAN PENGORBANAN SAAT LAYAR MENYEMPIT
+ * Batasnya dipilih agar tidak bertabrakan dengan .freshness (hilang di 1100px)
+ * dan .userMeta (hilang di 992px). Urutannya: label "Data per" lebih dulu —
+ * teks .freshness di kirinya sudah menyatakan hal yang sama, jadi tidak ada
+ * arti yang hilang; lalu tahun (paling mudah disimpulkan sendiri), lalu "WIB",
+ * lalu seluruh pil. Apa pun yang terlepas, keterangan utuhnya tetap ada di
+ * atribut title.
+ */
+@media (max-width: 1400px) {
+  .label {
+    display: none;
+  }
+}
+
+@media (max-width: 1280px) {
+  .tahun {
+    display: none;
+  }
+}
+
+@media (max-width: 1150px) {
+  .zona {
+    display: none;
+  }
+}
+
+@media (max-width: 992px) {
+  .pil {
+    display: none;
+  }
+}
