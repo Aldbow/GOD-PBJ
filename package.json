@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "sync-data": "node scripts/sync_from_inaproc.mjs",
+    "update-data": "node scripts/refresh_data.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

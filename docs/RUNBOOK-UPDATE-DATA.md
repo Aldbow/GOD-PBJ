@@ -50,6 +50,13 @@ NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 ```
 
+Opsional, hanya untuk `npm run update-data` (lihat §5.1.1) — folder tarikan INAPROC
+di komputer ini, kalau bukan `D:\INAPROC-Data\sync-state\v1`:
+
+```
+INAPROC_SYNC_DIR=E:\INAPROC-Data\sync-state\v1
+```
+
 Script memakai `SUPABASE_SERVICE_ROLE_KEY` **kalau ada**, kalau tidak ada jatuh ke anon key. Per 18 Agustus 2026, seluruh 10 tabel target masih bisa ditulis dengan anon key (RLS tidak aktif / permisif). Kalau suatu saat RLS diperketat, gejalanya error `42501` saat menulis → isi `SUPABASE_SERVICE_ROLE_KEY` di `.env.local` (jangan pernah di-commit).
 
 Project ref saat ini: `bsskoapfeejutazpsyvd`. Untuk menyegarkan tipe TypeScript:
@@ -115,6 +122,74 @@ Beberapa punya script sendiri (mis. [`scripts/import_master_data_pn_ro.mjs`](../
 ---
 
 ## 5. Prosedur update rutin
+
+### 5.1 Cara cepat: satu perintah dari tarikan lokal
+
+Kalau tarikan INAPROC ada di komputer ini (default `D:\INAPROC-Data\sync-state\v1`),
+satu perintah ini mengerjakan seluruh rantainya — salin file, dry-run, lalu tulis:
+
+```powershell
+npm run update-data          # = node scripts/refresh_data.mjs
+npm run update-data -- --dry-run   # salin + periksa saja, DB tidak disentuh
+```
+
+| Script | Tugas |
+| ------ | ----- |
+| [`scripts/refresh_data.mjs`](../scripts/refresh_data.mjs) | orkestrator: langkah 1-2-3, berhenti begitu ada yang gagal |
+| [`scripts/sync_from_inaproc.mjs`](../scripts/sync_from_inaproc.mjs) | langkah 1 saja: salin tarikan lokal -> `data/data_update/` (`npm run sync-data`) |
+| [`scripts/update_from_data_update.mjs`](../scripts/update_from_data_update.mjs) | langkah 2 & 3: periksa lalu tulis ke Supabase |
+
+Dry-run di langkah 2 **tidak bisa dilewati**; kalau satu tabel saja tidak lolos,
+langkah 3 tidak jalan sama sekali.
+
+Yang perlu diketahui soal langkah salin:
+
+- **Hanya JSON + `.meta.json` yang disalin.** `.csv` hanya untuk tabel yang memang
+  tidak punya JSON di sumber (saat ini cuma `data_afirmasi_pdn_perencanaan`);
+  `.xlsx` tidak pernah disalin — updater mengabaikannya dan ukurannya besar.
+- **File lama di folder tujuan dihapus.** Sengaja: `findSourceFile()` memilih file
+  JSON/CSV *pertama* hasil `readdirSync`, bukan yang terbaru. Nama file afirmasi
+  berstempel waktu, jadi menumpuknya file lama bisa membuat updater memakai tarikan
+  basi tanpa error apa pun. Pakai `--keep-extra` kalau memang mau menahan file lama.
+- **Tarikan yang lebih tua ditolak.** Kalau `lastUpdated` di `.meta.json` sumber lebih
+  tua daripada yang sudah ada di repo, tabel itu tertahan; lanjutkan dengan `--force-older`.
+- **Lokasi tarikan lokal diatur di `.env.local`** — lihat §5.1.1 di bawah.
+
+#### 5.1.1 Mengatur lokasi tarikan di komputer lain
+
+Folder tarikannya beda-beda tiap komputer, jadi jangan diubah di dalam script.
+Tambahkan satu baris di `.env.local` (file ini di-gitignore, jadi tiap komputer
+punya isinya sendiri — dan tidak ikut ter-clone):
+
+```
+INAPROC_SYNC_DIR=E:\INAPROC-Data\sync-state\v1
+```
+
+Yang ditunjuk adalah folder **induk** — yang berisi subfolder `rup/`, `tender/`,
+`ekatalog/`, dan file `data_afirmasi_pdn_perencanaan_*.csv` di akarnya.
+
+Urutan yang menang, yang pertama ketemu dipakai:
+
+| Urutan | Sumber nilai | Untuk apa |
+| ------ | ------------ | --------- |
+| 1 | `--source "E:\lain\v1"` | sekali jalan saja, tanpa mengubah konfigurasi |
+| 2 | environment variable `INAPROC_SYNC_DIR` | CI / scheduler |
+| 3 | `INAPROC_SYNC_DIR` di `.env.local` | **cara biasa, satu kali per komputer** |
+| 4 | bawaan `D:\INAPROC-Data\sync-state\v1` | komputer tempat mekanisme ini dibuat |
+
+Baris pertama output script selalu menyebutkan yang mana yang terpakai
+(`sumber : ... (dari .env.local)`), jadi tidak perlu menebak. Kalau foldernya tidak
+ada, script berhenti sebelum menyentuh apa pun dan mencetak contoh isian di atas.
+
+`INAPROC_SYNC_DIR` **tidak dipakai aplikasi** — hanya dua script ini. Jangan diisi di
+Vercel; path komputer lokal tidak ada artinya di sana.
+
+Peta sumber -> tabel ada di konstanta `SOURCES` dalam `sync_from_inaproc.mjs`
+(mis. `rup/paket-penyedia-terumumkan_*` -> `api_paket_penyedia_terumumkan`).
+Catatan: `dashboard/afirmasi/` di folder sumber **bukan** `data_afirmasi_pdn_perencanaan`
+— kolomnya soal pelaksanaan PDN, bukan perencanaan.
+
+### 5.2 Cara manual (file sudah ada di `data/data_update/`)
 
 ```powershell
 # 1. WAJIB: periksa dulu, tidak menulis apa pun
@@ -277,13 +352,31 @@ Catatan lain: `nilai_kontrak` sering kosong di data non-tender; view sudah jatuh
 
 ---
 
-## 10. Status terakhir (19 Agustus 2026)
+## 10. Status terakhir (11 September 2026)
+
+- `npm run update-data` (salin dari `D:\INAPROC-Data\sync-state\v1` -> dry-run -> tulis)
+  dijalankan dan sukses **11/11 `[OK]`**: `api_paket_penyedia_terumumkan` 7.900→7.911,
+  `history_kaji_ulang` 6.771→6.781, `paket_anggaran_penyedia` 7.907→7.920,
+  `paket_e_purchasing` 1.320→1.341, tabel lain jumlahnya tetap. Semua ter-backup ke
+  `data/backup/` sebelum ditulis.
+- Mulai tarikan ini `data/data_update/` hanya berisi `.json` + `.meta.json`
+  (plus satu `.csv` untuk `data_afirmasi_pdn_perencanaan`). `.csv`/`.xlsx` duplikat dari
+  tarikan lama dihapus `sync_from_inaproc.mjs` — repo ikut jauh lebih ringan.
+- `pencatatan_non_tender` sudah masuk `TABLES` (total 11 tabel, bukan 10 seperti di §4).
+
+### Status 19 Agustus 2026 (riwayat)
 
 - Migration 67 **sudah dijalankan** di Supabase SQL Editor.
 - `--dry-run --all` pagi ini lolos 10/10 dengan selisih 0 — tapi begitu file sumber ditarik ulang (mis. `data_afirmasi_pdn_perencanaan` dapat CSV baru jam 01:56), selisihnya muncul lagi. `--all` **sudah dijalankan** dan sukses 10/10 `[OK]`: `api_paket_penyedia_terumumkan` 7.691→7.690, `history_kaji_ulang` 6.374→6.393, `paket_anggaran_penyedia` 7.704→7.703, `non_tender_selesai` 49→50, sisanya tidak berubah. Semua ter-backup ke `data/backup/` sebelum ditulis.
 - Pelajaran: jangan asumsikan "tadi pagi 0 selisih" masih berlaku kalau ada jeda waktu — sumbernya bisa ditarik ulang otomatis kapan saja. Selalu `--dry-run --all` dulu tepat sebelum `--all`, jangan mengandalkan dry-run lama.
 
-Kalau ada tarikan data baru: taruh file JSON/CSV terbaru di folder tabel terkait di `data/data_update/`, lalu ulangi prosedur bagian 5:
+Kalau ada tarikan data baru, ulangi prosedur bagian 5 — dari tarikan lokal di komputer ini:
+
+```powershell
+npm run update-data
+```
+
+atau, kalau file JSON/CSV-nya sudah ditaruh sendiri di folder tabel terkait:
 
 ```powershell
 node scripts/update_from_data_update.mjs --dry-run --all
