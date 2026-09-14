@@ -16,6 +16,10 @@
 
 .kolom {
   min-width: 0;
+  /* Container query untuk .nilaiUtama: nilai rupiah kini ditampilkan utuh
+     sampai rupiah terakhir, jadi panjangnya harus diikatkan ke lebar kartunya
+     sendiri, bukan ukuran font tetap. */
+  container-type: inline-size;
 }
 
 /* Dua kelompok ukuran di dalam Body. Jaraknya diatur tiap blok sendiri,
@@ -35,11 +39,16 @@
 
 .nilaiUtama {
   font-size: 30px;
+  font-size: clamp(19px, 8.6cqw, 30px);
   font-weight: 700;
   line-height: 1.08;
   letter-spacing: -0.025em;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+  /* Nilai rupiah kini utuh (belasan digit berpemisah titik) dan tak punya
+     titik putus alami — tanpa ini akan terpotong diam-diam oleh
+     overflow:hidden milik kartu. Lebih baik turun baris daripada raib. */
+  overflow-wrap: anywhere;
 }
 
 /* Jumlah paket juga angka utama — sedikit lebih kecil dari rupiah supaya urutan

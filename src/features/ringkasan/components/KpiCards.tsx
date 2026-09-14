@@ -9,21 +9,11 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Card, type CardTone } from '@/components/ui/Card';
 import styles from './KpiCards.module.css';
 
-// Format nilai anggaran gaya KPI: "Rp125,8 Miliar".
-function fmtRupiahKpi(m: number): string {
-  const n = Number(m) || 0;
-  const d = (x: number, dec = 1) => x.toLocaleString('id-ID', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-  if (Math.abs(n) >= 1e12) return `Rp${d(n / 1e12)} Triliun`;
-  if (Math.abs(n) >= 1e9) return `Rp${d(n / 1e9)} Miliar`;
-  if (Math.abs(n) >= 1e6) return `Rp${d(n / 1e6)} Juta`;
-  if (Math.abs(n) >= 1e3) return `Rp${d(n / 1e3, 0)} Ribu`;
-  return `Rp${fmtInt(n)}`;
-}
-
-// Digit rupiah utuh, tanpa "Rp" dan tanpa pembulatan ke satuan besar. Kartu
-// acuan memakai ini: angka pagu di situ dipakai apa adanya, bukan diringkas.
-function digitRupiah(m: number): string {
-  return fmtInt(Math.round(Number(m) || 0));
+// Digit rupiah utuh, tanpa pembulatan ke satuan besar ("Rp125.834.221.000",
+// bukan "Rp125,8 Miliar"). Dipakai di semua kartu — orang butuh angka yang
+// bisa disalin apa adanya, bukan bentuk ringkasnya.
+function fmtRupiahPenuh(m: number): string {
+  return `Rp${fmtInt(Math.round(Number(m) || 0))}`;
 }
 
 // Target realisasi kumulatif per triwulan (persen dari pagu). Dinilai dari
@@ -142,7 +132,7 @@ function KartuAcuan({ kpi }: { kpi: RingkasanKpi }) {
         <div className={styles.blokUtama}>
           <div className={styles.nilaiAcuan}>
             <span className={styles.rp}>Rp</span>
-            {digitRupiah(kpi.totalPagu)}
+            {fmtInt(Math.round(Number(kpi.totalPagu) || 0))}
           </div>
           <div className={styles.keterangan}>Nilai pagu keseluruhan</div>
         </div>
@@ -236,7 +226,7 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
           ? `Yang dinilai selalu triwulan terakhir yang sudah selesai; TW1 masih berjalan sehingga belum ada target yang jatuh tempo.`
           : `Yang dinilai triwulan terakhir yang sudah selesai. Kini TW${triwulan} berjalan, jadi acuannya target TW${triwulanDinilai} (${targetDinilai}%). Realisasi saat ini ${fmtPct(kpi.pctRealisasi)}.`),
       rupiah: {
-        nilai: fmtRupiahKpi(kpi.totalRealisasi),
+        nilai: fmtRupiahPenuh(kpi.totalRealisasi),
         pct: kpi.pctRealisasi,
         keterangan:
           targetDinilai === null
@@ -265,7 +255,7 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
       tone: 'warn',
       tooltip: 'Sisa pagu yang belum terserap dan jumlah paket yang belum memiliki realisasi.',
       rupiah: {
-        nilai: fmtRupiahKpi(kpi.belumRealisasi),
+        nilai: fmtRupiahPenuh(kpi.belumRealisasi),
         pct: belumPct,
         keterangan: `${fmtPct(belumPct)} dari pagu`,
       },
