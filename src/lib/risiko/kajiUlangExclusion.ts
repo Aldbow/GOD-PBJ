@@ -17,7 +17,7 @@ export async function fetchRevisedOldKdRup(): Promise<Set<string>> {
   let offset = 0;
   const limit = 1000;
   while (true) {
-    const { data, error } = await sb.from('history_kaji_ulang').select('kd_rup_lama, kd_rup_baru').range(offset, offset + limit - 1);
+    const { data, error } = await sb.from('history_kaji_ulang').select('kd_rup_lama, kd_rup_baru').order('id', { ascending: true }).range(offset, offset + limit - 1);
     if (error) throw new Error(`Gagal mengambil history_kaji_ulang: ${error.message}`);
     if (!data || data.length === 0) break;
     for (const row of data) {

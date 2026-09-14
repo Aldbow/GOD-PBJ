@@ -55,6 +55,7 @@ async function fetchAllMasterDataRo(): Promise<MasterDataRoDb[]> {
     const { data, error } = await supabase
       .from('master_data_ro')
       .select('id, no, kd_rup, nama_paket, nama_ro, nilai_paket, skema, jenis_pengadaan, lokasi, waktu_pengadaan, kendala, mitigasi, realisasi, created_at')
+      .order('id', { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1);
     if (error) throw error;
     if (!data || data.length === 0) break;

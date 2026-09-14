@@ -94,6 +94,7 @@ export function EPurchasingView() {
           const { data, error } = await supabase
             .from('view_dashboard_epurchasing_v6')
             .select('*')
+            .order('kd_rup', { ascending: true })
             .range(offset, offset + limit - 1);
           if (error) throw error;
           if (!data || data.length === 0) break;

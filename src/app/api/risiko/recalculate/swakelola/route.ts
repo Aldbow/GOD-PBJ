@@ -64,12 +64,15 @@ async function fetchMasterPage(
 
 // Sama seperti api/risiko/recalculate/penyedia/route.ts — PostgREST membatasi 1000 baris tanpa
 // paginasi, jadi tabel bridge/realisasi WAJIB diambil dengan .range() loop, bukan select() polos.
-async function fetchAllRows(table: string, select: string): Promise<Array<Record<string, unknown>>> {
+// orderBy WAJIB (lihat docs/LAPORAN-ANALISIS-PERFORMA.md 6.1) -- tanpa urutan
+// pasti, baris bisa terlewat/dobel antar-halaman pagination saat database
+// sibuk, dan di endpoint ini akibatnya salah hitung risiko secara diam-diam.
+async function fetchAllRows(table: string, select: string, orderBy: string): Promise<Array<Record<string, unknown>>> {
   let all: Array<Record<string, unknown>> = [];
   let offset = 0;
   const limit = 1000;
   while (true) {
-    const { data, error } = await getApiSupabase().from(table).select(select).range(offset, offset + limit - 1);
+    const { data, error } = await getApiSupabase().from(table).select(select).order(orderBy, { ascending: true }).range(offset, offset + limit - 1);
     if (error) throw new Error(`Gagal mengambil ${table}: ${error.message}`);
     if (!data || data.length === 0) break;
     all = all.concat(data as unknown as Array<Record<string, unknown>>);
@@ -87,8 +90,8 @@ async function fetchAllRows(table: string, select: string): Promise<Array<Record
  * punya kolom kd_rup sama sekali (dikonfirmasi via schema probe langsung ke Supabase). */
 async function loadRealisasiIndex(): Promise<Map<string, EvidenceRecord[]>> {
   const [bridgeRows, realisasiRows] = await Promise.all([
-    fetchAllRows('api_pencatatan_swakelola', 'kd_rup, kd_swakelola_pct'),
-    fetchAllRows('pencatatan_swakelola_realisasi', 'kd_swakelola_pct, tgl_realisasi'),
+    fetchAllRows('api_pencatatan_swakelola', 'kd_rup, kd_swakelola_pct', 'kd_swakelola_pct'),
+    fetchAllRows('pencatatan_swakelola_realisasi', 'kd_swakelola_pct, tgl_realisasi', 'id'),
   ]);
 
   const tglBySwakelolaPct = new Map<string, string | null>();

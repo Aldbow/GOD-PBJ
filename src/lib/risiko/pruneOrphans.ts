@@ -9,7 +9,7 @@ async function fetchAllMasterIds(table: string): Promise<Set<string>> {
   let offset = 0;
   const limit = 1000;
   while (true) {
-    const { data, error } = await sb.from(table).select('kd_rup').range(offset, offset + limit - 1);
+    const { data, error } = await sb.from(table).select('kd_rup').order('kd_rup', { ascending: true }).range(offset, offset + limit - 1);
     if (error) throw new Error(`Gagal mengambil ${table}.kd_rup: ${error.message}`);
     if (!data || data.length === 0) break;
     for (const row of data as unknown as Record<string, unknown>[]) ids.add(String(row.kd_rup));
@@ -29,6 +29,7 @@ async function fetchAllRisikoIds(jenisPaket: 'Penyedia' | 'Swakelola'): Promise<
       .from('risiko_pengadaan')
       .select('kd_rup')
       .eq('jenis_paket', jenisPaket)
+      .order('kd_rup', { ascending: true })
       .range(offset, offset + limit - 1);
     if (error) throw new Error(`Gagal mengambil risiko_pengadaan.kd_rup: ${error.message}`);
     if (!data || data.length === 0) break;

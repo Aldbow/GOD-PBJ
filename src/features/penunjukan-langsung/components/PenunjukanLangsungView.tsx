@@ -92,6 +92,7 @@ export function PenunjukanLangsungView() {
           const { data, error } = await supabase
             .from('view_dashboard_penunjukan_langsung')
             .select('*')
+            .order('kd_rup', { ascending: true })
             .range(offset, offset + limit - 1);
           if (error) throw error;
           if (!data || data.length === 0) break;

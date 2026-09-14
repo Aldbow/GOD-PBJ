@@ -115,6 +115,7 @@ export function RisikoPengadaanView() {
         const { data, error } = await supabase
           .from('risiko_pengadaan')
           .select(RISK_LIST_COLUMNS)
+          .order('kd_rup', { ascending: true })
           .range(offset, offset + limit - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;

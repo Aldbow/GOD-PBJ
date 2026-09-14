@@ -161,16 +161,21 @@ const GABUNGAN_COLUMNS =
 const PAGE_SIZE = 1000;
 
 /** Supabase membatasi 1000 baris per query — ambil seluruhnya via paginasi
- * (pola sama seperti fetchGabunganRows di features/ringkasan/lib/ringkasanData.ts). */
-async function fetchAll<T>(table: string, columns: string, ppkName: string): Promise<T[]> {
+ * (pola sama seperti fetchGabunganRows di features/ringkasan/lib/ringkasanData.ts).
+ * orderBy WAJIB (lihat docs/LAPORAN-ANALISIS-PERFORMA.md bagian 6.1) — tanpa
+ * urutan pasti, baris bisa terlewat/dobel antar-halaman pagination saat
+ * database sibuk. Boleh lebih dari satu kolom untuk memecah dasi (mis. kd_rup
+ * belum unik sendirian di view_dashboard_gabungan_satker). */
+async function fetchAll<T>(table: string, columns: string, ppkName: string, orderBy: string[]): Promise<T[]> {
   const all: T[] = [];
   let offset = 0;
   while (true) {
-    const { data, error } = await supabase
+    let q = supabase
       .from(table)
       .select(columns)
-      .eq('nama_ppk', ppkName)
-      .range(offset, offset + PAGE_SIZE - 1);
+      .eq('nama_ppk', ppkName);
+    for (const col of orderBy) q = q.order(col, { ascending: true });
+    const { data, error } = await q.range(offset, offset + PAGE_SIZE - 1);
     if (error) throw error;
     if (!data || data.length === 0) break;
     all.push(...(data as unknown as T[]));
@@ -264,8 +269,8 @@ function sortTypes(types: AlertType[]): AlertType[] {
  */
 export async function fetchPpkNotifikasi(ppkName: string): Promise<NotifikasiItem[]> {
   const [risikoRows, gabunganRows] = await Promise.all([
-    fetchAll<RisikoRow>('risiko_pengadaan', RISIKO_COLUMNS, ppkName),
-    fetchAll<GabunganRow>('view_dashboard_gabungan_satker', GABUNGAN_COLUMNS, ppkName),
+    fetchAll<RisikoRow>('risiko_pengadaan', RISIKO_COLUMNS, ppkName, ['kd_rup']),
+    fetchAll<GabunganRow>('view_dashboard_gabungan_satker', GABUNGAN_COLUMNS, ppkName, ['kd_rup', 'metode_pengadaan']),
   ]);
 
   const gabungan = mergeGabungan(gabunganRows);

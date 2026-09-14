@@ -167,6 +167,8 @@ export async function fetchGabunganRows(): Promise<GabunganRow[]> {
     const { data, error } = await supabase
       .from('mv_dashboard_gabungan_satker')
       .select(SELECT_COLS)
+      .order('kd_rup', { ascending: true })
+      .order('metode_pengadaan', { ascending: true })
       .range(offset, offset + limit - 1);
     if (error) throw new Error(`Gagal memuat data ringkasan: ${error.message}`);
     if (!data || data.length === 0) break;

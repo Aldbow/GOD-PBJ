@@ -112,12 +112,15 @@ interface EvidenceIndices {
 // (~1.000 baris) MELEBIHI itu -> WAJIB paginasi .range(), tidak boleh select() polos, atau
 // sebagian besar paket kehilangan datanya secara diam-diam (pernah terjadi di sini: 14/20 paket
 // salah dianggap DATA_TIDAK_LENGKAP sebelum fix ini karena baris anggarannya terpotong).
-async function fetchAllRows(table: string, select: string): Promise<Array<Record<string, unknown>>> {
+// orderBy WAJIB (lihat docs/LAPORAN-ANALISIS-PERFORMA.md 6.1) -- tanpa urutan
+// pasti, baris bisa terlewat/dobel antar-halaman pagination saat database
+// sibuk, dan di endpoint ini akibatnya salah hitung risiko secara diam-diam.
+async function fetchAllRows(table: string, select: string, orderBy: string): Promise<Array<Record<string, unknown>>> {
   let all: Array<Record<string, unknown>> = [];
   let offset = 0;
   const limit = 1000;
   while (true) {
-    const { data, error } = await getApiSupabase().from(table).select(select).range(offset, offset + limit - 1);
+    const { data, error } = await getApiSupabase().from(table).select(select).order(orderBy, { ascending: true }).range(offset, offset + limit - 1);
     if (error) throw new Error(`Gagal mengambil ${table}: ${error.message}`);
     if (!data || data.length === 0) break;
     all = all.concat(data as unknown as Array<Record<string, unknown>>);
@@ -132,11 +135,11 @@ async function fetchAllRows(table: string, select: string): Promise<Array<Record
 // .in() per halaman, yang tidak bisa menangkap kd_rup yang tersembunyi di dalam field komposit "a;b".
 async function loadEvidenceIndices(): Promise<EvidenceIndices> {
   const [tenderRows, nonTenderRows, pencatatanRows, epurchasingRows, anggaranRows] = await Promise.all([
-    fetchAllRows('tender_selesai_nilai', 'kd_rup_paket, tgl_pengumuman_tender, kd_tender'),
-    fetchAllRows('non_tender_selesai', 'kd_rup, tgl_pengumuman_nontender, kd_nontender'),
-    fetchAllRows('pencatatan_non_tender_realisasi', 'kd_rup_paket, tgl_realisasi, no_realisasi'),
-    fetchAllRows('paket_e_purchasing', 'rup_code, order_date, order_id, status'),
-    fetchAllRows('paket_anggaran_penyedia', 'kd_rup, jenis_dana_apbn'),
+    fetchAllRows('tender_selesai_nilai', 'kd_rup_paket, tgl_pengumuman_tender, kd_tender', 'kd_tender'),
+    fetchAllRows('non_tender_selesai', 'kd_rup, tgl_pengumuman_nontender, kd_nontender', 'id'),
+    fetchAllRows('pencatatan_non_tender_realisasi', 'kd_rup_paket, tgl_realisasi, no_realisasi', 'id'),
+    fetchAllRows('paket_e_purchasing', 'rup_code, order_date, order_id, status', 'order_id'),
+    fetchAllRows('paket_anggaran_penyedia', 'kd_rup, jenis_dana_apbn', 'id_paket_anggaran_penyedia'),
   ]);
 
   const tender = indexByCompositeId(tenderRows, 'kd_rup_paket', 'tgl_pengumuman_tender', 'kd_tender', 'tender_selesai_nilai.tgl_pengumuman_tender');

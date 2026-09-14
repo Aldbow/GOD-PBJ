@@ -60,12 +60,16 @@ function emptyInput(): ItkpAInput {
   };
 }
 
-async function fetchAll<T>(table: string, select: string): Promise<T[]> {
+// orderBy: WAJIB — tanpa urutan pasti, Postgres bisa mengembalikan urutan
+// baris berbeda antar-halaman pagination saat database sibuk, menyebabkan
+// baris terlewat/dobel di kumpulan hasil akhir (lihat
+// docs/LAPORAN-ANALISIS-PERFORMA.md bagian 6.1).
+async function fetchAll<T>(table: string, select: string, orderBy: string): Promise<T[]> {
   let all: T[] = [];
   let offset = 0;
   const limit = 1000;
   while (true) {
-    const { data, error } = await supabase.from(table).select(select).range(offset, offset + limit - 1);
+    const { data, error } = await supabase.from(table).select(select).order(orderBy, { ascending: true }).range(offset, offset + limit - 1);
     if (error) throw error;
     if (!data || data.length === 0) break;
     all = all.concat(data as T[]);
@@ -118,20 +122,21 @@ export async function fetchItkpAData(prefetched?: PrefetchedRealisasi): Promise<
   const [afirmasiRows, masterRows] = await Promise.all([
     fetchAll<AfirmasiRow>(
       'data_afirmasi_pdn_perencanaan',
-      'nama_satuan_kerja,belanja_pengadaan,total_rup,total_perencanaan_penyedia,tender_seleksi,epurchasing,pengadaan_langsung,penunjukan_langsung,created_at'
+      'nama_satuan_kerja,belanja_pengadaan,total_rup,total_perencanaan_penyedia,tender_seleksi,epurchasing,pengadaan_langsung,penunjukan_langsung,created_at',
+      'id'
     ),
-    fetchAll<MasterDataRow>('master_data', '"SATUAN KERJA",SATKER,KPA,"UNIT KERJA"'),
+    fetchAll<MasterDataRow>('master_data', '"SATUAN KERJA",SATKER,KPA,"UNIT KERJA"', '"NO"'),
   ]);
 
   // tender/epurchasing/swakelola dipakai ulang dari view_dashboard_gabungan_satker
   // saat dipanggil dari Ringkasan (lihat ItkpGauge) supaya tidak menghitung ulang
   // kelima view dashboard realisasi yang sama dua kali dalam satu page load.
   const [tenderRows, epurchRows, plRows, pnlRows, swakelolaRows] = await Promise.all([
-    prefetched ? Promise.resolve(prefetched.tender) : fetchAll<RealisasiRow>('view_dashboard_tender', 'satker,total'),
-    prefetched ? Promise.resolve(prefetched.epurchasing) : fetchAll<RealisasiRow>('view_dashboard_epurchasing_v6', 'satker,total'),
-    fetchAll<RealisasiRow>('view_dashboard_pengadaan_langsung', 'satker,total_transaksional,total_pencatatan'),
-    fetchAll<RealisasiRow>('view_dashboard_penunjukan_langsung', 'satker,total_transaksional,total_pencatatan'),
-    prefetched ? Promise.resolve(prefetched.swakelola) : fetchAll<RealisasiRow>('view_dashboard_swakelola_v1', 'satker,total'),
+    prefetched ? Promise.resolve(prefetched.tender) : fetchAll<RealisasiRow>('view_dashboard_tender', 'satker,total', 'kd_rup'),
+    prefetched ? Promise.resolve(prefetched.epurchasing) : fetchAll<RealisasiRow>('view_dashboard_epurchasing_v6', 'satker,total', 'kd_rup'),
+    fetchAll<RealisasiRow>('view_dashboard_pengadaan_langsung', 'satker,total_transaksional,total_pencatatan', 'kd_rup'),
+    fetchAll<RealisasiRow>('view_dashboard_penunjukan_langsung', 'satker,total_transaksional,total_pencatatan', 'kd_rup'),
+    prefetched ? Promise.resolve(prefetched.swakelola) : fetchAll<RealisasiRow>('view_dashboard_swakelola_v1', 'satker,total', 'kd_rup'),
   ]);
 
   const unitsMap = new Map<string, ItkpAUnit>();

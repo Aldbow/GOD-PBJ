@@ -53,10 +53,14 @@ export function RencanaPengadaanView() {
         while (true) {
           const tableName = viewMode === 'eselon1' ? 'view_dashboard_keterisian_sirup_eselon1' : 'data_afirmasi_pdn_perencanaan';
           const selectFields = '*';
+          // Urutan pasti wajib (lihat docs/LAPORAN-ANALISIS-PERFORMA.md 6.1) --
+          // kolom beda per tabel karena keduanya punya kunci alami berbeda.
+          const orderCol = viewMode === 'eselon1' ? 'nama_eselon1' : 'id';
 
           const { data, error } = await supabase
             .from(tableName)
             .select(selectFields)
+            .order(orderCol, { ascending: true })
             .range(offset, offset + limit - 1);
 
           if (error) throw error;

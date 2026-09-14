@@ -94,6 +94,7 @@ export function RisikoInsightPanel({ satker, ppk, canSeePaketDetail = true }: Pr
         let q = supabase
           .from('mv_risiko_ringkasan')
           .select('kd_rup, nama_paket, satker, nama_ppk, pagu, total_score, max_score, kategori, main_risk_driver, execution_status, components_json')
+          .order('kd_rup', { ascending: true })
           .range(offset, offset + limit - 1);
 
         if (satker) q = q.eq('satker', satker);
