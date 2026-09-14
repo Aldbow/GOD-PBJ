@@ -54,6 +54,7 @@ untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak d
 | 71 | 71_alter_paket_e_purchasing_is_swasta.sql | paket_e_purchasing | tambah kolom is_swasta BOOLEAN (field baru, tarikan 3 Sep 2026) |
 | 74 | 74_table_data_update_log.sql | data_update_log | tabel baru — jejak kapan tiap tabel terakhir ditulis; dibaca stempel "Diperbarui ..." di topbar |
 | 75 | 75_materialized_view_gabungan_satker.sql | mv_dashboard_gabungan_satker | **materialized view** — rekap tersimpan sumber halaman Ringkasan, BUKAN view biasa; lihat catatan di bawah |
+| 76 | 76_materialized_view_risiko_ringkasan.sql | mv_risiko_ringkasan | **materialized view** — rekap ringan (components_json diperkecil) untuk 2 grafik risiko di halaman Ringkasan; butuh refresh pertama manual sama seperti 75 |
 
 ## `mv_dashboard_gabungan_satker` butuh refresh pertama manual
 
@@ -67,7 +68,20 @@ REFRESH MATERIALIZED VIEW mv_dashboard_gabungan_satker;
 
 Setelah itu, refresh berikutnya otomatis lewat `scripts/update_from_data_update.mjs` (memanggil
 fungsi `refresh_dashboard_gabungan_satker()` tepat setelah semua tabel sumber sukses ditulis) —
-lihat [`docs/RUNBOOK-UPDATE-DATA.md`](../../docs/RUNBOOK-UPDATE-DATA.md) §5a.
+lihat [`docs/RUNBOOK-UPDATE-DATA.md`](../../docs/RUNBOOK-UPDATE-DATA.md) §5b.
+
+## `mv_risiko_ringkasan` juga butuh refresh pertama manual
+
+Sama seperti migration 75: migration 76 membuat mv dengan `WITH NO DATA`. Segera setelah
+menjalankan file itu, jalankan satu kali tanpa `CONCURRENTLY`:
+
+```sql
+REFRESH MATERIALIZED VIEW mv_risiko_ringkasan;
+```
+
+Setelah itu, refresh berikutnya otomatis lewat `scripts/update_from_data_update.mjs` (setelah
+hitung ulang risiko selesai) DAN lewat tombol "Hitung Ulang" di halaman Risiko Pengadaan —
+lihat [`docs/RUNBOOK-UPDATE-DATA.md`](../../docs/RUNBOOK-UPDATE-DATA.md) §5c.
 
 ## Kenapa view realisasi (40–44) dijalankan berlapis?
 

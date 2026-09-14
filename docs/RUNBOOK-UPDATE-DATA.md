@@ -32,13 +32,22 @@ tarik API  ->  data/data_update/<nama_tabel>/<file>.json
                         |
                         v
    mv_dashboard_gabungan_satker di-REFRESH (lihat §5b di bawah)
+                        |
+                        v
+   hitung ulang risiko pengadaan (POST /api/risiko/recalculate/*)
+                        |
+                        v
+   mv_risiko_ringkasan di-REFRESH (lihat §5c di bawah)
 ```
 
 View **tidak perlu di-refresh manual** — semuanya view biasa, bukan materialized view,
 **kecuali `mv_dashboard_gabungan_satker`** (sumber halaman Ringkasan, lihat
-[`sql/migrations/75_materialized_view_gabungan_satker.sql`](../sql/migrations/75_materialized_view_gabungan_satker.sql)),
-yang merupakan materialized view dan di-refresh **otomatis** oleh
-`update_from_data_update.mjs` tepat setelah semua tabel sumber sukses ditulis — lihat §5b.
+[`sql/migrations/75_materialized_view_gabungan_satker.sql`](../sql/migrations/75_materialized_view_gabungan_satker.sql))
+dan **`mv_risiko_ringkasan`** (rekap ringan untuk 2 grafik risiko di halaman Ringkasan, lihat
+[`sql/migrations/76_materialized_view_risiko_ringkasan.sql`](../sql/migrations/76_materialized_view_risiko_ringkasan.sql)),
+yang keduanya di-refresh **otomatis** oleh `update_from_data_update.mjs` tepat setelah semua
+tabel sumber sukses ditulis (dan, untuk risiko, setelah hitung ulang risiko selesai) — lihat
+§5b dan §5c.
 
 ---
 
@@ -281,9 +290,10 @@ termasuk log.
 ## 5b. Rekap tersimpan (materialized view) `mv_dashboard_gabungan_satker`
 
 Halaman Ringkasan membaca dari `mv_dashboard_gabungan_satker`, bukan langsung dari
-`view_dashboard_gabungan_satker`. Ini satu-satunya materialized view di proyek ini — lihat
+`view_dashboard_gabungan_satker`. Lihat
 [`sql/migrations/75_materialized_view_gabungan_satker.sql`](../sql/migrations/75_materialized_view_gabungan_satker.sql)
-untuk alasannya (ringkasnya: view aslinya berat dihitung ulang tiap pembukaan halaman).
+untuk alasannya (ringkasnya: view aslinya berat dihitung ulang tiap pembukaan halaman). Ada
+juga `mv_risiko_ringkasan` untuk keperluan serupa — lihat §5c di bawah.
 
 **Kapan di-refresh:** otomatis, tepat setelah `update_from_data_update.mjs --all` selesai
 menulis SEMUA tabel target dengan sukses (bukan terjadwal, bukan per kunjungan user). Kalau
@@ -310,6 +320,45 @@ SELECT matviewname, ispopulated FROM pg_matviews WHERE matviewname = 'mv_dashboa
 
 ```sql
 REFRESH MATERIALIZED VIEW mv_dashboard_gabungan_satker;
+```
+
+---
+
+## 5c. Rekap ringan risiko (materialized view) `mv_risiko_ringkasan` + hitung ulang otomatis
+
+Panel risiko di halaman Ringkasan (`RisikoInsightPanel`, dua grafik + angka cetak) membaca dari
+`mv_risiko_ringkasan`, bukan langsung dari `risiko_pengadaan` — lihat
+[`sql/migrations/76_materialized_view_risiko_ringkasan.sql`](../sql/migrations/76_materialized_view_risiko_ringkasan.sql).
+mv ini punya kolom `components_json` yang **diperkecil** (cuma `label`/`score`/`applicable`,
+bukan seluruh 9 field) karena itulah satu-satunya yang dipakai kedua grafik. Halaman **Risiko
+Pengadaan penuh** (tabel detail, filter, drill-down) TETAP membaca `risiko_pengadaan` asli
+langsung — TIDAK terpengaruh perubahan ini.
+
+**Kapan di-refresh:** dua jalur, keduanya otomatis:
+
+1. **Setelah update data** — `update_from_data_update.mjs` (tepat setelah semua tabel sukses
+   ditulis) memanggil `POST /api/risiko/recalculate/penyedia` dan `/swakelola` berulang (sama
+   endpoint yang dipakai tombol "Hitung Ulang" manual) sampai selesai, lalu memanggil
+   `refresh_risiko_ringkasan()`. Butuh env `RISIKO_RECALC_BASE_URL` (default
+   `https://god-pbj.vercel.app`, lihat `.env.example`) bisa dijangkau — proses ini memakan
+   waktu **beberapa menit** (puluhan request berurutan). Lewati dengan flag `--skip-risiko`
+   kalau tidak ingin menunggu:
+   ```powershell
+   node scripts/update_from_data_update.mjs --all --yes --skip-risiko
+   ```
+2. **Tombol "Hitung Ulang" manual** di halaman Risiko Pengadaan — memanggil
+   `refresh_risiko_ringkasan()` tepat setelah kedua proses (Penyedia + Swakelola) selesai.
+
+**Kalau gagal** (baik jalur 1 maupun 2): non-fatal, dicatat ke log/console saja. Panel Ringkasan
+menampilkan data **basi** (dari refresh sebelumnya), bukan kosong/error. Refresh manual:
+```sql
+SELECT refresh_risiko_ringkasan();
+```
+
+**Setup database baru:** setelah menjalankan migration 76, mv masih kosong (`WITH NO DATA`) —
+WAJIB refresh manual sekali sebelum halaman Ringkasan dibuka:
+```sql
+REFRESH MATERIALIZED VIEW mv_risiko_ringkasan;
 ```
 
 ---

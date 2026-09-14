@@ -18,6 +18,9 @@
 //   --yes           lewati konfirmasi interaktif
 //   --force         lewati gerbang pengaman "baris turun drastis"
 //   --no-backup     lewati backup (hanya berlaku untuk mode upsert)
+//   --skip-risiko   lewati hitung ulang risiko pengadaan otomatis di akhir
+//                   (proses ini memakan waktu beberapa menit -- puluhan
+//                   request HTTP sekuensial ke RISIKO_RECALC_BASE_URL)
 //
 // DUA MODE
 //   upsert  — tabel punya kunci alami di file (kd_rup, order_id, dst).
@@ -88,6 +91,7 @@ const flags = {
   yes: argv.includes('--yes'),
   force: argv.includes('--force'),
   noBackup: argv.includes('--no-backup'),
+  skipRisiko: argv.includes('--skip-risiko'),
 };
 const wanted = [];
 for (let i = 0; i < argv.length; i++) {
@@ -523,6 +527,44 @@ if (!flags.dryRun && gagal.length === 0) {
     console.log('   Halaman Ringkasan akan menampilkan data dari refresh sebelumnya sampai');
     console.log('   di-refresh manual: SELECT refresh_dashboard_gabungan_satker(); di SQL Editor,');
     console.log('   atau jalankan ulang: node scripts/update_from_data_update.mjs --all --yes');
+  }
+}
+
+// ---- hitung ulang risiko pengadaan + refresh agregatnya --------------------
+// Dipicu di sini (bukan cuma manual via tombol admin) supaya risiko selalu
+// ikut segar setiap update data, tanpa perlu tindakan tambahan. Memanggil
+// endpoint yang SAMA dengan tombol "Hitung Ulang" di RisikoPengadaanView.tsx
+// (bukan port ulang logika scoring ke script ini) supaya tidak ada dua
+// salinan aturan skor yang bisa diam-diam berbeda kalau RULES_VERSION di
+// src/lib/risiko/riskModel.ts berubah nanti.
+// Kegagalan di sini TIDAK boleh menggagalkan update -- data tabel sudah
+// aman ditulis; risiko tinggal beda "segar"-nya, sama seperti mv gabungan.
+if (!flags.dryRun && gagal.length === 0 && !flags.skipRisiko) {
+  const baseUrl = env.RISIKO_RECALC_BASE_URL || 'https://god-pbj.vercel.app';
+  console.log('\nMenghitung ulang risiko pengadaan (' + baseUrl + ') ...');
+  try {
+    for (const [rpath, label] of [
+      ['/api/risiko/recalculate/penyedia', 'Penyedia'],
+      ['/api/risiko/recalculate/swakelola', 'Swakelola'],
+    ]) {
+      let offset = 0;
+      while (true) {
+        const res = await fetch(baseUrl + rpath + '?offset=' + offset, { method: 'POST' });
+        const json = await res.json();
+        if (!res.ok) throw new Error(label + ': ' + (json.error || res.statusText));
+        process.stdout.write('   ' + label + ': ' + (json.processed ?? 0) + '/' + (json.total ?? '?') + ' (offset ' + offset + ')\r');
+        if (!json.nextOffset) break;
+        offset = json.nextOffset;
+      }
+      console.log('   ' + label + ': selesai.                              ');
+    }
+    const { error: refreshErr } = await sb.rpc('refresh_risiko_ringkasan');
+    if (refreshErr) throw refreshErr;
+    console.log('Rekap risiko (mv_risiko_ringkasan) disegarkan.');
+  } catch (e) {
+    console.log('GAGAL menghitung ulang risiko (non-fatal): ' + e.message);
+    console.log('   Jalankan manual lewat tombol "Hitung Ulang" di halaman Risiko Pengadaan,');
+    console.log('   atau ulangi: node scripts/update_from_data_update.mjs --all --yes');
   }
 }
 

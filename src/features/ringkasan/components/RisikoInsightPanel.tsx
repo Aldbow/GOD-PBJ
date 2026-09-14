@@ -84,8 +84,15 @@ export function RisikoInsightPanel({ satker, ppk, canSeePaketDetail = true }: Pr
       const limit = 1000;
 
       while (!cancelled) {
+        // mv_risiko_ringkasan: rekap ringan (components_json diperkecil ke
+        // {label,score,applicable} saja) -- lihat
+        // sql/migrations/76_materialized_view_risiko_ringkasan.sql. Direfresh
+        // otomatis oleh scripts/update_from_data_update.mjs dan oleh tombol
+        // "Hitung Ulang" di halaman Risiko Pengadaan (RisikoPengadaanView.tsx).
+        // Halaman Risiko Pengadaan PENUH tetap query risiko_pengadaan asli
+        // (butuh JSONB lengkap untuk drill-down), TIDAK diarahkan ke sini.
         let q = supabase
-          .from('risiko_pengadaan')
+          .from('mv_risiko_ringkasan')
           .select('kd_rup, nama_paket, satker, nama_ppk, pagu, total_score, max_score, kategori, main_risk_driver, execution_status, components_json')
           .range(offset, offset + limit - 1);
 

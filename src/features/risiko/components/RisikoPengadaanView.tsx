@@ -163,6 +163,12 @@ export function RisikoPengadaanView() {
       await runRecalculateEndpoint('/api/risiko/recalculate/penyedia', 'Penyedia');
       await runRecalculateEndpoint('/api/risiko/recalculate/swakelola', 'Swakelola');
       await loadData();
+      // Segarkan rekap ringan yang dipakai RisikoInsightPanel di halaman
+      // Ringkasan (sql/migrations/76_materialized_view_risiko_ringkasan.sql).
+      // Non-fatal: kalau gagal, panel Ringkasan tetap menampilkan data lama
+      // (basi, bukan error) sampai direfresh ulang.
+      const { error: refreshErr } = await supabase.rpc('refresh_risiko_ringkasan');
+      if (refreshErr) console.error('Gagal menyegarkan mv_risiko_ringkasan:', refreshErr);
     } catch (e: any) {
       console.error(e);
       setRecalcError(e.message || 'Gagal menghitung ulang risiko.');
