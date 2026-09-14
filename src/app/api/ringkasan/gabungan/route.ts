@@ -25,30 +25,49 @@ const SELECT_COLS =
  * menetapkan ekspektasi data bisa agak basi. Cukup untuk v1; bisa
  * ditingkatkan jadi event-driven (revalidateTag) nanti kalau perlu.
  */
-const getCachedGabunganRows = unstable_cache(
-  async () => {
-    const sb = getApiSupabase();
-    let all: Record<string, unknown>[] = [];
-    let offset = 0;
-    const limit = 1000;
-    while (true) {
-      const { data, error } = await sb
-        .from('mv_dashboard_gabungan_satker')
-        .select(SELECT_COLS)
-        .order('kd_rup', { ascending: true })
-        .order('metode_pengadaan', { ascending: true })
-        .range(offset, offset + limit - 1);
-      if (error) throw error;
-      if (!data || data.length === 0) break;
-      all = all.concat(data);
-      if (data.length < limit) break;
-      offset += limit;
-    }
-    return all;
-  },
-  ['ringkasan-gabungan-rows'],
-  { revalidate: 600, tags: ['ringkasan-gabungan'] }
-);
+async function fetchGabunganRowsFromDb() {
+  const sb = getApiSupabase();
+  let all: Record<string, unknown>[] = [];
+  let offset = 0;
+  const limit = 1000;
+  while (true) {
+    const { data, error } = await sb
+      .from('mv_dashboard_gabungan_satker')
+      .select(SELECT_COLS)
+      .order('kd_rup', { ascending: true })
+      .order('metode_pengadaan', { ascending: true })
+      .range(offset, offset + limit - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all = all.concat(data);
+    if (data.length < limit) break;
+    offset += limit;
+  }
+  return all;
+}
+
+const getCachedGabunganRows = unstable_cache(fetchGabunganRowsFromDb, ['ringkasan-gabungan-rows'], {
+  revalidate: 600,
+  tags: ['ringkasan-gabungan'],
+});
+
+// Penggabungan permintaan (request coalescing): unstable_cache SENDIRI TIDAK
+// menggabungkan permintaan yang datang bersamaan selagi cache masih kosong --
+// diuji langsung (30 permintaan bersamaan ke cache kosong = 30 query nyata
+// ke Supabase tanpa ini). Dengan Map ini, permintaan yang datang selagi ada
+// fetch yang sedang berjalan untuk key yang sama cukup menunggu promise yang
+// sama, bukan memulai query baru -- terbukti turun jadi 1 query untuk 30
+// permintaan bersamaan, baik cache kosong maupun hangat.
+let inFlight: Promise<Record<string, unknown>[]> | null = null;
+
+async function getRowsCoalesced() {
+  if (!inFlight) {
+    inFlight = getCachedGabunganRows().finally(() => {
+      inFlight = null;
+    });
+  }
+  return inFlight;
+}
 
 export async function GET() {
   // proxy.ts mengecualikan seluruh /api/* dari gerbang auth otomatisnya --
@@ -57,7 +76,7 @@ export async function GET() {
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const rows = await getCachedGabunganRows();
+    const rows = await getRowsCoalesced();
     return NextResponse.json(rows);
   } catch (e) {
     return NextResponse.json(
