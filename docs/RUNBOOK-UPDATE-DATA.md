@@ -73,6 +73,15 @@ di komputer ini, kalau bukan `D:\INAPROC-Data\sync-state\v1`:
 INAPROC_SYNC_DIR=E:\INAPROC-Data\sync-state\v1
 ```
 
+Opsional, hanya untuk auto-recalculate risiko (lihat §5c) — base URL aplikasi yang
+dipanggil untuk `POST /api/risiko/recalculate/*`. Default kalau dikosongkan:
+`https://god-pbj.vercel.app`. Isi dengan `http://localhost:3000` untuk menguji lokal
+(dev server harus jalan), atau lewati langkah ini sepenuhnya dengan flag `--skip-risiko`:
+
+```
+RISIKO_RECALC_BASE_URL=http://localhost:3000
+```
+
 Script memakai `SUPABASE_SERVICE_ROLE_KEY` **kalau ada**, kalau tidak ada jatuh ke anon key. Per 18 Agustus 2026, seluruh 10 tabel target masih bisa ditulis dengan anon key (RLS tidak aktif / permisif). Kalau suatu saat RLS diperketat, gejalanya error `42501` saat menulis → isi `SUPABASE_SERVICE_ROLE_KEY` di `.env.local` (jangan pernah di-commit).
 
 Project ref saat ini: `bsskoapfeejutazpsyvd`. Untuk menyegarkan tipe TypeScript:
@@ -228,6 +237,7 @@ Flag:
 | `--yes`          | lewati konfirmasi interaktif (untuk non-TTY)                          |
 | `--force`        | lewati gerbang "baris turun drastis"                                  |
 | `--no-backup`    | lewati backup (hanya berlaku mode upsert; mode replace selalu backup) |
+| `--skip-risiko`  | lewati hitung ulang risiko + refresh `mv_risiko_ringkasan` (lihat §5c) — proses itu memakan waktu beberapa menit |
 
 Kalau **satu tabel saja** gagal periksa, script berhenti dan **tidak menulis apa pun ke tabel mana pun**. Ini disengaja.
 
@@ -444,7 +454,22 @@ Catatan lain: `nilai_kontrak` sering kosong di data non-tender; view sudah jatuh
 
 ---
 
-## 10. Status terakhir (11 September 2026)
+## 10. Status terakhir (14 September 2026)
+
+- Migration 75 (`mv_dashboard_gabungan_satker`) dan 76 (`mv_risiko_ringkasan`) **sudah
+  dijalankan** di Supabase SQL Editor dan diverifikasi (0 selisih baris-per-baris terhadap
+  sumber aslinya di kedua mv). `mv_risiko_ringkasan` mengecilkan `components_json` dari
+  ~13MB menjadi ~2,9MB (rasio 4,5x) tanpa mengubah isi `label`/`score`/`applicable`.
+- Auto-recalculate risiko (§5c) **sudah diuji end-to-end lewat dev server lokal**
+  (`RISIKO_RECALC_BASE_URL=http://localhost:3000`) — 7.927 baris Penyedia + 43 Swakelola
+  berhasil dihitung ulang, `mv_risiko_ringkasan` ikut segar. **Belum diuji ke default
+  produksi** (`https://god-pbj.vercel.app`) — jalankan sekali setelah deploy branch ini
+  dipastikan live untuk konfirmasi.
+- Branch `rework-pengadaan` **sudah ditimpakan ke `main`** (force-push) hari ini — histori
+  `main` yang lama (fitur Prioritas Nasional + percobaan materialized view terpisah 14 Juli
+  2026) diarsipkan di tag git `main-sebelum-ditimpa-20260914`, bukan dihapus.
+
+### Status 11 September 2026 (riwayat)
 
 - `npm run update-data` (salin dari `D:\INAPROC-Data\sync-state\v1` -> dry-run -> tulis)
   dijalankan dan sukses **11/11 `[OK]`**: `api_paket_penyedia_terumumkan` 7.900→7.911,
