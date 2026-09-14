@@ -1,4 +1,3 @@
-import { supabase } from '@/lib/supabase';
 import { summarizeAnomali, anomaliOf, type AnomaliSummary, type AnomaliJenis } from '@/lib/anomali';
 
 // Satu baris paket dari rekap tersimpan (materialized view) mv_dashboard_gabungan_satker
@@ -148,35 +147,28 @@ export interface RingkasanFilterValue {
   ppk: string; // '' = Semua PPK
 }
 
+// Sama persis dengan SELECT_COLS di src/app/api/ringkasan/gabungan/route.ts --
+// jaga keduanya tetap sinkron kalau salah satu berubah.
 const SELECT_COLS = 'kd_rup,rup_name,satker,nama_ppk,metode_pengadaan,jenis_pengadaan,pagu,total,status,status_kurasi,catatan_kurasi,rekomendasi_kurasi,is_from_sirup';
 
-// Ambil SELURUH baris rekap tersimpan via paginasi (pola sama seperti fetchAll di
-// src/lib/itkp/fetchA.ts). Bisa >1000 baris sedangkan Supabase membatasi 1000
-// baris per query.
+// Rekap gabungan Ringkasan -- lewat Route Handler server (Langkah 4, lihat
+// docs/LAPORAN-ANALISIS-PERFORMA.md), BUKAN lagi query langsung browser ->
+// Supabase. Route Handler-nya membungkus fetch paginasi (persis pola lama di
+// sini, termasuk .order()) dengan unstable_cache 10 menit -- satu entri
+// cache dipakai SEMUA user, karena fungsi ini tidak menerima parameter sama
+// sekali (filter satker/PPK tetap terjadi belakangan di client lewat
+// filterRows()). Ini yang memutus hubungan "jumlah user = beban Supabase".
 //
-// Sumbernya mv_dashboard_gabungan_satker (materialized view), BUKAN
-// view_dashboard_gabungan_satker langsung — lihat
-// sql/migrations/75_materialized_view_gabungan_satker.sql. Data di sini hanya
-// sesegar refresh terakhir (dipicu scripts/update_from_data_update.mjs setelah
-// update data sukses), bukan real-time seperti view biasa.
+// Sumber datanya tetap mv_dashboard_gabungan_satker (materialized view) --
+// lihat sql/migrations/75_materialized_view_gabungan_satker.sql. Data hanya
+// sesegar refresh mv terakhir DITAMBAH sisa jendela cache 10 menit ini.
 export async function fetchGabunganRows(): Promise<GabunganRow[]> {
-  let all: GabunganRow[] = [];
-  let offset = 0;
-  const limit = 1000;
-  while (true) {
-    const { data, error } = await supabase
-      .from('mv_dashboard_gabungan_satker')
-      .select(SELECT_COLS)
-      .order('kd_rup', { ascending: true })
-      .order('metode_pengadaan', { ascending: true })
-      .range(offset, offset + limit - 1);
-    if (error) throw new Error(`Gagal memuat data ringkasan: ${error.message}`);
-    if (!data || data.length === 0) break;
-    all = all.concat(data as unknown as GabunganRow[]);
-    if (data.length < limit) break;
-    offset += limit;
+  const res = await fetch('/api/ringkasan/gabungan');
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}) as { error?: string });
+    throw new Error(body.error || `Gagal memuat data ringkasan: ${res.status}`);
   }
-  return all;
+  return res.json();
 }
 
 const num = (v: number | null | undefined): number => Number(v) || 0;
