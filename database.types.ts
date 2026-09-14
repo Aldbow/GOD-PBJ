@@ -1714,6 +1714,40 @@ export type Database = {
       }
     }
     Views: {
+      mv_dashboard_gabungan_satker: {
+        Row: {
+          catatan_kurasi: string | null
+          is_from_sirup: boolean | null
+          jenis_pengadaan: string | null
+          kd_rup: string | null
+          metode_pengadaan: string | null
+          nama_ppk: string | null
+          pagu: number | null
+          rekomendasi_kurasi: string | null
+          rup_name: string | null
+          satker: string | null
+          status: string | null
+          status_kurasi: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      mv_risiko_ringkasan: {
+        Row: {
+          components_json: Json | null
+          execution_status: string | null
+          kategori: string | null
+          kd_rup: string | null
+          main_risk_driver: string | null
+          max_score: number | null
+          nama_paket: string | null
+          nama_ppk: string | null
+          pagu: number | null
+          satker: string | null
+          total_score: number | null
+        }
+        Relationships: []
+      }
       view_dashboard_epurchasing_v6: {
         Row: {
           catatan_kurasi: string | null
@@ -1794,8 +1828,11 @@ export type Database = {
           status: string | null
           status_aktif_rup: boolean | null
           status_kurasi: string | null
+          status_paket_pencatatan: string | null
           total: number | null
           total_pencatatan: number | null
+          total_pencatatan_berjalan: number | null
+          total_pencatatan_selesai: number | null
           total_transaksional: number | null
         }
         Relationships: []
@@ -2004,6 +2041,8 @@ export type Database = {
         }[]
       }
       is_admin: { Args: never; Returns: boolean }
+      refresh_dashboard_gabungan_satker: { Args: never; Returns: undefined }
+      refresh_risiko_ringkasan: { Args: never; Returns: undefined }
       seed_user: {
         Args: { p_email: string; p_meta: Json; p_password: string }
         Returns: string

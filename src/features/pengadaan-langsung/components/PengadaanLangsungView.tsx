@@ -11,7 +11,7 @@ import { useUrlPillFilter } from '@/hooks/useUrlPillFilter';
 import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
 import { FilterAdvancedCard } from '@/components/paket/FilterAdvancedCard';
 import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
-import { MetricGrid, DualProgressBar } from '@/components/paket/SummaryCards';
+import { MetricGrid, DualProgressBar, RealisasiRincianGrid } from '@/components/paket/SummaryCards';
 import { AnomaliPanel, AnomaliBadge } from '@/components/paket/AnomaliPanel';
 import { summarizeAnomali, matchesAnomali, type AnomaliJenis } from '@/lib/anomali';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
@@ -46,11 +46,20 @@ const TIPE_RUP_OPTIONS = [
 // Status paket dari pencatatan_non_tender.status_nontender_pct_ket (lewat
 // view_dashboard_pengadaan_langsung.status_paket_pencatatan). Hanya berlaku untuk
 // realisasi jalur pencatatan — paket yang realisasinya murni transaksional tidak
-// punya status ini.
+// punya status ini. Nilai mentah dari DB tetap Bahasa Indonesia (dipakai untuk
+// filter); label yang ditampilkan ke user memakai statusPaketLabel() di bawah.
 const STATUS_PAKET_OPTIONS = [
-  { value: 'Paket Sedang Berjalan', label: 'Paket Sedang Berjalan' },
-  { value: 'Paket Selesai', label: 'Paket Selesai' },
+  { value: 'Paket Sedang Berjalan', label: 'On Process' },
+  { value: 'Paket Selesai', label: 'Completed' },
 ];
+
+/** Label tampilan untuk status_paket_pencatatan. 'Campuran' (satu RUP menaungi
+ *  paket berjalan & selesai sekaligus) sengaja tidak diterjemahkan. */
+function statusPaketLabel(raw: string | null | undefined): string {
+  if (raw === 'Paket Sedang Berjalan') return 'On Process';
+  if (raw === 'Paket Selesai') return 'Completed';
+  return raw || '-';
+}
 
 /** Bidang yang dipakai kedua helper di bawah. Baris view sendiri masih `any`
  *  (sisa pola lama di berkas ini) — helper-nya tidak perlu ikut longgar. */
@@ -218,6 +227,10 @@ export function PengadaanLangsungView() {
   const contextRealisasi = filteredData.reduce((s, d) => s + (Number(d.total) || 0), 0);
   const contextRealisasiPencatatan = filteredData.reduce((s, d) => s + (Number(d.total_pencatatan) || 0), 0);
   const contextRealisasiTransaksional = filteredData.reduce((s, d) => s + (Number(d.total_transaksional) || 0), 0);
+  // Realisasi transaksional pecah menurut metode aslinya — split nyata,
+  // sejajar dengan on process/completed di sisi Pencatatan.
+  const contextTransaksionalPL = filteredData.reduce((s, d) => s + (d.metode_pengadaan === 'Pengadaan Langsung' ? (Number(d.total_transaksional) || 0) : 0), 0);
+  const contextTransaksionalDikecualikan = filteredData.reduce((s, d) => s + (d.metode_pengadaan === 'Dikecualikan' ? (Number(d.total_transaksional) || 0) : 0), 0);
   const contextPencatatanBerjalan = filteredData.reduce((s, d) => s + (Number(d.total_pencatatan_berjalan) || 0), 0);
   const contextPencatatanSelesai = filteredData.reduce((s, d) => s + (Number(d.total_pencatatan_selesai) || 0), 0);
   const contextBelumRealisasi = Math.max(0, contextPagu - contextRealisasi);
@@ -344,7 +357,7 @@ export function PengadaanLangsungView() {
                 const variant = s === 'Paket Selesai' ? 'rendah' : 'sedang';
                 return (
                   <Badge variant={variant} className={styles.statusBadge}>
-                    {s}
+                    {statusPaketLabel(s)}
                   </Badge>
                 );
               },
@@ -401,7 +414,7 @@ export function PengadaanLangsungView() {
     pct: (Number(item.pagu) || 0) > 0 ? ((Number(item.total) || 0) / (Number(item.pagu) || 0)) * 100 : 0,
     sumber_realisasi: sumberRealisasi(item) || '-',
     status: (Number(item.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI',
-    status_paket_pencatatan: item.status_paket_pencatatan || '-',
+    status_paket_pencatatan: item.status_paket_pencatatan ? statusPaketLabel(item.status_paket_pencatatan) : '-',
     status_kurasi: item.status_kurasi || 'Belum Dikurasi',
     catatan_kurasi: item.catatan_kurasi || '-',
     rekomendasi_kurasi: item.rekomendasi_kurasi || '-',
@@ -452,42 +465,38 @@ export function PengadaanLangsungView() {
               },
             ]}
           />
-          <MetricGrid
-            title="Rincian Realisasi"
-            icon={FileText}
-            cards={
-              hasStatusPaket
-                ? [
-                    // Transaksional di kiri (satu jalur, tidak punya status paket),
-                    // lalu pencatatan dipecah menurut status paketnya.
-                    {
-                      key: 'transaksional',
-                      icon: CreditCard,
-                      label: 'Realisasi Transaksional',
-                      value: fmtRupiahDetail(contextRealisasiTransaksional),
-                      accent: 'purple' as const,
-                    },
-                    {
-                      key: 'pencatatan-berjalan',
-                      icon: Clock,
-                      label: 'Pencatatan — Paket Sedang Berjalan',
-                      value: fmtRupiahDetail(contextPencatatanBerjalan),
-                      accent: 'amber' as const,
-                    },
-                    {
-                      key: 'pencatatan-selesai',
-                      icon: CheckCircle2,
-                      label: 'Pencatatan — Paket Selesai',
-                      value: fmtRupiahDetail(contextPencatatanSelesai),
-                      accent: 'teal' as const,
-                    },
-                  ]
-                : [
-                    { key: 'pencatatan', icon: FileText, label: 'Realisasi Pencatatan', value: fmtRupiahDetail(contextRealisasiPencatatan), accent: 'indigo' as const },
-                    { key: 'transaksional', icon: CreditCard, label: 'Realisasi Transaksional', value: fmtRupiahDetail(contextRealisasiTransaksional), accent: 'purple' as const },
-                  ]
-            }
-          />
+          {hasStatusPaket ? (
+            <RealisasiRincianGrid
+              title="Rincian Realisasi"
+              icon={FileText}
+              totalLabel={`Total ${fmtRupiahDetail(contextRealisasi)}`}
+              left={{
+                icon: CreditCard,
+                label: 'Realisasi Transaksional',
+                value: fmtRupiahDetail(contextRealisasiTransaksional),
+                emptyMessage: 'Belum ada realisasi transaksional.',
+                first: { color: 'info', label: 'Pengadaan Langsung', value: fmtRupiahDetail(contextTransaksionalPL), amount: contextTransaksionalPL },
+                second: { color: 'amber', label: 'Dikecualikan', value: fmtRupiahDetail(contextTransaksionalDikecualikan), amount: contextTransaksionalDikecualikan },
+              }}
+              right={{
+                icon: FileText,
+                label: 'Pencatatan',
+                value: fmtRupiahDetail(contextRealisasiPencatatan),
+                emptyMessage: 'Belum ada realisasi pencatatan.',
+                first: { color: 'amber', label: 'On Process', value: fmtRupiahDetail(contextPencatatanBerjalan), amount: contextPencatatanBerjalan },
+                second: { color: 'teal', label: 'Completed', value: fmtRupiahDetail(contextPencatatanSelesai), amount: contextPencatatanSelesai },
+              }}
+            />
+          ) : (
+            <MetricGrid
+              title="Rincian Realisasi"
+              icon={FileText}
+              cards={[
+                { key: 'pencatatan', icon: FileText, label: 'Realisasi Pencatatan', value: fmtRupiahDetail(contextRealisasiPencatatan), accent: 'indigo' as const },
+                { key: 'transaksional', icon: CreditCard, label: 'Realisasi Transaksional', value: fmtRupiahDetail(contextRealisasiTransaksional), accent: 'purple' as const },
+              ]}
+            />
+          )}
 
           <MetricGrid
             title="Status Paket Pengadaan Langsung"
@@ -648,11 +657,11 @@ export function PengadaanLangsungView() {
               {hasStatusPaket && (Number(selectedItem.total_pencatatan) || 0) > 0 && (
                 <>
                   <div>
-                    <span className={styles.modalFieldLabel}>&nbsp;&nbsp;&bull; Paket Sedang Berjalan</span>
+                    <span className={styles.modalFieldLabel}>&nbsp;&nbsp;&bull; On Process</span>
                     <span className={styles.modalFieldValueMuted}>{fmtRupiahDetail(Number(selectedItem.total_pencatatan_berjalan || 0))}</span>
                   </div>
                   <div>
-                    <span className={styles.modalFieldLabel}>&nbsp;&nbsp;&bull; Paket Selesai</span>
+                    <span className={styles.modalFieldLabel}>&nbsp;&nbsp;&bull; Completed</span>
                     <span className={styles.modalFieldValueMuted}>{fmtRupiahDetail(Number(selectedItem.total_pencatatan_selesai || 0))}</span>
                   </div>
                 </>
@@ -681,7 +690,8 @@ export function PengadaanLangsungView() {
               <p className={styles.modalText}>Sumber Realisasi: {sumberRealisasi(selectedItem) || 'Belum ada realisasi'}</p>
               {hasStatusPaket && (
                 <p className={styles.modalText}>
-                  Status Paket (Pencatatan): {selectedItem.status_paket_pencatatan || 'Tidak berlaku (realisasi transaksional)'}
+                  Status Paket (Pencatatan):{' '}
+                  {selectedItem.status_paket_pencatatan ? statusPaketLabel(selectedItem.status_paket_pencatatan) : 'Tidak berlaku (realisasi transaksional)'}
                 </p>
               )}
               <p className={styles.modalText}>Status Aktif RUP: {selectedItem.status_aktif_rup === true ? 'Aktif' : 'Tidak / N/A'}</p>

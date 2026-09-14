@@ -50,6 +50,80 @@
 .badge-good { background: var(--teal-100); color: var(--teal-800); }
 .badge-warn { background: var(--amber-100); color: var(--amber-800); }
 
+/* ---------- Rincian Realisasi: dua kartu sejajar, kerangka identik ----------
+   Header ikon+label, angka besar, bar proporsi, dua baris legenda — sama
+   persis di kedua kartu (lihat RealisasiRincianGrid/RealisasiCard) karena
+   keduanya memang benar-benar pecah jadi dua bagian nyata, cuma beda sumber
+   pecahannya per kartu. */
+
+.rincianValue {
+  font-family: var(--font-mono);
+  font-size: 27px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.15;
+}
+
+.pencatatanBar {
+  display: flex;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--track-bg);
+  border: 1px solid var(--border);
+}
+
+.rincianSegmentInfo {
+  background: var(--info-600);
+  height: 100%;
+}
+
+.pencatatanSegmentWarning {
+  background: var(--amber-600);
+  height: 100%;
+}
+
+.pencatatanSegmentPositive {
+  background: var(--teal-600);
+  height: 100%;
+}
+
+.pencatatanLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pencatatanLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pencatatanLegendLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.pencatatanLegendValue {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.pencatatanEmpty {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.legendDotInfo { background: var(--info-600); }
+
 /* ---------- Bar progres penyerapan ---------- */
 
 .progressTotal {
