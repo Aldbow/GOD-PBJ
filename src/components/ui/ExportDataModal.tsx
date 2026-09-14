@@ -84,7 +84,7 @@ export function ExportDataModal({
       if (selectedFormat === 'excel') {
         await exportToExcel(exportOptions);
       } else if (selectedFormat === 'pdf') {
-        exportToPDF(exportOptions);
+        await exportToPDF(exportOptions);
       } else {
         exportToCSV(exportOptions);
       }

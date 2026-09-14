@@ -1,7 +1,4 @@
-import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 export interface ExportColumn {
   key: string;
@@ -19,6 +16,10 @@ export interface ExportOptions {
 }
 
 export const exportToExcel = async ({ filename, sheetName = 'Data', title, columns, data }: ExportOptions) => {
+  // exceljs diimpor dinamis supaya tidak masuk bundel awal 10 halaman yang
+  // merender ExportDataModal -- hanya diunduh saat modal Export dibuka DAN
+  // format Excel dipilih. Pola sama dengan cetakLaporanRingkasan.ts.
+  const { default: ExcelJS } = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet(sheetName);
 
@@ -125,7 +126,13 @@ export const exportToCSV = ({ filename, columns, data }: ExportOptions) => {
   saveAs(blob, `${filename}.csv`);
 };
 
-export const exportToPDF = ({ filename, title, columns, data }: ExportOptions) => {
+export const exportToPDF = async ({ filename, title, columns, data }: ExportOptions) => {
+  // jspdf & jspdf-autotable diimpor dinamis -- pola sama dengan
+  // cetakLaporanRingkasan.ts / cetakPeringkatSatker.ts.
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ]);
   // Use landscape if many columns
   const orientation = columns.length > 6 ? 'landscape' : 'portrait';
   const doc = new jsPDF(orientation, 'pt', 'a4');
