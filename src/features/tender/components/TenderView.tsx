@@ -16,6 +16,7 @@ import { AnomaliPanel, AnomaliBadge } from '@/components/paket/AnomaliPanel';
 import { summarizeAnomali, matchesAnomali, type AnomaliJenis } from '@/lib/anomali';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
 import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
+import { ViewLoadingSkeleton } from '@/components/ui/ViewLoadingSkeleton';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorBox } from '@/components/ui/ErrorBox';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
@@ -314,7 +315,7 @@ export function TenderView() {
       {error && <ErrorBox>{error}. Pastikan View SQL sudah dieksekusi di Supabase.</ErrorBox>}
 
       {loading ? (
-        <p className={styles.loadingText}>Memuat data dari Supabase...</p>
+        <ViewLoadingSkeleton metricCards={4} />
       ) : (
         <>
           <MetricGrid

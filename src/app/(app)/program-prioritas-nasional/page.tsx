@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import { ProgramPrioritasNasionalView } from '@/features/prioritas-nasional/components/ProgramPrioritasNasionalView';
-import { PageTransition } from '@/components/layout/PageTransition';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = {
@@ -10,10 +9,8 @@ export const metadata: Metadata = {
 
 export default function ProgramPrioritasNasionalPage() {
   return (
-    <PageTransition>
-      <Suspense fallback={<p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat dasbor...</p>}>
-        <ProgramPrioritasNasionalView />
-      </Suspense>
-    </PageTransition>
+    <Suspense fallback={<p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat dasbor...</p>}>
+      <ProgramPrioritasNasionalView />
+    </Suspense>
   );
 }

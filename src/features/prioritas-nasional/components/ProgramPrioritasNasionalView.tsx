@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { ErrorBox } from '@/components/ui/ErrorBox';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
+import { ViewLoadingSkeleton } from '@/components/ui/ViewLoadingSkeleton';
 import { fmtRupiahDetail, fmtInt, fmtPct } from '@/lib/format';
 import { metodeColor, jenisColor, sumberColor, categoricalColor } from '@/features/ringkasan/components/charts/chartTheme';
 import { PnCategoryDonut, type PnDonutDatum } from './charts/PnCategoryDonut';
@@ -286,7 +287,7 @@ export function ProgramPrioritasNasionalView() {
       {error && <ErrorBox>{error}. Pastikan tabel master_data_ro sudah tersedia di Supabase (lihat sql/migrations/66_alter_master_data_ro_kolom_realisasi.sql).</ErrorBox>}
 
       {loading ? (
-        <p className={styles.loadingText}>Memuat data Program Prioritas Nasional dari Supabase...</p>
+        <ViewLoadingSkeleton metricCards={3} />
       ) : rows.length === 0 ? (
         <div className={styles.modalBox}>
           <p className={styles.modalBoxText}>

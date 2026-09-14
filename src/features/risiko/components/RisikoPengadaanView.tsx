@@ -14,6 +14,7 @@ import { MetricGrid, type MetricCardDef } from '@/components/paket/SummaryCards'
 import { Card } from '@/components/ui/Card';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
 import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
+import { ViewLoadingSkeleton } from '@/components/ui/ViewLoadingSkeleton';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorBox } from '@/components/ui/ErrorBox';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
@@ -542,7 +543,7 @@ export function RisikoPengadaanView() {
       </AnimatePresence>
 
       {loading ? (
-        <p className={styles.loadingText}>Memuat data dari Supabase...</p>
+        <ViewLoadingSkeleton metricCards={4} tableColumns={6} />
       ) : data.length === 0 ? (
         <div className={styles.modalBox}>
           <p className={styles.modalBoxText}>

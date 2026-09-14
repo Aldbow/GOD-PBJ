@@ -3,6 +3,8 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { NavProgress } from './NavProgress';
+import { PageTransition } from './PageTransition';
 import styles from './Shell.module.css';
 
 import { ScrollToTop } from '@/components/ui/ScrollToTop';
@@ -17,10 +19,11 @@ export function Shell({
 }) {
   return (
     <div className={styles.appShell}>
+      <NavProgress />
       <Sidebar />
       <main className={styles.mainArea}>
         <Topbar lastDataUpdate={lastDataUpdate} />
-        {children}
+        <PageTransition>{children}</PageTransition>
       </main>
       <ScrollToTop />
     </div>

@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import { RisikoPengadaanView } from '@/features/risiko/components/RisikoPengadaanView';
-import { PageTransition } from '@/components/layout/PageTransition';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = {
@@ -10,10 +9,8 @@ export const metadata: Metadata = {
 
 export default function RisikoPengadaanPage() {
   return (
-    <PageTransition>
-      <Suspense fallback={<p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat dasbor...</p>}>
-        <RisikoPengadaanView />
-      </Suspense>
-    </PageTransition>
+    <Suspense fallback={<p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat dasbor...</p>}>
+      <RisikoPengadaanView />
+    </Suspense>
   );
 }

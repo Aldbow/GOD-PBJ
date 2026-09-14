@@ -1,5 +1,4 @@
 import { ItkpDashboard } from '@/features/itkp/components/ItkpDashboard';
-import { PageTransition } from '@/components/layout/PageTransition';
 import { Suspense } from 'react';
 
 export const metadata = {
@@ -9,10 +8,8 @@ export const metadata = {
 
 export default function ItkpPage() {
   return (
-    <PageTransition>
-      <Suspense fallback={<p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat dasbor...</p>}>
-        <ItkpDashboard />
-      </Suspense>
-    </PageTransition>
+    <Suspense fallback={<p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Memuat dasbor...</p>}>
+      <ItkpDashboard />
+    </Suspense>
   );
 }
