@@ -504,4 +504,26 @@ if (tanpaLog.length) {
   console.log('Stempel "Diperbarui ..." di topbar sudah maju ke waktu sekarang.');
 }
 
+// ---- refresh rekap tersimpan (materialized view) untuk halaman Ringkasan --
+// Cuma direfresh kalau SEMUA tabel target sukses (gagal.length === 0) — kalau
+// ada tabel yang gagal/tertahan, mv lama TETAP DIPAKAI (basi tapi konsisten)
+// daripada direfresh dari campuran data lama+baru yang tidak utuh.
+// Kegagalan di sini TIDAK boleh menggagalkan update — datanya sudah masuk ke
+// tabel sumber dan itu yang penting; rekap tersimpan tinggal beda "segar"-nya.
+// Lihat sql/migrations/75_materialized_view_gabungan_satker.sql.
+if (!flags.dryRun && gagal.length === 0) {
+  process.stdout.write('\nMenyegarkan rekap tersimpan (mv_dashboard_gabungan_satker) ... ');
+  try {
+    const { error: refreshErr } = await sb.rpc('refresh_dashboard_gabungan_satker');
+    if (refreshErr) throw refreshErr;
+    console.log('ok');
+  } catch (e) {
+    console.log('GAGAL (non-fatal)');
+    console.log('   ' + e.message);
+    console.log('   Halaman Ringkasan akan menampilkan data dari refresh sebelumnya sampai');
+    console.log('   di-refresh manual: SELECT refresh_dashboard_gabungan_satker(); di SQL Editor,');
+    console.log('   atau jalankan ulang: node scripts/update_from_data_update.mjs --all --yes');
+  }
+}
+
 process.exit(gagal.length ? 1 : 0);

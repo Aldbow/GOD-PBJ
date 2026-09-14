@@ -53,6 +53,21 @@ untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak d
 | 70 | 70_alter_paket_e_purchasing_products.sql | paket_e_purchasing | tambah kolom products TEXT (field baru dari endpoint e-Katalog) |
 | 71 | 71_alter_paket_e_purchasing_is_swasta.sql | paket_e_purchasing | tambah kolom is_swasta BOOLEAN (field baru, tarikan 3 Sep 2026) |
 | 74 | 74_table_data_update_log.sql | data_update_log | tabel baru — jejak kapan tiap tabel terakhir ditulis; dibaca stempel "Diperbarui ..." di topbar |
+| 75 | 75_materialized_view_gabungan_satker.sql | mv_dashboard_gabungan_satker | **materialized view** — rekap tersimpan sumber halaman Ringkasan, BUKAN view biasa; lihat catatan di bawah |
+
+## `mv_dashboard_gabungan_satker` butuh refresh pertama manual
+
+Migration 75 membuat mv dengan `WITH NO DATA` — **kosong** sampai di-refresh. Segera setelah
+menjalankan file itu di database manapun (termasuk setup baru), jalankan satu kali di SQL
+Editor **tanpa** `CONCURRENTLY` (mv masih kosong, `CONCURRENTLY` butuh mv sudah terisi):
+
+```sql
+REFRESH MATERIALIZED VIEW mv_dashboard_gabungan_satker;
+```
+
+Setelah itu, refresh berikutnya otomatis lewat `scripts/update_from_data_update.mjs` (memanggil
+fungsi `refresh_dashboard_gabungan_satker()` tepat setelah semua tabel sumber sukses ditulis) —
+lihat [`docs/RUNBOOK-UPDATE-DATA.md`](../../docs/RUNBOOK-UPDATE-DATA.md) §5a.
 
 ## Kenapa view realisasi (40–44) dijalankan berlapis?
 

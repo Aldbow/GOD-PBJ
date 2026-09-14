@@ -1,8 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import { summarizeAnomali, anomaliOf, type AnomaliSummary, type AnomaliJenis } from '@/lib/anomali';
 
-// Satu baris paket dari view gabungan (sudah termasuk status_kurasi setelah migrasi
-// sql/add_status_kurasi_to_gabungan_view.sql).
+// Satu baris paket dari rekap tersimpan (materialized view) mv_dashboard_gabungan_satker
+// (sql/migrations/75_materialized_view_gabungan_satker.sql), bukan lagi dari
+// view_dashboard_gabungan_satker langsung — lihat fetchGabunganRows() di bawah.
+// Bentuk baris identik dengan view aslinya (sudah termasuk status_kurasi setelah migrasi
+// sql/add_status_kurasi_to_gabungan_view.sql), hanya sumbernya yang berbeda.
 export interface GabunganRow {
   kd_rup: string;
   rup_name: string | null;
@@ -147,16 +150,22 @@ export interface RingkasanFilterValue {
 
 const SELECT_COLS = 'kd_rup,rup_name,satker,nama_ppk,metode_pengadaan,jenis_pengadaan,pagu,total,status,status_kurasi,catatan_kurasi,rekomendasi_kurasi,is_from_sirup';
 
-// Ambil SELURUH baris view gabungan via paginasi (pola sama seperti fetchAll di
-// src/lib/itkp/fetchA.ts). View bisa >1000 baris sedangkan Supabase membatasi
-// 1000 baris per query.
+// Ambil SELURUH baris rekap tersimpan via paginasi (pola sama seperti fetchAll di
+// src/lib/itkp/fetchA.ts). Bisa >1000 baris sedangkan Supabase membatasi 1000
+// baris per query.
+//
+// Sumbernya mv_dashboard_gabungan_satker (materialized view), BUKAN
+// view_dashboard_gabungan_satker langsung — lihat
+// sql/migrations/75_materialized_view_gabungan_satker.sql. Data di sini hanya
+// sesegar refresh terakhir (dipicu scripts/update_from_data_update.mjs setelah
+// update data sukses), bukan real-time seperti view biasa.
 export async function fetchGabunganRows(): Promise<GabunganRow[]> {
   let all: GabunganRow[] = [];
   let offset = 0;
   const limit = 1000;
   while (true) {
     const { data, error } = await supabase
-      .from('view_dashboard_gabungan_satker')
+      .from('mv_dashboard_gabungan_satker')
       .select(SELECT_COLS)
       .range(offset, offset + limit - 1);
     if (error) throw new Error(`Gagal memuat data ringkasan: ${error.message}`);

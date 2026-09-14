@@ -29,9 +29,16 @@ tarik API  ->  data/data_update/<nama_tabel>/<file>.json
                         |
                         v
         view_dashboard_* ikut segar (view, bukan materialized)
+                        |
+                        v
+   mv_dashboard_gabungan_satker di-REFRESH (lihat §5b di bawah)
 ```
 
-View **tidak perlu di-refresh manual** — semuanya view biasa, bukan materialized view.
+View **tidak perlu di-refresh manual** — semuanya view biasa, bukan materialized view,
+**kecuali `mv_dashboard_gabungan_satker`** (sumber halaman Ringkasan, lihat
+[`sql/migrations/75_materialized_view_gabungan_satker.sql`](../sql/migrations/75_materialized_view_gabungan_satker.sql)),
+yang merupakan materialized view dan di-refresh **otomatis** oleh
+`update_from_data_update.mjs` tepat setelah semua tabel sumber sukses ditulis — lihat §5b.
 
 ---
 
@@ -268,6 +275,42 @@ sebelum masuk DB.
 
 Stempel **tidak pernah maju karena `--dry-run`** — dry run tidak menulis apa pun,
 termasuk log.
+
+---
+
+## 5b. Rekap tersimpan (materialized view) `mv_dashboard_gabungan_satker`
+
+Halaman Ringkasan membaca dari `mv_dashboard_gabungan_satker`, bukan langsung dari
+`view_dashboard_gabungan_satker`. Ini satu-satunya materialized view di proyek ini — lihat
+[`sql/migrations/75_materialized_view_gabungan_satker.sql`](../sql/migrations/75_materialized_view_gabungan_satker.sql)
+untuk alasannya (ringkasnya: view aslinya berat dihitung ulang tiap pembukaan halaman).
+
+**Kapan di-refresh:** otomatis, tepat setelah `update_from_data_update.mjs --all` selesai
+menulis SEMUA tabel target dengan sukses (bukan terjadwal, bukan per kunjungan user). Kalau
+ada tabel yang gagal/tertahan, refresh **tidak** dipicu — rekap lama tetap dipakai daripada
+direfresh dari campuran data yang tidak utuh.
+
+**Kalau refresh gagal** (dicetak `GAGAL (non-fatal)` di output script): ini TIDAK
+menggagalkan update data — tabel sumbernya sudah aman ditulis. Halaman Ringkasan akan
+menampilkan data **basi** (dari refresh sebelumnya), bukan kosong/error, sampai direfresh
+ulang. Cara refresh manual di Supabase SQL Editor:
+
+```sql
+SELECT refresh_dashboard_gabungan_satker();
+```
+
+**Cek status kapan saja** (kolom `ispopulated` harus `true`, `last_refresh` menandakan segar/tidaknya):
+
+```sql
+SELECT matviewname, ispopulated FROM pg_matviews WHERE matviewname = 'mv_dashboard_gabungan_satker';
+```
+
+**Setup database baru** (clone/on-premise): setelah menjalankan migration 75, mv masih kosong
+(`WITH NO DATA`) — WAJIB refresh manual sekali sebelum halaman Ringkasan dibuka:
+
+```sql
+REFRESH MATERIALIZED VIEW mv_dashboard_gabungan_satker;
+```
 
 ---
 
