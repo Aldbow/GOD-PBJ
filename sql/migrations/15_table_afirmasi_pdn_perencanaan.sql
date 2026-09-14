@@ -1,0 +1,20 @@
+CREATE TABLE data_afirmasi_pdn_perencanaan (
+    id SERIAL PRIMARY KEY,
+    nama_satuan_kerja TEXT,
+    belanja_pengadaan NUMERIC,
+    total_rup NUMERIC,
+    total_perencanaan_penyedia NUMERIC,
+    total_perencanaan_swakelola NUMERIC,
+    rup_terhadap_belanja_pengadaan NUMERIC,
+    barang NUMERIC,
+    pekerjaan_konstruksi NUMERIC,
+    jasa_konsultasi NUMERIC,
+    jasa_lainnya NUMERIC,
+    terintegrasi_gabungan NUMERIC,
+    tender_seleksi NUMERIC,
+    epurchasing NUMERIC,
+    pengadaan_langsung NUMERIC,
+    penunjukan_langsung NUMERIC,
+    metode_lainnya NUMERIC,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

@@ -1,0 +1,576 @@
+.page {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg-page);
+  overflow: hidden;
+}
+
+/* ============================================================
+   Panel brand (kiri)
+   ============================================================ */
+.brandPanel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 56px;
+  color: #fff;
+  isolation: isolate;
+  background:
+    linear-gradient(155deg, var(--navy-900) 0%, #0c1526 45%, var(--navy-700) 100%);
+  overflow: hidden;
+}
+
+.brandInner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0;
+}
+
+/* Orb aurora yang bergerak halus */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  z-index: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.orbBrand {
+  width: 460px;
+  height: 460px;
+  top: -120px;
+  left: -100px;
+  background: radial-gradient(circle at center, rgba(80, 155, 226, 0.55), transparent 70%);
+  opacity: 0.5;
+}
+
+.orbBlue {
+  width: 420px;
+  height: 420px;
+  bottom: -140px;
+  right: -120px;
+  background: radial-gradient(circle at center, rgba(59, 130, 246, 0.5), transparent 70%);
+  opacity: 0.45;
+}
+
+/* Grid dekoratif tipis di atas gradient */
+.grid {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 75%);
+}
+
+/* Garis pindai (scanline) — nuansa dashboard pemantauan real-time */
+.scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 120px;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(80, 155, 226, 0.1) 45%,
+    rgba(80, 155, 226, 0.18) 50%,
+    rgba(80, 155, 226, 0.1) 55%,
+    transparent
+  );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scanline {
+    animation: scan 9s ease-in-out infinite;
+  }
+}
+
+@keyframes scan {
+  0% { transform: translateY(-140px); opacity: 0; }
+  8% { opacity: 1; }
+  50% { transform: translateY(70vh); opacity: 1; }
+  92% { opacity: 1; }
+  100% { transform: translateY(calc(100vh + 20px)); opacity: 0; }
+}
+
+/* Grain/noise halus untuk kedalaman visual, tanpa aset gambar */
+.noise {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Partikel data yang melayang lembut di panel brand */
+.particles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--accent-on-dark);
+  box-shadow: 0 0 6px 1px color-mix(in srgb, var(--accent-on-dark) 70%, transparent);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #A8D2F5;
+  margin-bottom: 14px;
+}
+
+.eyebrowDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-on-dark);
+  box-shadow: 0 0 8px 2px color-mix(in srgb, var(--accent-on-dark) 80%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .eyebrowDot {
+    animation: pulseDot 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.brandTop {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.brandLockup strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.brandLockup span {
+  display: block;
+  font-size: 12px;
+  color: #93A0BA;
+  margin-top: 2px;
+}
+
+.brandBody {
+  margin-top: auto;
+  margin-bottom: auto;
+  padding: 40px 0;
+  max-width: 440px;
+}
+
+.brandBody h2 {
+  font-size: 34px;
+  line-height: 1.18;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  margin: 0 0 32px;
+}
+
+.brandBody h2 em {
+  font-style: normal;
+  color: var(--accent-on-dark);
+  background: linear-gradient(100deg, var(--accent-on-dark) 30%, #C7E4FA 50%, var(--accent-on-dark) 70%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .brandBody h2 em {
+    animation: shimmer 5s ease-in-out infinite;
+  }
+}
+
+@keyframes shimmer {
+  0%, 100% { background-position: 0% 0; }
+  50% { background-position: 100% 0; }
+}
+
+.points {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.points li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14.5px;
+  color: #C9D2E4;
+}
+
+.pointIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  color: var(--accent-on-dark);
+  background: rgba(80, 155, 226, 0.12);
+  border: 1px solid rgba(80, 155, 226, 0.22);
+}
+
+/* Kaki panel brand: lambang kementerian dan unit kerjanya. Panel ini selalu
+   gelap apa pun tema aktif, jadi cukup varian putih. Lebih kecil dan lebih
+   redup dari lockup DEWA-PBJ di puncak panel: ini atribusi, bukan subjek. */
+.brandFoot {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.footKemnaker {
+  width: auto;
+  height: 34px;
+  opacity: 0.7;
+}
+
+.footUkpbj {
+  width: auto;
+  height: 26px;
+  opacity: 0.7;
+}
+
+.footRule {
+  flex-shrink: 0;
+  width: 1px;
+  height: 26px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+}
+
+/* ============================================================
+   Identitas di kaki kartu (hanya < 900px, saat panel brand hilang)
+   ============================================================ */
+
+.cardInstitution {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 6px 0 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.cardInstK {
+  width: auto;
+  height: 30px;
+  opacity: 0.8;
+}
+
+.cardInstU {
+  width: auto;
+  height: 23px;
+  opacity: 0.8;
+}
+
+.cardInstRule {
+  flex-shrink: 0;
+  width: 1px;
+  height: 22px;
+  background: var(--border-strong);
+}
+
+/* Kartu ikut ThemeToggle, sedangkan tiap lambang resmi cuma punya satu warna.
+   Jadi pasangan varian ditukar lewat atribut tema, bukan diwarnai ulang. */
+.instDark {
+  display: none;
+}
+
+[data-theme="dark"] .instLight {
+  display: none;
+}
+
+[data-theme="dark"] .instDark {
+  display: block;
+}
+
+/* ============================================================
+   Brand mark berdenyut
+   ============================================================ */
+.brandMark {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-on-dark);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.brandMark::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
+  background: var(--accent-on-dark);
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent-on-dark) 75%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .brandMark::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 1px solid var(--accent-on-dark);
+    opacity: 0;
+    animation: ping 2.6s ease-out infinite;
+  }
+}
+
+@keyframes ping {
+  0% { transform: scale(0.6); opacity: 0.7; }
+  100% { transform: scale(1.75); opacity: 0; }
+}
+
+/* ============================================================
+   Panel form (kanan)
+   ============================================================ */
+.formPanel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  overflow: hidden;
+  background: var(--bg-page);
+}
+
+/* Cahaya lembut di belakang kartu (khusus panel kanan) */
+.orbSoft {
+  width: 520px;
+  height: 520px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--accent) 14%, transparent), transparent 68%);
+  opacity: 0.9;
+}
+
+.topBar {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 2;
+}
+
+.cardWrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  padding: 40px;
+}
+
+.mobileBrand {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.backButtonWrapper {
+  margin-bottom: 24px;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color var(--dur-fast) ease;
+}
+
+.backButton:hover {
+  color: var(--text-primary);
+}
+
+.mobileBrand strong {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.heading {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 28px;
+  line-height: 1.5;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.fieldError {
+  font-size: 12px;
+  color: var(--red-600);
+  margin: 6px 0 0;
+}
+
+.formError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--red-700);
+  background: var(--red-100);
+  border: 1px solid color-mix(in srgb, var(--red-600) 30%, transparent);
+  border-radius: var(--radius-md);
+  padding: 11px 13px;
+}
+
+.formError svg { flex-shrink: 0; }
+
+.submit {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  padding: 13px 16px;
+  margin-top: 6px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 92%, #fff 8%), var(--accent));
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--accent) 60%, transparent);
+  transition: filter var(--dur-fast) ease, box-shadow var(--dur-fast) ease, opacity var(--dur-fast) ease;
+}
+
+.submit:hover:not(:disabled) {
+  filter: brightness(1.05);
+  box-shadow: 0 8px 24px -6px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.submit:disabled { opacity: 0.7; cursor: progress; }
+
+.ripple {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.legal {
+  margin: 24px 0 0;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+/* ============================================================
+   Responsif
+   ============================================================ */
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+  .brandPanel {
+    display: none;
+  }
+  .mobileBrand {
+    display: flex;
+  }
+  .cardInstitution {
+    display: flex;
+  }
+  .card {
+    padding: 32px 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 1.2s; }
+}

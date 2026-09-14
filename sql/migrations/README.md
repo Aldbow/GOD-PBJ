@@ -1,0 +1,98 @@
+# sql/migrations — Urutan Migrasi Bersih (Turnkey)
+
+Folder ini berisi **subset final** dari script SQL, sudah dinomori sesuai urutan jalan
+untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak diubah**
+(tetap sebagai backup/riwayat).
+
+> Jalankan **berurutan menaik** (00 → 64). File dengan nomor sama boleh urut bebas.
+> Detail alasan & peta supersesi ada di [`../MIGRASI-RUNBOOK.md`](../MIGRASI-RUNBOOK.md).
+
+## Cara jalan
+
+1. **SQL Editor** Supabase: buka tiap file `.sql` berurutan, jalankan.
+2. Di **`25_IMPORT_DATA_CSV.sql`** → berhenti, lakukan **import CSV manual** (Table Editor).
+   File ini isinya komentar/checklist, bukan untuk di-run.
+3. Lanjutkan file view & index.
+4. Verifikasi: `node scripts/diag_unknown_satker.mjs` (harus 0 satker/eselon1 'Tidak Diketahui').
+
+## Peta urutan
+
+| No | File | Objek | Catatan |
+|----|------|-------|---------|
+| 00 | 00_rbac_schema.sql | profiles + RLS | *opsional* (hanya jika pakai login) |
+| 01 | 01_rbac_seed.sql | seed role/user | *opsional*; butuh akun Supabase Auth |
+| 10 | 10_table_master_data.sql | master_data | |
+| 11 | 11_table_paket_e_purchasing.sql | paket_e_purchasing | |
+| 12 | 12_table_non_tender_selesai.sql | non_tender_selesai | |
+| 13 | 13_table_api_pencatatan_swakelola.sql | api_pencatatan_swakelola | |
+| 14 | 14_tables_anggaran_dan_tender.sql | paket_anggaran_penyedia/swakelola, tender_selesai_nilai | |
+| 15 | 15_table_afirmasi_pdn_perencanaan.sql | data_afirmasi_pdn_perencanaan | |
+| 16 | 16_table_history_kaji_ulang.sql | history_kaji_ulang | tabel + data |
+| 17 | 17_table_satker_kode_alias.sql | satker_kode_alias | tabel + seed alias |
+| 18 | 18_table_ai_kurasi_paket.sql | ai_kurasi_paket | **baru** (DDL bersih) |
+| 25 | 25_IMPORT_DATA_CSV.sql | — | **CHECKPOINT import CSV** (manual) |
+| 30 | 30_view_base_master_data.sql | view_paket_penyedia/swakelola_master_data | LTRIM + kurasi |
+| 31 | 31_view_rup_final.sql | view_rup_final (+ epurch lama) | jalan **setelah** 30 |
+| 40 | 40_views_realisasi_tender_pl_pnl.sql | tender(final), PL/PnL(antara) | |
+| 41 | 41_views_is_from_sirup_gabungan.sql | epurch/swakelola(antara), gabungan(final) | |
+| 42 | 42_views_lock_pagu.sql | PnL(final), swakelola(final), PL(antara) | |
+| 43 | 43_view_pengadaan_langsung_metode.sql | PL(final) | |
+| 44 | 44_view_epurchasing_final.sql | epurchasing(final) | alias + direct-by-kode |
+| 45 | 45_view_jenis_pengadaan.sql | tender/PL/PnL/gabungan(final) | tambah kolom jenis_pengadaan |
+| 50 | 50_view_afirmasi_eselon1.sql | view_dashboard_keterisian_sirup_eselon1 | |
+| 60 | 60_index_realisasi_dashboard.sql | index exact-match | |
+| 61 | 61_index_ltrim_satker.sql | functional index LTRIM | wajib utk join LTRIM |
+| 62 | 62_view_swakelola_penyelenggara.sql | swakelola(final) | tambah kd/nama_klpd_penyelenggara + nama_satker_penyelenggara |
+| 63 | 63_view_epurchasing_status_filter.sql | epurchasing(final) | filter status realisasi -> hanya ON_PROCESS/ON_ADDENDUM/COMPLETED/PAYMENT_OUTSIDE_SYSTEM |
+| 64 | 64_table_risiko_pengadaan.sql | risiko_pengadaan | tabel baru — hasil agregat modul Risiko Pengadaan, diisi oleh API recalculate |
+| 65 | 65_alter_tender_selesai_nilai_kolom_lokasi.sql | tender_selesai_nilai | tambah kolom provinsi, lokasi_pekerjaan, kabkota (CSV 2026) |
+| 66 | 66_alter_master_data_ro_kolom_realisasi.sql | master_data_ro | tambah kolom jenis_pengadaan, lokasi, waktu_pengadaan, kendala, mitigasi, realisasi |
+| 67 | 67_alter_pencatatan_non_tender_kode_penyedia.sql | pencatatan_non_tender_realisasi | tambah kolom kode_penyedia (field baru dari endpoint) |
+| 68 | 68_alter_pencatatan_non_tender_hps.sql | pencatatan_non_tender_realisasi | tambah kolom hps (field baru dari endpoint) |
+| 69 | 69_table_data_perpindahan_jf.sql | data_perpindahan_jf | tabel baru — pengajuan Perpindahan JF ke JF PBJ, level person |
+| 70 | 70_alter_paket_e_purchasing_products.sql | paket_e_purchasing | tambah kolom products TEXT (field baru dari endpoint e-Katalog) |
+| 71 | 71_alter_paket_e_purchasing_is_swasta.sql | paket_e_purchasing | tambah kolom is_swasta BOOLEAN (field baru, tarikan 3 Sep 2026) |
+| 74 | 74_table_data_update_log.sql | data_update_log | tabel baru — jejak kapan tiap tabel terakhir ditulis; dibaca stempel "Diperbarui ..." di topbar |
+| 75 | 75_materialized_view_gabungan_satker.sql | mv_dashboard_gabungan_satker | **materialized view** — rekap tersimpan sumber halaman Ringkasan, BUKAN view biasa; lihat catatan di bawah |
+| 76 | 76_materialized_view_risiko_ringkasan.sql | mv_risiko_ringkasan | **materialized view** — rekap ringan (components_json diperkecil) untuk 2 grafik risiko di halaman Ringkasan; butuh refresh pertama manual sama seperti 75 |
+
+## `mv_dashboard_gabungan_satker` butuh refresh pertama manual
+
+Migration 75 membuat mv dengan `WITH NO DATA` — **kosong** sampai di-refresh. Segera setelah
+menjalankan file itu di database manapun (termasuk setup baru), jalankan satu kali di SQL
+Editor **tanpa** `CONCURRENTLY` (mv masih kosong, `CONCURRENTLY` butuh mv sudah terisi):
+
+```sql
+REFRESH MATERIALIZED VIEW mv_dashboard_gabungan_satker;
+```
+
+Setelah itu, refresh berikutnya otomatis lewat `scripts/update_from_data_update.mjs` (memanggil
+fungsi `refresh_dashboard_gabungan_satker()` tepat setelah semua tabel sumber sukses ditulis) —
+lihat [`docs/RUNBOOK-UPDATE-DATA.md`](../../docs/RUNBOOK-UPDATE-DATA.md) §5b.
+
+## `mv_risiko_ringkasan` juga butuh refresh pertama manual
+
+Sama seperti migration 75: migration 76 membuat mv dengan `WITH NO DATA`. Segera setelah
+menjalankan file itu, jalankan satu kali tanpa `CONCURRENTLY`:
+
+```sql
+REFRESH MATERIALIZED VIEW mv_risiko_ringkasan;
+```
+
+Setelah itu, refresh berikutnya otomatis lewat `scripts/update_from_data_update.mjs` (setelah
+hitung ulang risiko selesai) DAN lewat tombol "Hitung Ulang" di halaman Risiko Pengadaan —
+lihat [`docs/RUNBOOK-UPDATE-DATA.md`](../../docs/RUNBOOK-UPDATE-DATA.md) §5c.
+
+## Kenapa view realisasi (40–44) dijalankan berlapis?
+
+Tiap file patch menyentuh beberapa view sekaligus; status *final* tiap view tercapai
+**kumulatif** setelah 40→44 dijalankan berurutan. Ini sengaja meniru hasil deploy
+saat ini tanpa menulis ulang definisi (mengurangi risiko salah).
+
+## Tidak disertakan (superseded — ada di `sql/` sebagai backup)
+
+`add_ai_curation_columns`, `migrate_kurasi_to_separate_table`, `migrate_and_update_kurasi_final`,
+`update_all_views_for_kurasi`, `add_status_kurasi_to_gabungan_view`,
+`join_paket_penyedia_master_data`, `join_paket_swakelola_master_data`,
+`create_view_dashboard_tender`, `create_view_dashboard_pengadaan_langsung`,
+`create_view_dashboard_penunjukan_langsung`, `create_view_dashboard_swakelola_v1`.

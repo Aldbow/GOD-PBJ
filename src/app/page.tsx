@@ -1,10 +1,5 @@
-import { RingkasanView } from '@/features/ringkasan/components/RingkasanView';
-import { PageTransition } from '@/components/layout/PageTransition';
+import { LandingView } from '@/features/landing/components/LandingView';
 
 export default function Home() {
-  return (
-    <PageTransition>
-      <RingkasanView />
-    </PageTransition>
-  );
+  return <LandingView />;
 }

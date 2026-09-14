@@ -1,0 +1,282 @@
+/* Bentuk kartunya dari komponen Card; berkas ini hanya mengatur isi. */
+.header.header {
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.titleWrap {
+  min-width: 0;
+}
+
+.body {
+  gap: 0;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+.compList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .compList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .compList {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+/* Identitas warna per komponen — sama skema dengan kartu Komponen A-D di
+   atas, supaya "Pedoman Lengkap" terasa jadi bagian dari sistem yang sama. */
+.compA { --c: var(--teal-600); --cTint: var(--teal-100); }
+.compB { --c: var(--amber-600); --cTint: var(--amber-100); }
+.compC { --c: var(--purple-600); --cTint: var(--purple-100); }
+.compD { --c: var(--info-600); --cTint: var(--info-100); }
+
+.compBlock {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all var(--dur-fast, 0.15s) ease;
+}
+
+.compBlock.activeBlock {
+  border-color: var(--c);
+  outline: 1px solid var(--c);
+  outline-offset: -2px;
+}
+
+.compToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--c) 6%, var(--surface));
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  text-align: left;
+  transition: background-color var(--dur-fast, 0.15s) ease;
+}
+
+.compToggle:hover {
+  background: color-mix(in srgb, var(--c) 12%, var(--surface));
+}
+
+.compToggleLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.compToggleIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--cTint);
+  color: var(--c);
+}
+
+.compToggleText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 14px;
+}
+
+.compToggleWeight {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.activePanel {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  border-top: 4px solid var(--c);
+  overflow: hidden;
+  background: var(--surface);
+  animation: fadeInDown 0.2s ease-out forwards;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.compBody {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.groupHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cText, var(--text-primary));
+}
+
+.groupMax {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.blocksGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.indBlock {
+  background: color-mix(in srgb, var(--text-tertiary) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  /* Tambahkan height 100% agar semua blok dalam satu baris punya tinggi seragam jika diinginkan, atau hapus jika mau tinggi natural */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.indBlockHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.indBlockCode {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--c);
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+.indBlockTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.indBlockMax {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.indFormula {
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: color-mix(in srgb, var(--text-tertiary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.indTable {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.indRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.indRow:nth-child(odd) {
+  background: color-mix(in srgb, var(--text-tertiary) 5%, transparent);
+}
+
+.indRowLabel {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.indRowSkor {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.indCatatan {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.indCatatan svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--c);
+}
+
+.groupFootNote,
+.compFootNote {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-style: italic;
+  margin: 0;
+}
+
+.compFootNote {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}

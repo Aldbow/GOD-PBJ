@@ -1,0 +1,430 @@
+import { summarizeAnomali, anomaliOf, type AnomaliSummary, type AnomaliJenis } from '@/lib/anomali';
+
+// Satu baris paket dari rekap tersimpan (materialized view) mv_dashboard_gabungan_satker
+// (sql/migrations/75_materialized_view_gabungan_satker.sql), bukan lagi dari
+// view_dashboard_gabungan_satker langsung — lihat fetchGabunganRows() di bawah.
+// Bentuk baris identik dengan view aslinya (sudah termasuk status_kurasi setelah migrasi
+// sql/add_status_kurasi_to_gabungan_view.sql), hanya sumbernya yang berbeda.
+export interface GabunganRow {
+  kd_rup: string;
+  rup_name: string | null;
+  satker: string | null;
+  nama_ppk: string | null;
+  metode_pengadaan: string | null;
+  jenis_pengadaan: string | null;
+  pagu: number | null;
+  total: number | null;
+  status: string | null;
+  status_kurasi: string | null;
+  catatan_kurasi: string | null;
+  rekomendasi_kurasi: string | null;
+  is_from_sirup: boolean | null;
+}
+
+export interface MetodeAggregate {
+  metode: string;
+  jumlahPaket: number;
+  pagu: number;
+  realisasi: number;
+  belum: number;
+  pctRealisasi: number;
+  paketSudah: number;
+  paketBelum: number;
+  // Breakdown hasil kurasi AI per metode.
+  akurat: number;
+  perluKoreksi: number; // "Tidak Akurat"
+  belumDikurasi: number; // null / "Belum Dikurasi"
+}
+
+// Jenis pengadaan (Barang/Jasa Konsultansi/Jasa Lainnya/Pekerjaan Konstruksi) berasal
+// dari SIRUP (api_paket_penyedia_terumumkan), jadi tersedia untuk Tender/Pengadaan
+// Langsung/Penunjukan Langsung/E-Purchasing. Swakelola ditampilkan sebagai kategori
+// tersendiri "Swakelola" (di luar taksonomi ini, diklasifikasikan via tipe_swakelola
+// di sumbernya — lihat aggregate()). 'Jenis Paket Anomali' murni untuk paket
+// anomali: realisasi tercatat tanpa RUP terumumkan yang match di SIRUP.
+export interface JenisAggregate {
+  jenis: string;
+  jumlahPaket: number;
+  pagu: number;
+  realisasi: number;
+  belum: number;
+  pctRealisasi: number;
+  paketSudah: number;
+  paketBelum: number;
+}
+
+// Proporsi Paket Penyedia vs Paket Swakelola DARI RUP (bukan dari realisasi) —
+// hanya menghitung paket yang benar-benar terumumkan di SIRUP (is_from_sirup =
+// true), tidak termasuk paket "anomali" (realisasi tanpa RUP terumumkan).
+export interface SumberAggregate {
+  kategori: 'Paket Penyedia' | 'Paket Swakelola';
+  jumlahPaket: number;
+  pagu: number;
+  realisasi: number;
+  belum: number;
+  pctRealisasi: number;
+  paketSudah: number;
+  paketBelum: number;
+}
+
+export interface SatkerAggregate {
+  satker: string;
+  jumlahPaket: number;
+  pagu: number;
+  realisasi: number;
+  belum: number;
+  pctRealisasi: number;
+}
+
+// Apa yang TIDAK ikut dihitung di peringkat satker, supaya bisa dinyatakan
+// terbuka di layar dan di cetakan — angka yang hilang tanpa keterangan lebih
+// berbahaya daripada angka yang aneh.
+export interface SatkerExclusion {
+  jumlahPaket: number;
+  realisasi: number;
+  /** Satker yang SELURUH barisnya tanpa RUP → hilang sama sekali dari peringkat. */
+  satkerHilang: string[];
+}
+
+export interface KurasiAggregate {
+  totalDikurasi: number; // Akurat + Tidak Akurat (punya keputusan)
+  akurat: number;
+  perluKoreksi: number; // "Tidak Akurat"
+  belumDikurasi: number; // null / "Belum Dikurasi"
+  totalPaket: number;
+  pctAkurasi: number; // akurat / (akurat + perluKoreksi)
+  pctSelesai: number; // (akurat + perluKoreksi) / totalPaket
+}
+
+export interface RingkasanKpi {
+  totalPagu: number;
+  totalRealisasi: number;
+  belumRealisasi: number;
+  totalPaket: number;
+  paketSudah: number;
+  paketBelum: number;
+  pctRealisasi: number;
+}
+
+export interface AnomaliDetail {
+  kd_rup: string;
+  rup_name: string | null;
+  satker: string | null;
+  nama_ppk: string | null;
+  metode_pengadaan: string | null;
+  pagu: number;
+  total: number;
+  jenis: AnomaliJenis[];
+}
+
+export interface KurasiTidakAkuratDetail {
+  kd_rup: string;
+  rup_name: string | null;
+  satker: string | null;
+  nama_ppk: string | null;
+  metode_pengadaan: string | null;
+  pagu: number;
+  total: number;
+  catatan_kurasi: string | null;
+  rekomendasi_kurasi: string | null;
+}
+
+export interface RingkasanAggregate {
+  kpi: RingkasanKpi;
+  metode: MetodeAggregate[];
+  jenis: JenisAggregate[];
+  sumber: SumberAggregate[];
+  satker: SatkerAggregate[];
+  satkerExclusion: SatkerExclusion;
+  kurasi: KurasiAggregate;
+  anomali: AnomaliSummary;
+  anomaliRows: AnomaliDetail[];
+  kurasiTidakAkurat: KurasiTidakAkuratDetail[];
+}
+
+export interface RingkasanFilterValue {
+  satker: string; // '' = Semua Satker
+  ppk: string; // '' = Semua PPK
+}
+
+// Sama persis dengan SELECT_COLS di src/app/api/ringkasan/gabungan/route.ts --
+// jaga keduanya tetap sinkron kalau salah satu berubah.
+const SELECT_COLS = 'kd_rup,rup_name,satker,nama_ppk,metode_pengadaan,jenis_pengadaan,pagu,total,status,status_kurasi,catatan_kurasi,rekomendasi_kurasi,is_from_sirup';
+
+// Rekap gabungan Ringkasan -- lewat Route Handler server (Langkah 4, lihat
+// docs/LAPORAN-ANALISIS-PERFORMA.md), BUKAN lagi query langsung browser ->
+// Supabase. Route Handler-nya membungkus fetch paginasi (persis pola lama di
+// sini, termasuk .order()) dengan unstable_cache 10 menit -- satu entri
+// cache dipakai SEMUA user, karena fungsi ini tidak menerima parameter sama
+// sekali (filter satker/PPK tetap terjadi belakangan di client lewat
+// filterRows()). Ini yang memutus hubungan "jumlah user = beban Supabase".
+//
+// Sumber datanya tetap mv_dashboard_gabungan_satker (materialized view) --
+// lihat sql/migrations/75_materialized_view_gabungan_satker.sql. Data hanya
+// sesegar refresh mv terakhir DITAMBAH sisa jendela cache 10 menit ini.
+export async function fetchGabunganRows(): Promise<GabunganRow[]> {
+  const res = await fetch('/api/ringkasan/gabungan');
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}) as { error?: string });
+    throw new Error(body.error || `Gagal memuat data ringkasan: ${res.status}`);
+  }
+  return res.json();
+}
+
+const num = (v: number | null | undefined): number => Number(v) || 0;
+
+export function filterRows(rows: GabunganRow[], filter: RingkasanFilterValue): GabunganRow[] {
+  return rows.filter((r) => {
+    if (filter.satker && r.satker !== filter.satker) return false;
+    if (filter.ppk && r.nama_ppk !== filter.ppk) return false;
+    return true;
+  });
+}
+
+// Daftar Satker unik (untuk opsi filter), diurutkan alfabetis.
+export function listSatker(rows: GabunganRow[]): string[] {
+  const set = new Set<string>();
+  for (const r of rows) {
+    if (r.satker && r.satker.trim()) set.add(r.satker);
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'id-ID'));
+}
+
+// Daftar PPK unik pada Satker tertentu (dependent). Bila satker kosong → semua PPK.
+export function listPpk(rows: GabunganRow[], satker: string): string[] {
+  const set = new Set<string>();
+  for (const r of rows) {
+    if (satker && r.satker !== satker) continue;
+    if (r.nama_ppk && r.nama_ppk.trim()) set.add(r.nama_ppk);
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'id-ID'));
+}
+
+export function getSatkerForPpk(rows: GabunganRow[], ppk: string): string | undefined {
+  const row = rows.find((r) => r.nama_ppk === ppk && r.satker);
+  return row?.satker || undefined;
+}
+
+// Fungsi murni: filter + hitung seluruh angka yang dipakai halaman Ringkasan.
+export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): RingkasanAggregate {
+  const data = filterRows(rows, filter);
+
+  let totalPagu = 0;
+  let totalRealisasi = 0;
+  let paketSudah = 0;
+  let akurat = 0;
+  let perluKoreksi = 0;
+
+  const metodeMap = new Map<string, MetodeAggregate>();
+  const jenisMap = new Map<string, JenisAggregate>();
+  const sumberMap = new Map<SumberAggregate['kategori'], SumberAggregate>();
+  const satkerMap = new Map<string, SatkerAggregate>();
+
+  let excludedPaket = 0;
+  let excludedRealisasi = 0;
+  const excludedSatkerNames = new Set<string>();
+
+  for (const r of data) {
+    const pagu = num(r.pagu);
+    const realisasi = num(r.total);
+    const sudah = realisasi > 0;
+    const metode = (r.metode_pengadaan && r.metode_pengadaan.trim()) || 'Lainnya';
+    // Swakelola bukan bagian taksonomi Barang/Jasa/Konstruksi/Konsultansi (tidak
+    // pernah punya jenis_pengadaan di sumbernya) — tampilkan sebagai kategori
+    // tersendiri, bukan "Jenis Paket Anomali" (yang tersisa murni untuk paket
+    // anomali: realisasi tanpa RUP terumumkan di SIRUP).
+    const jenis = metode === 'Swakelola' ? 'Swakelola' : (r.jenis_pengadaan && r.jenis_pengadaan.trim()) || 'Paket Anomali';
+    const satkerName = (r.satker && r.satker.trim()) || 'Tidak Diketahui';
+
+    totalPagu += pagu;
+    totalRealisasi += realisasi;
+    if (sudah) paketSudah += 1;
+
+    if (r.status_kurasi === 'Akurat') akurat += 1;
+    else if (r.status_kurasi === 'Tidak Akurat') perluKoreksi += 1;
+
+    let m = metodeMap.get(metode);
+    if (!m) {
+      m = { metode, jumlahPaket: 0, pagu: 0, realisasi: 0, belum: 0, pctRealisasi: 0, paketSudah: 0, paketBelum: 0, akurat: 0, perluKoreksi: 0, belumDikurasi: 0 };
+      metodeMap.set(metode, m);
+    }
+    m.jumlahPaket += 1;
+    m.pagu += pagu;
+    m.realisasi += realisasi;
+    if (sudah) m.paketSudah += 1;
+    else m.paketBelum += 1;
+    if (r.status_kurasi === 'Akurat') m.akurat += 1;
+    else if (r.status_kurasi === 'Tidak Akurat') m.perluKoreksi += 1;
+
+    let j = jenisMap.get(jenis);
+    if (!j) {
+      j = { jenis, jumlahPaket: 0, pagu: 0, realisasi: 0, belum: 0, pctRealisasi: 0, paketSudah: 0, paketBelum: 0 };
+      jenisMap.set(jenis, j);
+    }
+    j.jumlahPaket += 1;
+    j.pagu += pagu;
+    j.realisasi += realisasi;
+    if (sudah) j.paketSudah += 1;
+    else j.paketBelum += 1;
+
+    // Sumber (Penyedia/Swakelola) DARI RUP saja — anomali (is_from_sirup=false)
+    // dikecualikan karena itu bukan paket yang benar-benar terumumkan di SIRUP.
+    if (r.is_from_sirup === true) {
+      const kategori: SumberAggregate['kategori'] = metode === 'Swakelola' ? 'Paket Swakelola' : 'Paket Penyedia';
+      let sm = sumberMap.get(kategori);
+      if (!sm) {
+        sm = { kategori, jumlahPaket: 0, pagu: 0, realisasi: 0, belum: 0, pctRealisasi: 0, paketSudah: 0, paketBelum: 0 };
+        sumberMap.set(kategori, sm);
+      }
+      sm.jumlahPaket += 1;
+      sm.pagu += pagu;
+      sm.realisasi += realisasi;
+      if (sudah) sm.paketSudah += 1;
+      else sm.paketBelum += 1;
+    }
+
+    // Peringkat satker DARI RUP saja — aturan yang sama dengan `sumber` di atas.
+    // Baris "realisasi tanpa RUP" selalu berpagu 0, sehingga % capaian-nya tak
+    // bisa dihitung dan jatuh ke 0%; di tabel yang diurut berdasarkan capaian,
+    // baris itu terlempar ke dasar peringkat seolah kinerjanya paling buruk —
+    // padahal justru uangnya terbelanjakan, hanya perencanaannya yang tak
+    // tercatat di SIRUP. Realisasinya tetap utuh di KPI atas dan panel Anomali.
+    if (r.is_from_sirup === true) {
+      let s = satkerMap.get(satkerName);
+      if (!s) {
+        s = { satker: satkerName, jumlahPaket: 0, pagu: 0, realisasi: 0, belum: 0, pctRealisasi: 0 };
+        satkerMap.set(satkerName, s);
+      }
+      s.jumlahPaket += 1;
+      s.pagu += pagu;
+      s.realisasi += realisasi;
+    } else {
+      excludedPaket += 1;
+      excludedRealisasi += realisasi;
+      excludedSatkerNames.add(satkerName);
+    }
+  }
+
+  const metode = Array.from(metodeMap.values())
+    .map((m) => ({
+      ...m,
+      belum: Math.max(m.pagu - m.realisasi, 0),
+      pctRealisasi: m.pagu > 0 ? (m.realisasi / m.pagu) * 100 : 0,
+      belumDikurasi: Math.max(m.jumlahPaket - m.akurat - m.perluKoreksi, 0),
+    }))
+    .sort((a, b) => b.jumlahPaket - a.jumlahPaket);
+
+  const jenis = Array.from(jenisMap.values())
+    .map((j) => ({
+      ...j,
+      belum: Math.max(j.pagu - j.realisasi, 0),
+      pctRealisasi: j.pagu > 0 ? (j.realisasi / j.pagu) * 100 : 0,
+    }))
+    .sort((a, b) => {
+      // 'Paket Anomali' selalu di baris/segmen paling akhir, terlepas jumlahnya —
+      // ini bucket residual (bukan kategori nyata), bukan bagian ranking jenis.
+      if (a.jenis === 'Paket Anomali') return 1;
+      if (b.jenis === 'Paket Anomali') return -1;
+      return b.jumlahPaket - a.jumlahPaket;
+    });
+
+  const sumber = Array.from(sumberMap.values())
+    .map((sm) => ({
+      ...sm,
+      belum: Math.max(sm.pagu - sm.realisasi, 0),
+      pctRealisasi: sm.pagu > 0 ? (sm.realisasi / sm.pagu) * 100 : 0,
+    }))
+    .sort((a, b) => b.jumlahPaket - a.jumlahPaket);
+
+  const satker = Array.from(satkerMap.values())
+    .map((s) => ({
+      ...s,
+      belum: Math.max(s.pagu - s.realisasi, 0),
+      pctRealisasi: s.pagu > 0 ? (s.realisasi / s.pagu) * 100 : 0,
+    }))
+    .sort((a, b) => b.realisasi - a.realisasi);
+
+  // Satker yang tak punya satu pun baris ber-RUP menghilang total dari peringkat
+  // (mis. paket E-Purchasing yang kode satkernya hanya bisa dipetakan sampai
+  // tingkat Eselon I). Namanya disebut supaya ketiadaannya terlihat, bukan
+  // diam-diam.
+  const satkerHilang = Array.from(excludedSatkerNames)
+    .filter((nama) => !satkerMap.has(nama))
+    .sort((a, b) => a.localeCompare(b, 'id-ID'));
+
+  const totalPaket = data.length;
+  const paketBelum = totalPaket - paketSudah;
+  const belumDikurasi = Math.max(totalPaket - akurat - perluKoreksi, 0);
+  const totalDikurasi = akurat + perluKoreksi;
+
+  return {
+    kpi: {
+      totalPagu,
+      totalRealisasi,
+      belumRealisasi: Math.max(totalPagu - totalRealisasi, 0),
+      totalPaket,
+      paketSudah,
+      paketBelum,
+      pctRealisasi: totalPagu > 0 ? (totalRealisasi / totalPagu) * 100 : 0,
+    },
+    metode,
+    jenis,
+    sumber,
+    satker,
+    satkerExclusion: {
+      jumlahPaket: excludedPaket,
+      realisasi: excludedRealisasi,
+      satkerHilang,
+    },
+    kurasi: {
+      totalDikurasi,
+      akurat,
+      perluKoreksi,
+      belumDikurasi,
+      totalPaket,
+      pctAkurasi: totalDikurasi > 0 ? (akurat / totalDikurasi) * 100 : 0,
+      pctSelesai: totalPaket > 0 ? (totalDikurasi / totalPaket) * 100 : 0,
+    },
+    anomali: summarizeAnomali(data),
+    anomaliRows: buildAnomaliRows(data),
+    kurasiTidakAkurat: buildKurasiTidakAkuratRows(data),
+  };
+}
+
+// Daftar paket dengan status_kurasi = 'Tidak Akurat' (untuk tabel awareness saat filter aktif).
+function buildKurasiTidakAkuratRows(rows: GabunganRow[]): KurasiTidakAkuratDetail[] {
+  return rows
+    .filter((r) => r.status_kurasi === 'Tidak Akurat')
+    .map((r) => ({
+      kd_rup: String(r.kd_rup),
+      rup_name: r.rup_name,
+      satker: r.satker,
+      nama_ppk: r.nama_ppk,
+      metode_pengadaan: r.metode_pengadaan,
+      pagu: num(r.pagu),
+      total: num(r.total),
+      catatan_kurasi: r.catatan_kurasi,
+      rekomendasi_kurasi: r.rekomendasi_kurasi,
+    }));
+}
+
+// Daftar baris anomali (detail), diurutkan dari paling parah ke ringan.
+function buildAnomaliRows(rows: GabunganRow[]): AnomaliDetail[] {
+  const list: AnomaliDetail[] = [];
+  for (const r of rows) {
+    const jenis = anomaliOf(r);
+    if (jenis.length === 0) continue;
+    list.push({
+      kd_rup: String(r.kd_rup),
+      rup_name: r.rup_name,
+      satker: r.satker,
+      nama_ppk: r.nama_ppk,
+      metode_pengadaan: r.metode_pengadaan,
+      pagu: num(r.pagu),
+      total: num(r.total),
+      jenis,
+    });
+  }
+  const skor = (d: AnomaliDetail) => (d.jenis.includes('tanpa_rup') ? 2 : 0) + (d.jenis.includes('lebih_pagu') ? 1 : 0);
+  return list.sort((a, b) => skor(b) - skor(a) || b.total - a.total);
+}

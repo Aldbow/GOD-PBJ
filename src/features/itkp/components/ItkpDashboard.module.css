@@ -1,0 +1,1110 @@
+/* ============================================================
+   Dashboard Penilaian ITKP — konten utama
+   ============================================================ */
+
+.sectionSpacer {
+  margin-bottom: 18px;
+}
+
+.pedomanSection {
+  margin-top: 24px;
+}
+
+/* ============ Judul ============ */
+.pageHead {
+  margin-bottom: 16px;
+}
+
+.crumb {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+/* ============ Filter bar ============ */
+.filterBar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.filterFields {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.yearField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 120px;
+}
+
+.fieldIcon {
+  color: var(--text-tertiary);
+}
+
+.unitSelect {
+  min-width: 280px;
+}
+
+.updatedWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.updated {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.refreshBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--dur-fast) ease;
+}
+
+.refreshBtn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.refreshBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============ Ringkasan Skor ITKP ============ */
+.scoreSummary {
+  margin-bottom: 20px;
+}
+
+/* Dua kolom: skor di kiri, pita distribusi di kanan. */
+.scoreSummaryBody.scoreSummaryBody {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 0;
+}
+
+.sumScore,
+.sumDist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 24px;
+}
+
+.sumScore {
+  padding-left: 0;
+  border-right: 1px solid var(--border);
+}
+
+.sumDist {
+  padding-right: 0;
+}
+
+.sumLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+.sumScoreRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sumScoreValue {
+  font-size: 48px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.predikatPill {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.sumScoreMeta {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Distribusi kategori */
+.distWrap {
+  position: relative;
+  padding-top: 26px;
+  margin-top: 4px;
+}
+
+.distMarker {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+}
+
+.distMarkerValue {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+}
+
+.distMarkerStem {
+  width: 2px;
+  height: 8px;
+  background: var(--text-primary);
+}
+
+.distTrack {
+  display: flex;
+  width: 100%;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  gap: 2px;
+}
+
+.distSeg {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.distSegLabel {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 2px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+.distTicks {
+  position: relative;
+  height: 14px;
+  margin-top: 4px;
+}
+
+.distTick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 860px) {
+  .scoreSummary {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .sumScore,
+  .sumDist {
+    padding: 0;
+    border-right: none;
+  }
+  .sumScore {
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/* ============ Kartu Komponen A–D ============ */
+.compGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--card-gap);
+  margin-bottom: 22px;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .compGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .compGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Identitas warna per komponen (dipakai kartu + rincian) */
+.compA {
+  --c: var(--teal-600);
+  --cText: var(--teal-700);
+  --cTint: var(--teal-100);
+}
+.compB {
+  --c: var(--amber-600);
+  --cText: var(--amber-700);
+  --cTint: var(--amber-100);
+}
+.compC {
+  --c: var(--purple-600);
+  --cText: var(--purple-600);
+  --cTint: var(--purple-100);
+}
+.compD {
+  --c: var(--info-600);
+  --cText: var(--info-700);
+  --cTint: var(--info-100);
+}
+
+/* Bentuk kartunya dari Card; sisanya isi & penanda terpilih. */
+.compCard {
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+/* Penanda kartu terpilih: outline, bukan border kedua di atas border kartu. */
+.compCardActive {
+  outline: 2px solid var(--brand-600);
+  outline-offset: -2px;
+}
+
+.compTop.compTop {
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.compBadge {
+  margin-left: auto;
+}
+
+.compBody {
+  gap: 9px;
+}
+
+.compName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.compWeight {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: -4px;
+}
+
+.compScoreRow {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.compScore {
+  font-size: 26px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.compScoreMax {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.compBarTrack {
+  height: 8px;
+  background: var(--track-bg);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.compBarFill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--c) 72%, #000 28%) 0%,
+      var(--c) 48%,
+      color-mix(in srgb, var(--c) 58%, #fff 42%) 100%
+    );
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--c) 40%, transparent);
+  transition: width var(--dur-med) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.compFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.compPct {
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--cText);
+}
+
+.compDetail {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.compCard:hover .compDetail,
+.compCardActive .compDetail {
+  color: var(--cText);
+}
+
+/* ============ Rincian Indikator ============ */
+.rincian {
+  scroll-margin-top: 16px;
+}
+
+.rincianHead.rincianHead {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-bottom: 16px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.rincianTitleWrap {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.rincianBody {
+  gap: 0;
+}
+
+.rincianTitle {
+  font-size: 17px;
+  margin-bottom: 4px;
+}
+
+.rincianMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.rincianMeta strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.metaDot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+
+.pedomanBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cText);
+  background: var(--cTint);
+  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+  border-radius: var(--radius-pill);
+  padding: 7px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--dur-fast) ease;
+}
+
+.pedomanBtn:hover {
+  border-color: var(--c);
+}
+
+.pedomanPanel {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.pedomanIntro {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+}
+
+.pedomanList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pedomanList li {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.pedomanList strong {
+  color: var(--text-primary);
+}
+
+.pedomanCode {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cText);
+  background: var(--cTint);
+  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+  height: fit-content;
+}
+
+/* Grid indikator */
+.indGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+  .indGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .indGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .indGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.indEmpty {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  color: var(--text-tertiary);
+}
+
+.indEmpty p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.indEmpty strong {
+  color: var(--text-primary);
+}
+
+/* ============ Kartu Indikator ============ */
+.indHead.indHead {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.indBadge {
+  margin-left: auto;
+}
+
+.indBody {
+  gap: 8px;
+}
+
+.indCode {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+  flex-shrink: 0;
+}
+
+.indName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.infoBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: help;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.infoBtn:hover {
+  color: var(--text-secondary);
+}
+
+.indPct {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.indPctCaption {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: -3px;
+}
+
+.indBarTrack {
+  height: 7px;
+  background: var(--track-bg);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.indBarFill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width var(--dur-med) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bar_rendah,
+.bar_sedang,
+.bar_tinggi,
+.bar_default {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%), var(--bar-grad);
+  box-shadow: 0 1px 4px var(--bar-glow);
+}
+
+.bar_rendah {
+  --bar-grad: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--teal-600) 72%, #000 28%) 0%,
+    var(--teal-600) 48%,
+    color-mix(in srgb, var(--teal-600) 58%, #fff 42%) 100%
+  );
+  --bar-glow: color-mix(in srgb, var(--teal-600) 40%, transparent);
+}
+
+.bar_sedang {
+  --bar-grad: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--amber-600) 72%, #000 28%) 0%,
+    var(--amber-600) 48%,
+    color-mix(in srgb, var(--amber-600) 58%, #fff 42%) 100%
+  );
+  --bar-glow: color-mix(in srgb, var(--amber-600) 40%, transparent);
+}
+
+.bar_tinggi {
+  --bar-grad: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--red-600) 72%, #000 28%) 0%,
+    var(--red-600) 48%,
+    color-mix(in srgb, var(--red-600) 58%, #fff 42%) 100%
+  );
+  --bar-glow: color-mix(in srgb, var(--red-600) 40%, transparent);
+}
+
+.bar_default {
+  --bar-grad: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--text-tertiary) 70%, #000 30%) 0%,
+    var(--text-tertiary) 50%,
+    color-mix(in srgb, var(--text-tertiary) 60%, #fff 40%) 100%
+  );
+  --bar-glow: transparent;
+}
+
+.overBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--info-700);
+  background: var(--info-100);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.indScoreRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+
+.indScoreValue {
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.indNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
+
+.indNoteWarn {
+  color: var(--amber-700);
+}
+
+/* ============ Kartu Ringkasan Komponen ============ */
+.summaryCard {
+  text-decoration: none;
+  color: inherit;
+}
+
+.summaryBody {
+  gap: 10px;
+}
+
+.summaryScoreRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.summaryScore {
+  font-size: 26px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.summaryScoreMax {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-left: 2px;
+}
+
+.summaryRows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--c) 20%, var(--border));
+  padding-top: 10px;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.summaryRow span:last-child {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.summaryCta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cText);
+}
+
+/* ============================================================
+   Modal — Rincian Keterisian Formasi
+   ============================================================ */
+.formasiWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.formasiSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.formasiSection + .formasiSection {
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.formasiSectionHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.formasiSectionIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+}
+
+.formasiSectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+  line-height: 1.3;
+}
+
+.formasiSectionDesc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Bentuk kartunya dari Card variant="flush" — tabelnya penuh sampai tepi. */
+.formasiCard {
+  margin-top: 4px;
+}
+
+@keyframes formasiRowIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.formasiRowAnim {
+  animation: formasiRowIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.formasiTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.formasiTable th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-tertiary);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.formasiTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.formasiTable tbody tr:last-child > td {
+  border-bottom: none;
+}
+
+.formasiColRight {
+  text-align: right;
+}
+
+.formasiColCenter {
+  text-align: center;
+}
+
+.formasiMono {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.formasiRowName {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.formasiTotalRow > td {
+  background: var(--surface-2);
+  font-weight: 700;
+  color: var(--text-primary);
+  border-top: 1px solid var(--border-strong);
+  border-bottom: none;
+}
+
+.formasiRowClickable {
+  cursor: pointer;
+  transition: background-color var(--dur-fast) ease;
+}
+
+.formasiRowClickable:hover {
+  background: var(--surface-hover);
+}
+
+.formasiRowSelected > td {
+  background: var(--info-100);
+}
+
+.formasiRowLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.formasiChevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  transition: color var(--dur-fast) ease;
+}
+
+.formasiRowSelected .formasiChevron {
+  color: var(--info-600);
+}
+
+.formasiSubRow > td {
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.formasiSubRow:nth-last-child(1) > td {
+  border-bottom: none;
+}
+
+.formasiTableAccordion tbody tr.formasiRowAnim:nth-last-child(2) > td {
+  border-bottom: none;
+}
+
+.formasiAccordionMotion {
+  overflow: hidden;
+}
+
+.formasiSubPanel {
+  background: var(--surface-2);
+  padding: 12px 16px 16px;
+}
+
+.formasiSubLabel {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.formasiSubLabel strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.formasiSubTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.formasiSubTable th {
+  text-align: left;
+  padding: 8px 14px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+.formasiSubTable td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.formasiSubTable tbody tr:last-child > td {
+  border-bottom: none;
+}
+
+.formasiEmpty {
+  padding: 16px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* Warna angka Keterisian (%) — mengikuti makna status lama (Terisi/Kurang/
+   Kosong/Sisa) tapi sebagai teks polos, bukan pill/badge. */
+.formasiPctSuccess {
+  color: var(--teal-700);
+}
+
+.formasiPctDanger {
+  color: var(--red-700);
+}
+
+.formasiPctWarning {
+  color: var(--amber-700);
+}
+
+.formasiPctInfo {
+  color: var(--info-700);
+}
+
+@media (max-width: 600px) {
+  .formasiTable th,
+  .formasiTable td {
+    padding: 7px 8px;
+  }
+}

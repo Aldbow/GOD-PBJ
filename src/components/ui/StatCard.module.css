@@ -1,0 +1,43 @@
+/* Bentuk kartunya dari komponen Card; di sini hanya isi angkanya. */
+.card {
+  min-height: 104px;
+}
+
+.body {
+  gap: 0;
+  justify-content: flex-end;
+}
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-top: auto;
+}
+
+.value {
+  font-family: var(--font-mono);
+  font-size: 27px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.unit {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.hint {
+  font-size: 11px;
+  margin: 9px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+}
+.hintGood { color: var(--teal-800); }
+.hintWarn { color: var(--amber-800); }
+.hintDanger { color: var(--danger-800); }

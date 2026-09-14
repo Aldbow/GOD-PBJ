@@ -1,0 +1,571 @@
+// ============================================================================
+// Update data Supabase dari folder data/data_update/
+// ----------------------------------------------------------------------------
+// Mengganti isi tabel dengan data terbaru hasil tarikan API SIRUP/INAPROC yang
+// ada di data/data_update/<nama_tabel>/. Format sumber yang dipakai: JSON
+// (paling aman — null tetap null, "021212" tidak kehilangan nol depan). CSV
+// hanya dipakai kalau tidak ada JSON di folder tersebut.
+//
+// PEMAKAIAN
+//   node scripts/update_from_data_update.mjs --dry-run --all
+//   node scripts/update_from_data_update.mjs --table paket_e_purchasing
+//   node scripts/update_from_data_update.mjs --all --yes
+//
+// FLAG
+//   --all           proses semua tabel yang terdaftar di TABLES
+//   --table <nama>  proses satu tabel (boleh diulang)
+//   --dry-run       hanya validasi + laporan, tidak menulis apa pun ke DB
+//   --yes           lewati konfirmasi interaktif
+//   --force         lewati gerbang pengaman "baris turun drastis"
+//   --no-backup     lewati backup (hanya berlaku untuk mode upsert)
+//   --skip-risiko   lewati hitung ulang risiko pengadaan otomatis di akhir
+//                   (proses ini memakan waktu beberapa menit -- puluhan
+//                   request HTTP sekuensial ke RISIKO_RECALC_BASE_URL)
+//
+// DUA MODE
+//   upsert  — tabel punya kunci alami di file (kd_rup, order_id, dst).
+//             Alur: UPSERT semua baris baru -> hapus baris lama yang tidak ada
+//             di file. Tabel tidak pernah kosong; kalau gagal di tengah, data
+//             lama masih utuh.
+//   replace — tabel tidak punya kunci alami di file (id-nya digenerate DB).
+//             Alur: backup -> hapus semua -> insert. Ada jeda tabel kosong;
+//             kalau insert gagal, isi lama dipulihkan otomatis dari backup.
+//
+// JEJAK UPDATE
+//   Setiap tabel yang berhasil ditulis dicatat satu baris di tabel
+//   data_update_log (lihat sql/migrations/74_table_data_update_log.sql).
+//   Topbar aplikasi membaca baris terbaru dari situ untuk menampilkan
+//   "Diperbarui N jam lalu". --dry-run tidak pernah menulis catatan ini.
+//
+// YANG TIDAK DILAKUKAN SCRIPT INI
+//   Tidak mengubah/menormalisasi nilai apa pun. Nilai dari file dikirim apa
+//   adanya; hanya key yang bukan kolom tabel yang ditolak (dan script berhenti,
+//   bukan diam-diam membuang). Kolom yang punya default DB (id, created_at)
+//   tidak pernah dikirim.
+// ============================================================================
+
+import fs from 'fs';
+import path from 'path';
+import readline from 'readline';
+import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const UPDATE_DIR = path.join(ROOT, 'data', 'data_update');
+const BACKUP_DIR = path.join(ROOT, 'data', 'backup');
+
+// keyCol = kunci alami yang ADA di file sumber (dipakai upsert + prune).
+// idCol  = primary key tabel di DB (dipakai untuk order, delete-all, restore).
+const TABLES = [
+  { table: 'api_paket_penyedia_terumumkan', mode: 'upsert', keyCol: 'kd_rup', idCol: 'kd_rup' },
+  { table: 'api_paket_swakelola_terumumkan', mode: 'upsert', keyCol: 'kd_rup', idCol: 'kd_rup' },
+  { table: 'history_kaji_ulang', mode: 'replace', keyCol: null, idCol: 'id' },
+  { table: 'paket_anggaran_penyedia', mode: 'upsert', keyCol: 'id_paket_anggaran_penyedia', idCol: 'id_paket_anggaran_penyedia' },
+  { table: 'paket_anggaran_swakelola', mode: 'upsert', keyCol: 'id_paket_anggaran_swakelola', idCol: 'id_paket_anggaran_swakelola' },
+  { table: 'paket_e_purchasing', mode: 'upsert', keyCol: 'order_id', idCol: 'order_id' },
+  { table: 'pencatatan_non_tender_realisasi', mode: 'replace', keyCol: null, idCol: 'id' },
+  // level paket (1 baris per kd_nontender_pct); pasangan 1:N dari tabel realisasi di atas
+  { table: 'pencatatan_non_tender', mode: 'upsert', keyCol: 'kd_nontender_pct', idCol: 'kd_nontender_pct' },
+  { table: 'non_tender_selesai', mode: 'replace', keyCol: null, idCol: 'id' },
+  { table: 'tender_selesai_nilai', mode: 'upsert', keyCol: 'kd_tender', idCol: 'kd_tender' },
+  { table: 'data_afirmasi_pdn_perencanaan', mode: 'replace', keyCol: null, idCol: 'id' },
+];
+
+const CHUNK_WRITE = 500; // baris per request insert/upsert
+const CHUNK_DELETE = 100; // nilai per request delete .in() — jaga panjang URL
+const PAGE = 1000; // batas baris per request select PostgREST
+const DROP_GUARD = 0.8; // batal kalau baris baru < 80% baris DB, kecuali --force
+
+// Tabel jejak "kapan data terakhir masuk DB". Dibaca topbar aplikasi lewat
+// src/lib/data-update/lastUpdate.ts. DDL-nya di
+// sql/migrations/74_table_data_update_log.sql. Sengaja TIDAK ada di TABLES —
+// tabel ini mencatat proses, bukan data pengadaan, jadi tidak boleh ikut
+// dihapus/diganti oleh script ini.
+const LOG_TABLE = 'data_update_log';
+
+// ---------------------------------------------------------------- argumen CLI
+const argv = process.argv.slice(2);
+const flags = {
+  all: argv.includes('--all'),
+  dryRun: argv.includes('--dry-run'),
+  yes: argv.includes('--yes'),
+  force: argv.includes('--force'),
+  noBackup: argv.includes('--no-backup'),
+  skipRisiko: argv.includes('--skip-risiko'),
+};
+const wanted = [];
+for (let i = 0; i < argv.length; i++) {
+  if (argv[i] === '--table') {
+    if (!argv[i + 1]) fail('--table butuh nama tabel');
+    wanted.push(argv[++i]);
+  }
+}
+if (!flags.all && wanted.length === 0) {
+  console.log('Pilih tabel dengan --table <nama> atau proses semua dengan --all.\n');
+  console.log('Tabel yang terdaftar:');
+  for (const t of TABLES) console.log('  ' + t.table + '  (' + t.mode + ')');
+  process.exit(1);
+}
+const targets = flags.all ? TABLES : wanted.map((name) => {
+  const cfg = TABLES.find((t) => t.table === name);
+  if (!cfg) fail('Tabel tidak dikenal: ' + name);
+  return cfg;
+});
+
+// ------------------------------------------------------------------- supabase
+const env = {};
+for (const line of fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8').split('\n')) {
+  const m = line.match(/^([^=#]+)=(.*)$/);
+  if (m) env[m[1].trim()] = m[2].trim().replace(/^["']|["']$/g, '');
+}
+const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL;
+// service_role dipakai kalau ada (mem-bypass RLS); kalau tidak, anon key —
+// tabel-tabel ini saat ini memang masih bisa ditulis anon.
+const SUPABASE_KEY = env.SUPABASE_SERVICE_ROLE_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+if (!SUPABASE_URL || !SUPABASE_KEY) fail('NEXT_PUBLIC_SUPABASE_URL / KEY tidak ditemukan di .env.local');
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+
+// --------------------------------------------------------------- util umum
+function fail(msg) {
+  console.error('\n[GAGAL] ' + msg + '\n');
+  process.exit(1);
+}
+
+function rupiahless(n) {
+  return n.toLocaleString('id-ID');
+}
+
+function chunked(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+// Daftar kolom tabel dibaca dari database.types.ts (hasil `supabase gen types`),
+// jadi otomatis ikut kalau skema berubah dan tipe di-regenerate.
+const typesSrc = fs
+  .readFileSync(path.join(ROOT, 'database.types.ts'), 'utf8')
+  .split(String.fromCharCode(13))
+  .join('');
+
+function columnsFromTypes(table) {
+  const marker = '\n      ' + table + ': {\n        Row: {\n';
+  const i = typesSrc.indexOf(marker);
+  if (i < 0) return null;
+  const from = i + marker.length;
+  const j = typesSrc.indexOf('\n        }', from);
+  return typesSrc
+    .slice(from, j)
+    .split('\n')
+    .map((l) => l.trim().split(':')[0].replace(/^"/, '').replace(/"$/, ''))
+    .filter(Boolean);
+}
+
+// Cek apakah sebuah kolom benar-benar ada di DB (dipakai untuk kolom yang sudah
+// ditambah lewat migration tapi database.types.ts belum di-regenerate).
+async function columnExists(table, col) {
+  const { error } = await sb.from(table).select(col).limit(1);
+  return !error;
+}
+
+// -------------------------------------------------------------- baca sumber
+function findSourceFile(table) {
+  const dir = path.join(UPDATE_DIR, table);
+  if (!fs.existsSync(dir)) return null;
+  const files = fs.readdirSync(dir);
+  const json = files.find((f) => f.endsWith('.json') && !f.endsWith('.meta.json'));
+  if (json) return { file: path.join(dir, json), kind: 'json' };
+  const csv = files.find((f) => f.toLowerCase().endsWith('.csv'));
+  if (csv) return { file: path.join(dir, csv), kind: 'csv' };
+  return null;
+}
+
+// 'lastUpdated' dari <nama file>.meta.json — kapan file itu DITARIK dari API.
+// Bukan waktu tulis-ke-DB (itu finished_at di data_update_log), hanya disimpan
+// sebagai pembanding. File meta boleh tidak ada / rusak; jangan sampai itu
+// menggagalkan update.
+function readSourcePulledAt(src) {
+  const meta = src.file.replace(/\.(json|csv)$/i, '.meta.json');
+  try {
+    const t = JSON.parse(fs.readFileSync(meta, 'utf8')).lastUpdated;
+    return t && !Number.isNaN(Date.parse(t)) ? new Date(t).toISOString() : null;
+  } catch {
+    return null;
+  }
+}
+
+// Parser CSV RFC4180 seadanya: cukup untuk file ekspor SIRUP (kutip ganda,
+// escape "" di dalam kutip, newline di dalam kutip). Pemisah dideteksi otomatis
+// karena ekspor INAPROC ada yang pakai koma dan ada yang pakai titik koma
+// (mis. non-tender-selesai_2026.csv).
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  const src = text.replace(/^﻿/, '');
+  const headerLine = src.slice(0, src.indexOf('\n') === -1 ? src.length : src.indexOf('\n'));
+  const SEP = (headerLine.split(';').length > headerLine.split(',').length) ? ';' : ',';
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (src[i + 1] === '"') { field += '"'; i++; } else inQuotes = false;
+      } else field += c;
+      continue;
+    }
+    if (c === '"') { inQuotes = true; continue; }
+    if (c === SEP) { row.push(field); field = ''; continue; }
+    if (c === '\r') continue;
+    if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; continue; }
+    field += c;
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  const header = rows.shift();
+  return rows
+    .filter((r) => r.some((v) => v !== ''))
+    .map((r) => Object.fromEntries(header.map((h, idx) => [h.trim(), r[idx] === '' || r[idx] === undefined ? null : r[idx]])));
+}
+
+function readSource(src) {
+  const raw = fs.readFileSync(src.file, 'utf8');
+  if (src.kind === 'json') {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) fail('File JSON bukan array: ' + src.file);
+    return parsed;
+  }
+  return parseCsv(raw);
+}
+
+// ------------------------------------------------------- operasi baca ke DB
+async function countRows(table) {
+  const { count, error } = await sb.from(table).select('*', { count: 'exact', head: true });
+  if (error) throw new Error('count ' + table + ': ' + error.message);
+  return count ?? 0;
+}
+
+async function fetchAll(table, select, orderCol) {
+  const out = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await sb
+      .from(table)
+      .select(select)
+      .order(orderCol, { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error('select ' + table + ': ' + error.message);
+    out.push(...data);
+    if (data.length < PAGE) break;
+  }
+  return out;
+}
+
+// --------------------------------------------------------------- validasi
+async function validate(cfg) {
+  const src = findSourceFile(cfg.table);
+  if (!src) throw new Error('Tidak ada file JSON/CSV di data/data_update/' + cfg.table + '/');
+
+  const rows = readSource(src);
+  if (rows.length === 0) throw new Error('File sumber kosong: ' + src.file);
+
+  const dbCols = columnsFromTypes(cfg.table);
+  if (!dbCols) throw new Error('Tabel ' + cfg.table + ' tidak ditemukan di database.types.ts');
+
+  // union key seluruh baris — API kadang menghilangkan field yang null
+  const fileCols = [];
+  for (const r of rows) for (const k of Object.keys(r)) if (!fileCols.includes(k)) fileCols.push(k);
+
+  const unknown = fileCols.filter((c) => !dbCols.includes(c));
+  const lateCols = [];
+  for (const c of unknown) {
+    if (await columnExists(cfg.table, c)) lateCols.push(c);
+  }
+  const missingInDb = unknown.filter((c) => !lateCols.includes(c));
+  if (missingInDb.length) {
+    throw new Error(
+      'Field berikut ada di file tapi tidak ada kolomnya di tabel ' + cfg.table + ': ' + missingInDb.join(', ') +
+      '\n         Tambahkan kolomnya lewat migration di sql/migrations/, atau hapus field itu dari file sumber.'
+    );
+  }
+
+  const allowed = fileCols.filter((c) => dbCols.includes(c) || lateCols.includes(c));
+  const payload = rows.map((r) => {
+    const o = {};
+    for (const c of allowed) o[c] = r[c] ?? null; // undefined -> null; false/0/"" tetap
+    return o;
+  });
+
+  // duplikat kunci alami akan menggagalkan upsert (ON CONFLICT dua kali sasaran sama)
+  let dupKeys = [];
+  if (cfg.keyCol) {
+    const seen = new Map();
+    for (const r of payload) {
+      const k = r[cfg.keyCol];
+      if (k === null || k === undefined) throw new Error(cfg.keyCol + ' null di file sumber ' + cfg.table);
+      const s = String(k);
+      seen.set(s, (seen.get(s) || 0) + 1);
+    }
+    dupKeys = [...seen.entries()].filter(([, n]) => n > 1).map(([k]) => k);
+    if (dupKeys.length) {
+      throw new Error('Kunci ' + cfg.keyCol + ' duplikat di file (' + dupKeys.length + '): ' + dupKeys.slice(0, 5).join(', '));
+    }
+  }
+
+  const dbCount = await countRows(cfg.table);
+
+  // hitung baris usang (ada di DB, tidak ada di file) untuk mode upsert
+  let stale = [];
+  if (cfg.keyCol) {
+    const dbKeys = await fetchAll(cfg.table, cfg.keyCol, cfg.idCol);
+    const fileKeys = new Set(payload.map((r) => String(r[cfg.keyCol])));
+    stale = dbKeys.map((r) => r[cfg.keyCol]).filter((k) => !fileKeys.has(String(k)));
+  }
+
+  return { src, payload, allowed, lateCols, dbCount, stale };
+}
+
+// ------------------------------------------------------------------ backup
+async function backup(cfg) {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  const rows = await fetchAll(cfg.table, '*', cfg.idCol);
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const file = path.join(BACKUP_DIR, cfg.table + '_' + stamp + '.json');
+  fs.writeFileSync(file, JSON.stringify(rows, null, 0));
+  console.log('   backup  : ' + rupiahless(rows.length) + ' baris -> ' + path.relative(ROOT, file));
+  return { file, rows };
+}
+
+// ------------------------------------------------------------------- tulis
+async function writeChunks(table, rows, opts) {
+  let done = 0;
+  for (const chunk of chunked(rows, CHUNK_WRITE)) {
+    const q = opts && opts.onConflict
+      ? sb.from(table).upsert(chunk, { onConflict: opts.onConflict })
+      : sb.from(table).insert(chunk);
+    const { error } = await q;
+    if (error) {
+      const err = new Error(error.message + (error.details ? ' | ' + error.details : '') + ' [' + error.code + ']');
+      err.doneRows = done;
+      throw err;
+    }
+    done += chunk.length;
+    process.stdout.write('\r   tulis   : ' + rupiahless(done) + '/' + rupiahless(rows.length) + ' baris');
+  }
+  process.stdout.write('\n');
+}
+
+async function deleteKeys(cfg, keys) {
+  let done = 0;
+  for (const chunk of chunked(keys, CHUNK_DELETE)) {
+    const { error } = await sb.from(cfg.table).delete().in(cfg.keyCol, chunk);
+    if (error) throw new Error('hapus baris usang: ' + error.message);
+    done += chunk.length;
+    process.stdout.write('\r   hapus   : ' + rupiahless(done) + '/' + rupiahless(keys.length) + ' baris usang');
+  }
+  if (keys.length) process.stdout.write('\n');
+}
+
+async function deleteAll(cfg) {
+  const { error } = await sb.from(cfg.table).delete().not(cfg.idCol, 'is', null);
+  if (error) throw new Error('hapus semua baris: ' + error.message);
+  const left = await countRows(cfg.table);
+  if (left !== 0) throw new Error('tabel masih berisi ' + left + ' baris setelah delete — dibatalkan');
+}
+
+// ------------------------------------------------------------- catat jejak
+// Satu baris per tabel per kali jalan, ditulis SETELAH tulis-ke-DB selesai.
+// Dibaca topbar aplikasi untuk menampilkan "Diperbarui N jam lalu".
+//
+// Kegagalan di sini TIDAK boleh menggagalkan update — datanya sudah masuk dan
+// itu yang penting; log hanya metadata. Penyebab paling mungkin: migration
+// sql/migrations/74_table_data_update_log.sql belum dijalankan di Supabase.
+async function logUpdate(cfg, v, after) {
+  const { error } = await sb.from(LOG_TABLE).insert({
+    table_name: cfg.table,
+    mode: cfg.mode,
+    rows_before: v.dbCount,
+    rows_after: after,
+    source_file: path.relative(ROOT, v.src.file).split(path.sep).join('/'),
+    source_pulled_at: readSourcePulledAt(v.src),
+  });
+  if (error) {
+    console.log('   catatan : GAGAL menulis ' + LOG_TABLE + ' (' + error.message + ')');
+    console.log('             Data tabel sendiri sudah aman. Kalau tabel lognya belum ada,');
+    console.log('             jalankan sql/migrations/74_table_data_update_log.sql di Supabase.');
+    return false;
+  }
+  return true;
+}
+
+// -------------------------------------------------------------- jalankan 1
+async function run(cfg, v) {
+  console.log('\n== ' + cfg.table + ' (' + cfg.mode + ') ==');
+  let bak = null;
+
+  if (cfg.mode === 'replace' || !flags.noBackup) bak = await backup(cfg);
+
+  if (cfg.mode === 'upsert') {
+    await writeChunks(cfg.table, v.payload, { onConflict: cfg.keyCol });
+    await deleteKeys(cfg, v.stale);
+  } else {
+    await deleteAll(cfg);
+    try {
+      await writeChunks(cfg.table, v.payload);
+    } catch (e) {
+      console.error('\n   INSERT GAGAL: ' + e.message);
+      console.error('   memulihkan ' + rupiahless(bak.rows.length) + ' baris dari backup...');
+      // kolom id dilepas supaya DB men-generate ulang (sequence sudah maju)
+      const restore = bak.rows.map((r) => {
+        const o = { ...r };
+        delete o[cfg.idCol];
+        return o;
+      });
+      await deleteAll(cfg);
+      await writeChunks(cfg.table, restore);
+      console.error('   pulih. Isi tabel kembali seperti sebelum script jalan (kolom ' + cfg.idCol + ' bernilai baru).');
+      throw e;
+    }
+  }
+
+  const after = await countRows(cfg.table);
+  const ok = after === v.payload.length;
+  console.log('   hasil   : ' + rupiahless(v.dbCount) + ' -> ' + rupiahless(after) + ' baris ' + (ok ? '[OK]' : '[TIDAK COCOK, harusnya ' + rupiahless(v.payload.length) + ']'));
+
+  // dicatat walau jumlah baris tidak cocok — tulisannya tetap terjadi, dan
+  // topbar harus mencerminkan kapan isi DB terakhir berubah, apa adanya.
+  const logged = await logUpdate(cfg, v, after);
+
+  return { table: cfg.table, before: v.dbCount, after, expected: v.payload.length, ok, logged };
+}
+
+// ------------------------------------------------------------------- main
+console.log('Supabase : ' + SUPABASE_URL);
+console.log('Key      : ' + (env.SUPABASE_SERVICE_ROLE_KEY ? 'service_role' : 'anon'));
+console.log('Mode     : ' + (flags.dryRun ? 'DRY RUN (tidak menulis apa pun)' : 'TULIS KE DATABASE'));
+
+const plans = [];
+const masalah = [];
+for (const cfg of targets) {
+  process.stdout.write('\nmemeriksa ' + cfg.table + ' ... ');
+  let v;
+  try {
+    v = await validate(cfg);
+  } catch (e) {
+    console.log('GAGAL');
+    console.log('   ' + e.message);
+    masalah.push(cfg.table + ': ' + e.message);
+    continue;
+  }
+  console.log('ok');
+  console.log('   sumber  : ' + path.relative(ROOT, v.src.file) + ' (' + v.src.kind + ')');
+  console.log('   kolom   : ' + v.allowed.length + ' kolom dipakai' + (v.lateCols.length ? ' (' + v.lateCols.join(', ') + ' ada di DB tapi belum di database.types.ts — regenerate tipe setelah ini)' : ''));
+  console.log('   baris   : file ' + rupiahless(v.payload.length) + '  |  DB sekarang ' + rupiahless(v.dbCount) + '  |  selisih ' + (v.payload.length - v.dbCount >= 0 ? '+' : '') + rupiahless(v.payload.length - v.dbCount));
+  if (cfg.keyCol) console.log('   usang   : ' + rupiahless(v.stale.length) + ' baris akan dihapus (' + cfg.keyCol + ': ' + (v.stale.slice(0, 5).join(', ') || '-') + (v.stale.length > 5 ? ', ...' : '') + ')');
+
+  if (v.dbCount > 0 && v.payload.length < v.dbCount * DROP_GUARD && !flags.force) {
+    const m = 'baris baru (' + v.payload.length + ') < ' + Math.round(DROP_GUARD * 100) + '% baris sekarang (' + v.dbCount + '). File sumber kemungkinan tidak lengkap. Kalau memang disengaja, ulangi dengan --force.';
+    console.log('   TERTAHAN: ' + m);
+    masalah.push(cfg.table + ': ' + m);
+    continue;
+  }
+  plans.push({ cfg, v });
+}
+
+if (masalah.length) {
+  console.log('\n=== TABEL YANG TIDAK LOLOS PEMERIKSAAN (' + masalah.length + ') ===');
+  for (const m of masalah) console.log('  - ' + m);
+  fail('Tidak ada yang ditulis ke database. Bereskan dulu masalah di atas, atau jalankan hanya tabel yang lolos dengan --table.');
+}
+
+if (flags.dryRun) {
+  console.log('\nDRY RUN selesai. Tidak ada perubahan di database.');
+  process.exit(0);
+}
+
+if (!flags.yes && process.stdin.isTTY) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const jawab = await new Promise((res) => rl.question('\nLanjut menulis ke database? ketik "ya": ', res));
+  rl.close();
+  if (jawab.trim().toLowerCase() !== 'ya') fail('Dibatalkan.');
+}
+
+const hasil = [];
+for (const { cfg, v } of plans) {
+  hasil.push(await run(cfg, v));
+}
+
+console.log('\n=== RINGKASAN ===');
+for (const h of hasil) {
+  console.log((h.ok ? '[OK]  ' : '[BEDA]') + ' ' + h.table.padEnd(34) + rupiahless(h.before) + ' -> ' + rupiahless(h.after));
+}
+const gagal = hasil.filter((h) => !h.ok);
+console.log(gagal.length ? '\n' + gagal.length + ' tabel jumlah barisnya tidak sesuai file. Periksa manual.' : '\nSemua tabel sesuai jumlah baris file sumber.');
+
+const tanpaLog = hasil.filter((h) => !h.logged);
+if (tanpaLog.length) {
+  console.log('\n' + tanpaLog.length + ' tabel tidak tercatat di ' + LOG_TABLE + ' — stempel "Diperbarui ..." di topbar');
+  console.log('tidak ikut maju. Data tabelnya sendiri sudah masuk.');
+} else {
+  console.log('Stempel "Diperbarui ..." di topbar sudah maju ke waktu sekarang.');
+}
+
+// ---- refresh rekap tersimpan (materialized view) untuk halaman Ringkasan --
+// Cuma direfresh kalau SEMUA tabel target sukses (gagal.length === 0) — kalau
+// ada tabel yang gagal/tertahan, mv lama TETAP DIPAKAI (basi tapi konsisten)
+// daripada direfresh dari campuran data lama+baru yang tidak utuh.
+// Kegagalan di sini TIDAK boleh menggagalkan update — datanya sudah masuk ke
+// tabel sumber dan itu yang penting; rekap tersimpan tinggal beda "segar"-nya.
+// Lihat sql/migrations/75_materialized_view_gabungan_satker.sql.
+if (!flags.dryRun && gagal.length === 0) {
+  process.stdout.write('\nMenyegarkan rekap tersimpan (mv_dashboard_gabungan_satker) ... ');
+  try {
+    const { error: refreshErr } = await sb.rpc('refresh_dashboard_gabungan_satker');
+    if (refreshErr) throw refreshErr;
+    console.log('ok');
+  } catch (e) {
+    console.log('GAGAL (non-fatal)');
+    console.log('   ' + e.message);
+    console.log('   Halaman Ringkasan akan menampilkan data dari refresh sebelumnya sampai');
+    console.log('   di-refresh manual: SELECT refresh_dashboard_gabungan_satker(); di SQL Editor,');
+    console.log('   atau jalankan ulang: node scripts/update_from_data_update.mjs --all --yes');
+  }
+}
+
+// ---- hitung ulang risiko pengadaan + refresh agregatnya --------------------
+// Dipicu di sini (bukan cuma manual via tombol admin) supaya risiko selalu
+// ikut segar setiap update data, tanpa perlu tindakan tambahan. Memanggil
+// endpoint yang SAMA dengan tombol "Hitung Ulang" di RisikoPengadaanView.tsx
+// (bukan port ulang logika scoring ke script ini) supaya tidak ada dua
+// salinan aturan skor yang bisa diam-diam berbeda kalau RULES_VERSION di
+// src/lib/risiko/riskModel.ts berubah nanti.
+// Kegagalan di sini TIDAK boleh menggagalkan update -- data tabel sudah
+// aman ditulis; risiko tinggal beda "segar"-nya, sama seperti mv gabungan.
+if (!flags.dryRun && gagal.length === 0 && !flags.skipRisiko) {
+  const baseUrl = env.RISIKO_RECALC_BASE_URL || 'https://god-pbj.vercel.app';
+  console.log('\nMenghitung ulang risiko pengadaan (' + baseUrl + ') ...');
+  try {
+    for (const [rpath, label] of [
+      ['/api/risiko/recalculate/penyedia', 'Penyedia'],
+      ['/api/risiko/recalculate/swakelola', 'Swakelola'],
+    ]) {
+      let offset = 0;
+      while (true) {
+        const res = await fetch(baseUrl + rpath + '?offset=' + offset, { method: 'POST' });
+        const json = await res.json();
+        if (!res.ok) throw new Error(label + ': ' + (json.error || res.statusText));
+        process.stdout.write('   ' + label + ': ' + (json.processed ?? 0) + '/' + (json.total ?? '?') + ' (offset ' + offset + ')\r');
+        if (!json.nextOffset) break;
+        offset = json.nextOffset;
+      }
+      console.log('   ' + label + ': selesai.                              ');
+    }
+    const { error: refreshErr } = await sb.rpc('refresh_risiko_ringkasan');
+    if (refreshErr) throw refreshErr;
+    console.log('Rekap risiko (mv_risiko_ringkasan) disegarkan.');
+  } catch (e) {
+    console.log('GAGAL menghitung ulang risiko (non-fatal): ' + e.message);
+    console.log('   Jalankan manual lewat tombol "Hitung Ulang" di halaman Risiko Pengadaan,');
+    console.log('   atau ulangi: node scripts/update_from_data_update.mjs --all --yes');
+  }
+}
+
+process.exit(gagal.length ? 1 : 0);

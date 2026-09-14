@@ -1,0 +1,874 @@
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  margin-bottom: 14px;
+}
+
+.backLink:hover {
+  color: var(--accent);
+}
+
+.header {
+  margin-bottom: 16px;
+}
+
+.headerTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.headerSub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 2px 0 0;
+}
+
+.sectionSpacer {
+  margin-bottom: 16px;
+}
+
+/* Bentuk kartunya dari komponen Card. Daftar pilihan SearchableSelect
+   diposisikan absolut di dalam kartu, jadi overflow-nya sengaja dibiarkan
+   terlihat supaya tidak terpotong. */
+.filterBar.filterBar {
+  margin-bottom: 20px;
+  overflow: visible;
+}
+
+.filterHead.filterHead {
+  margin-bottom: 12px;
+}
+
+.filterBody.filterBody {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filterCol {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 220px;
+}
+
+.filterColWide {
+  flex: 1 1 420px;
+  min-width: 320px;
+}
+
+/* Tanpa ini, min-width 320px di atas bisa memaksa seluruh halaman melebar ke
+   samping di HP sempit (320-375px) -- .filterBar sengaja overflow:visible
+   (lihat komentar di atas) jadi tidak ada scroll kontainer yang menahannya.
+   Pola sama seperti RingkasanFilter.module.css. */
+@media (max-width: 640px) {
+  .filterBody.filterBody {
+    align-items: stretch;
+  }
+  .filterCol,
+  .filterColWide {
+    min-width: 100%;
+  }
+}
+
+.filterLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.filterMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-left: auto;
+}
+
+.layout {
+  margin-bottom: 18px;
+}
+
+.loadingBox {
+  min-height: 120px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--card-gap);
+  align-items: stretch;
+}
+
+@media (min-width: 900px) {
+  .cardGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1400px) {
+  .cardGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Grup A1-A3 (Perencanaan) dan A4-A7 (Realisasi): kolom disesuaikan dengan
+   jumlah kartu di masing-masing grup supaya baris terakhir selalu penuh,
+   bukan menyisakan slot kosong seperti grid 4 kolom yang dipaksakan ke 7 item. */
+@media (min-width: 1400px) {
+  .cardGrid3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .cardGrid4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.cardGroup {
+  margin-bottom: 26px;
+}
+
+.cardGroupHead {
+  align-items: flex-start;
+}
+
+.cardGroupStat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cardGroupStatValue {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.cardGroupStatMax {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+/* Bentuk kartunya dari komponen Card; badan kartu tetap putih. */
+.compHeader.compHeader {
+  flex-wrap: wrap;
+}
+
+.compHeaderTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.compCardBody {
+  gap: 0;
+}
+
+.compHeaderBadge {
+  background: var(--accent);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.compBody {
+  display: flex;
+  flex-direction: row;
+  padding: 16px;
+  gap: 16px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.compMainStat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.compMainStatLabel {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.compMainStatValue {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.compProgressTrack {
+  height: 6px;
+  width: 100%;
+  max-width: 160px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.compProgressFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.compSideStats {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 110px;
+  border-left: 1px dashed var(--border);
+  padding-left: 16px;
+}
+
+.compSubStat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.compSubStatLabel {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.compSubStatValue {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.compDetail {
+  padding: 14px 16px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.compDetailRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.compDetailLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-shrink: 1;
+}
+
+.compDetailValue {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  text-align: right;
+}
+
+.compDetailFormulaBox {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--text-tertiary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.compAlasan {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1.4;
+}
+
+.rentangToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--dur-fast, 0.15s) ease, border-color var(--dur-fast, 0.15s) ease;
+}
+
+.rentangToggle:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: var(--accent);
+}
+
+.rentangChevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rentangMotion {
+  overflow: hidden;
+}
+
+.rentangTable {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+  padding: 6px 2px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--text-tertiary) 5%, transparent);
+}
+
+.rentangRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.rentangLabel {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.rentangSkor {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.rentangRowActive {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.rentangRowActive .rentangLabel,
+.rentangRowActive .rentangSkor {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.compNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.compNoteInfo {
+  background: var(--info-100, var(--surface-2));
+  color: var(--text-secondary);
+}
+
+.compNoteInfo svg {
+  color: var(--info-600);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.compNoteWarn {
+  background: var(--amber-100);
+  color: var(--amber-600);
+}
+
+.compNoteWarn svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ============ Hero: Total Skor (gauge) ============ */
+.heroCard {
+  margin-bottom: var(--card-gap);
+}
+
+.heroTopRow.heroTopRow {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.heroTitleWrap {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.heroBadge {
+  margin-left: auto;
+}
+
+.heroTitle {
+  font-size: 17px;
+}
+
+.heroSub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 3px 0 0;
+}
+
+/* Tiga zona yang menjawab tiga pertanyaan berbeda: berapa skornya, dari mana
+   asalnya (tahap perencanaan vs realisasi), dan di mana skor paling banyak
+   hilang. Sebelumnya kartu ini hanya berisi gauge + dua angka, jadi lebarnya
+   yang penuh terpakai kosong. Zona dipisah garis rambut, bukan kartu bersarang. */
+.heroBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+}
+
+.heroScore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.heroGaugeWrap {
+  position: relative;
+  width: 200px;
+  max-width: 100%;
+}
+
+/* Di lebar menengah gauge menempati satu kolom penuh dua baris, sehingga kedua
+   zona teks menumpuk di kolom kanan. Tanpa ini zona ketiga jatuh ke baris kedua
+   kolom gauge yang sempit dan teksnya patah-patah. */
+@media (min-width: 760px) {
+  .heroBody {
+    grid-template-columns: minmax(180px, 210px) minmax(0, 1fr);
+    column-gap: var(--space-6);
+  }
+  .heroScore {
+    grid-row: 1 / span 2;
+    align-self: start;
+  }
+}
+
+@media (min-width: 1120px) {
+  .heroBody {
+    grid-template-columns: minmax(180px, 200px) minmax(0, 1.05fr) minmax(0, 0.95fr);
+  }
+  .heroScore {
+    grid-row: auto;
+  }
+}
+
+/* Skor maksimum menurut Kepka disimpan sebagai keterangan di bawah gauge, bukan
+   dijadikan statistik sejajar — angka yang dibaca lebih dulu tetap skor nyata. */
+.heroKepka {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.45;
+}
+
+.heroKepkaNum {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.heroZone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+@media (min-width: 760px) {
+  .heroZone {
+    padding-left: var(--space-6);
+    border-left: 1px solid var(--border);
+  }
+}
+
+.heroZoneTitle {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ---- Meter tahap (A1–A3 vs A4–A7) ---- */
+.meter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.meterHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.meterLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.meterValue {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.meterMax {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-left: 2px;
+}
+
+.meterTrack {
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+/* Diisi selebar penuh lalu diskalakan, bukan dianimasikan lewat `width` —
+   transisi width memicu layout tiap frame. Sudut membulatnya datang dari clip
+   track (pill + overflow hidden), jadi fill sendiri tidak perlu radius: pada
+   tinggi 7px ujung tumpulnya toh tak terlihat, dan radius yang ikut terskala
+   justru berubah jadi elips di persentase kecil. */
+.meterFill {
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.meterFoot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.meterCaption {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  min-width: 0;
+}
+
+.meterPct {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.heroGauge {
+  width: 100%;
+  display: block;
+}
+
+.heroGaugeTrack {
+  fill: none;
+  stroke: var(--surface-2);
+  stroke-width: 15;
+}
+
+.heroGaugeValue {
+  fill: none;
+  stroke: url(#pemanfaatanGaugeGrad);
+  stroke-width: 15;
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.heroGaugeCenter {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.heroGaugeScore {
+  font-family: var(--font-mono);
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.heroGaugeMax {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ---- Zona diagnosa: fakta yang mengarahkan tindakan, bukan angka tambahan ---- */
+.heroFacts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.heroFact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.heroFactLabel {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.heroFactValue {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.heroFactNum {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.heroFactNote {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* Footer menampung konteks (lingkup, tanggal data) dan catatan metode, supaya
+   badan kartu tetap berisi angka saja. */
+/* Border & padding atas sudah datang dari Card.Footer; di sini hanya arah
+   layout dan jarak dari badan kartu (menimpa `margin-top: auto` bawaan). */
+.heroFoot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  margin-top: var(--space-5);
+}
+
+.heroFootScope {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.heroFootScopeName {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.heroFormula {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+@media (max-width: 759px) {
+  .heroGaugeWrap {
+    width: 180px;
+  }
+}
+
+.tableSection {
+  margin-top: 80px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.sectionCaption {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.tableWrap {
+  margin-bottom: 8px;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 1020px;
+}
+
+.th {
+  text-align: right;
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.thSatker {
+  text-align: left;
+}
+
+.thNum {
+  text-align: right;
+}
+
+.thSub {
+  display: block;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: normal;
+  max-width: 120px;
+  margin-top: 2px;
+}
+
+.thSortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--dur-fast) ease;
+}
+
+.thSortable:hover {
+  color: var(--text-primary);
+}
+
+.thSortIconIdle {
+  opacity: 0.4;
+  vertical-align: middle;
+}
+
+.thSortIconActive {
+  color: var(--accent);
+  vertical-align: middle;
+}
+
+.td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.tdSatker {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tdNum {
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.tdTotal {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.tdCapaian {
+  text-align: center;
+}
+
+.rowClickable {
+  cursor: pointer;
+  transition: background-color var(--dur-fast) ease;
+}
+
+.rowClickable:hover {
+  background: var(--surface-hover);
+}
+
+.rowActive {
+  background: var(--accent-soft);
+}
+
+.tableNote {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+  margin: 0;
+}

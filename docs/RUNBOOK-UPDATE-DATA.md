@@ -1,0 +1,503 @@
+# Runbook — Update Data Supabase dari `data/data_update/`
+
+**Dibuat:** 18 Agustus 2026
+**Untuk:** asisten AI (Claude) atau developer yang bekerja di komputer lain setelah `git clone` repo ini
+**Script:** [`scripts/update_from_data_update.mjs`](../scripts/update_from_data_update.mjs)
+
+> Dokumen pendamping:
+>
+> - [docs/BASELINE-ARSITEKTUR.md](BASELINE-ARSITEKTUR.md) — arsitektur aplikasi secara umum
+> - [sql/migrations/README.md](../sql/migrations/README.md) — urutan build database & definisi view
+> - [AGENTS.md](../AGENTS.md) — Next.js di repo ini **bukan** Next.js versi umum, baca dokumen lokalnya
+
+---
+
+## 1. Apa yang dilakukan mekanisme ini
+
+Data mentah pengadaan (SIRUP / INAPROC / e-Katalog) ditarik berkala jadi file, lalu **isi tabel Supabase diganti** dengan file itu. Aplikasi hanya membaca; seluruh angka di dashboard adalah turunan tabel-tabel ini lewat `view_dashboard_*`.
+
+Alur singkat:
+
+```
+tarik API  ->  data/data_update/<nama_tabel>/<file>.json
+                        |
+                        v
+       node scripts/update_from_data_update.mjs --all
+                        |
+                        v
+              tabel Supabase ter-update
+                        |
+                        v
+        view_dashboard_* ikut segar (view, bukan materialized)
+                        |
+                        v
+   mv_dashboard_gabungan_satker di-REFRESH (lihat §5b di bawah)
+                        |
+                        v
+   hitung ulang risiko pengadaan (POST /api/risiko/recalculate/*)
+                        |
+                        v
+   mv_risiko_ringkasan di-REFRESH (lihat §5c di bawah)
+```
+
+View **tidak perlu di-refresh manual** — semuanya view biasa, bukan materialized view,
+**kecuali `mv_dashboard_gabungan_satker`** (sumber halaman Ringkasan, lihat
+[`sql/migrations/75_materialized_view_gabungan_satker.sql`](../sql/migrations/75_materialized_view_gabungan_satker.sql))
+dan **`mv_risiko_ringkasan`** (rekap ringan untuk 2 grafik risiko di halaman Ringkasan, lihat
+[`sql/migrations/76_materialized_view_risiko_ringkasan.sql`](../sql/migrations/76_materialized_view_risiko_ringkasan.sql)),
+yang keduanya di-refresh **otomatis** oleh `update_from_data_update.mjs` tepat setelah semua
+tabel sumber sukses ditulis (dan, untuk risiko, setelah hitung ulang risiko selesai) — lihat
+§5b dan §5c.
+
+---
+
+## 2. Prasyarat di komputer baru
+
+| Langkah                    | Perintah / tindakan                                                                                                                                                              |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Dependency              | `npm install`                                                                                                                                                                  |
+| 2.**`.env.local`** | **WAJIB dibuat manual — file ini di-gitignore, tidak ikut ter-clone.** Salin `.env.example` jadi `.env.local`, isi dari Supabase Dashboard → Project Settings → API |
+| 3. Node                    | Node 20+ (dites di Node 22). Tidak ada dependency tambahan di luar`package.json`                                                                                               |
+
+Isi minimal `.env.local` untuk script ini:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+```
+
+Opsional, hanya untuk `npm run update-data` (lihat §5.1.1) — folder tarikan INAPROC
+di komputer ini, kalau bukan `D:\INAPROC-Data\sync-state\v1`:
+
+```
+INAPROC_SYNC_DIR=E:\INAPROC-Data\sync-state\v1
+```
+
+Opsional, hanya untuk auto-recalculate risiko (lihat §5c) — base URL aplikasi yang
+dipanggil untuk `POST /api/risiko/recalculate/*`. Default kalau dikosongkan:
+`https://god-pbj.vercel.app`. Isi dengan `http://localhost:3000` untuk menguji lokal
+(dev server harus jalan), atau lewati langkah ini sepenuhnya dengan flag `--skip-risiko`:
+
+```
+RISIKO_RECALC_BASE_URL=http://localhost:3000
+```
+
+Script memakai `SUPABASE_SERVICE_ROLE_KEY` **kalau ada**, kalau tidak ada jatuh ke anon key. Per 18 Agustus 2026, seluruh 10 tabel target masih bisa ditulis dengan anon key (RLS tidak aktif / permisif). Kalau suatu saat RLS diperketat, gejalanya error `42501` saat menulis → isi `SUPABASE_SERVICE_ROLE_KEY` di `.env.local` (jangan pernah di-commit).
+
+Project ref saat ini: `bsskoapfeejutazpsyvd`. Untuk menyegarkan tipe TypeScript:
+
+```powershell
+npx supabase gen types typescript --project-id bsskoapfeejutazpsyvd --schema public > database.types.ts
+```
+
+---
+
+## 3. Struktur folder sumber
+
+Satu folder per tabel, **nama folder = nama tabel di Supabase**:
+
+```
+data/data_update/
+  api_paket_penyedia_terumumkan/
+    paket-penyedia-terumumkan_2026.json       <- dipakai
+    paket-penyedia-terumumkan_2026.csv        <- diabaikan kalau ada JSON
+    paket-penyedia-terumumkan_2026.xlsx       <- selalu diabaikan
+    paket-penyedia-terumumkan_2026.meta.json  <- diabaikan (metadata tarikan)
+  non_tender_selesai/
+    ...
+```
+
+**Selalu utamakan JSON.** Alasan konkret: di `history_kaji_ulang` ada `kd_satker_str` bernilai `"021212"` — lewat CSV/Excel nol depannya hilang jadi `21212`. JSON juga membedakan `null` dan string kosong. Script memilih file `*.json` (bukan `*.meta.json`) lebih dulu, dan hanya jatuh ke `*.csv` kalau tidak ada JSON.
+
+Kalau file JSON tidak tersedia dari sumber, CSV tetap didukung — pemisah `,` maupun `;` dideteksi otomatis (ekspor non-tender pakai `;`).
+
+---
+
+## 4. Tabel yang terdaftar
+
+Ada di konstanta `TABLES` di dalam script. Per 18 Agustus 2026:
+
+| Tabel                               | Mode    | Kunci alami (`keyCol`)        | PK DB (`idCol`) |
+| ----------------------------------- | ------- | ------------------------------- | ----------------- |
+| `api_paket_penyedia_terumumkan`   | upsert  | `kd_rup`                      | `kd_rup`        |
+| `api_paket_swakelola_terumumkan`  | upsert  | `kd_rup`                      | `kd_rup`        |
+| `paket_anggaran_penyedia`         | upsert  | `id_paket_anggaran_penyedia`  | sama              |
+| `paket_anggaran_swakelola`        | upsert  | `id_paket_anggaran_swakelola` | sama              |
+| `paket_e_purchasing`              | upsert  | `order_id`                    | `order_id`      |
+| `tender_selesai_nilai`            | upsert  | `kd_tender`                   | `kd_tender`     |
+| `history_kaji_ulang`              | replace | —                              | `id` (serial)   |
+| `pencatatan_non_tender_realisasi` | replace | —                              | `id` (uuid)     |
+| `non_tender_selesai`              | replace | —                              | `id` (uuid)     |
+| `data_afirmasi_pdn_perencanaan`   | replace | —                              | `id` (serial)   |
+
+### Dua mode
+
+**`upsert`** — file punya kunci alami. Alur: UPSERT semua baris baru → hapus baris DB yang kunci-nya tidak ada di file. Tabel **tidak pernah kosong**; kalau gagal di tengah, data lama masih utuh. Ini mode yang diutamakan.
+
+**`replace`** — file tidak punya kunci alami (`id`-nya digenerate DB, jadi tidak bisa dicocokkan). Alur: backup → hapus semua → insert. Ada jeda beberapa detik tabel kosong; kalau insert gagal, isi lama dipulihkan otomatis dari backup (kolom `id` akan bernilai baru).
+
+Hasil akhir kedua mode identik: isi tabel = isi file, tidak lebih tidak kurang.
+
+### Tabel yang TIDAK dicakup mekanisme ini
+
+`master_data`, `satker_kode_alias`, `master_data_pn`, `master_data_ro`, `data_jf_kemnaker`, `data_renaksi`, `formasi_jf_ukpbj`, `api_pencatatan_swakelola`, `pencatatan_swakelola_realisasi`, `profiles`, `ai_kurasi_paket`, `risiko_pengadaan`.
+
+Beberapa punya script sendiri (mis. [`scripts/import_master_data_pn_ro.mjs`](../scripts/import_master_data_pn_ro.mjs)); `ai_kurasi_paket` diisi fitur AI Kurasi; `risiko_pengadaan` diisi endpoint recalculate. **`ai_kurasi_paket` tidak pernah ikut terhapus** oleh update ini — hasil kurasi aman.
+
+---
+
+## 5. Prosedur update rutin
+
+### 5.1 Cara cepat: satu perintah dari tarikan lokal
+
+Kalau tarikan INAPROC ada di komputer ini (default `D:\INAPROC-Data\sync-state\v1`),
+satu perintah ini mengerjakan seluruh rantainya — salin file, dry-run, lalu tulis:
+
+```powershell
+npm run update-data          # = node scripts/refresh_data.mjs
+npm run update-data -- --dry-run   # salin + periksa saja, DB tidak disentuh
+```
+
+| Script | Tugas |
+| ------ | ----- |
+| [`scripts/refresh_data.mjs`](../scripts/refresh_data.mjs) | orkestrator: langkah 1-2-3, berhenti begitu ada yang gagal |
+| [`scripts/sync_from_inaproc.mjs`](../scripts/sync_from_inaproc.mjs) | langkah 1 saja: salin tarikan lokal -> `data/data_update/` (`npm run sync-data`) |
+| [`scripts/update_from_data_update.mjs`](../scripts/update_from_data_update.mjs) | langkah 2 & 3: periksa lalu tulis ke Supabase |
+
+Dry-run di langkah 2 **tidak bisa dilewati**; kalau satu tabel saja tidak lolos,
+langkah 3 tidak jalan sama sekali.
+
+Yang perlu diketahui soal langkah salin:
+
+- **Hanya JSON + `.meta.json` yang disalin.** `.csv` hanya untuk tabel yang memang
+  tidak punya JSON di sumber (saat ini cuma `data_afirmasi_pdn_perencanaan`);
+  `.xlsx` tidak pernah disalin — updater mengabaikannya dan ukurannya besar.
+- **File lama di folder tujuan dihapus.** Sengaja: `findSourceFile()` memilih file
+  JSON/CSV *pertama* hasil `readdirSync`, bukan yang terbaru. Nama file afirmasi
+  berstempel waktu, jadi menumpuknya file lama bisa membuat updater memakai tarikan
+  basi tanpa error apa pun. Pakai `--keep-extra` kalau memang mau menahan file lama.
+- **Tarikan yang lebih tua ditolak.** Kalau `lastUpdated` di `.meta.json` sumber lebih
+  tua daripada yang sudah ada di repo, tabel itu tertahan; lanjutkan dengan `--force-older`.
+- **Lokasi tarikan lokal diatur di `.env.local`** — lihat §5.1.1 di bawah.
+
+#### 5.1.1 Mengatur lokasi tarikan di komputer lain
+
+Folder tarikannya beda-beda tiap komputer, jadi jangan diubah di dalam script.
+Tambahkan satu baris di `.env.local` (file ini di-gitignore, jadi tiap komputer
+punya isinya sendiri — dan tidak ikut ter-clone):
+
+```
+INAPROC_SYNC_DIR=E:\INAPROC-Data\sync-state\v1
+```
+
+Yang ditunjuk adalah folder **induk** — yang berisi subfolder `rup/`, `tender/`,
+`ekatalog/`, dan file `data_afirmasi_pdn_perencanaan_*.csv` di akarnya.
+
+Urutan yang menang, yang pertama ketemu dipakai:
+
+| Urutan | Sumber nilai | Untuk apa |
+| ------ | ------------ | --------- |
+| 1 | `--source "E:\lain\v1"` | sekali jalan saja, tanpa mengubah konfigurasi |
+| 2 | environment variable `INAPROC_SYNC_DIR` | CI / scheduler |
+| 3 | `INAPROC_SYNC_DIR` di `.env.local` | **cara biasa, satu kali per komputer** |
+| 4 | bawaan `D:\INAPROC-Data\sync-state\v1` | komputer tempat mekanisme ini dibuat |
+
+Baris pertama output script selalu menyebutkan yang mana yang terpakai
+(`sumber : ... (dari .env.local)`), jadi tidak perlu menebak. Kalau foldernya tidak
+ada, script berhenti sebelum menyentuh apa pun dan mencetak contoh isian di atas.
+
+`INAPROC_SYNC_DIR` **tidak dipakai aplikasi** — hanya dua script ini. Jangan diisi di
+Vercel; path komputer lokal tidak ada artinya di sana.
+
+Peta sumber -> tabel ada di konstanta `SOURCES` dalam `sync_from_inaproc.mjs`
+(mis. `rup/paket-penyedia-terumumkan_*` -> `api_paket_penyedia_terumumkan`).
+Catatan: `dashboard/afirmasi/` di folder sumber **bukan** `data_afirmasi_pdn_perencanaan`
+— kolomnya soal pelaksanaan PDN, bukan perencanaan.
+
+### 5.2 Cara manual (file sudah ada di `data/data_update/`)
+
+```powershell
+# 1. WAJIB: periksa dulu, tidak menulis apa pun
+node scripts/update_from_data_update.mjs --dry-run --all
+
+# 2. Kalau semua lolos, jalankan (akan minta ketik "ya")
+node scripts/update_from_data_update.mjs --all
+
+# satu tabel saja
+node scripts/update_from_data_update.mjs --table paket_e_purchasing
+```
+
+Flag:
+
+| Flag               | Arti                                                                  |
+| ------------------ | --------------------------------------------------------------------- |
+| `--all`          | proses semua tabel di`TABLES`                                       |
+| `--table <nama>` | proses satu tabel (boleh diulang)                                     |
+| `--dry-run`      | validasi + laporan saja,**tidak menulis**                       |
+| `--yes`          | lewati konfirmasi interaktif (untuk non-TTY)                          |
+| `--force`        | lewati gerbang "baris turun drastis"                                  |
+| `--no-backup`    | lewati backup (hanya berlaku mode upsert; mode replace selalu backup) |
+| `--skip-risiko`  | lewati hitung ulang risiko + refresh `mv_risiko_ringkasan` (lihat §5c) — proses itu memakan waktu beberapa menit |
+
+Kalau **satu tabel saja** gagal periksa, script berhenti dan **tidak menulis apa pun ke tabel mana pun**. Ini disengaja.
+
+### Yang dilakukan script per tabel
+
+1. Pilih file sumber (JSON > CSV).
+2. Ambil daftar kolom tabel dari [`database.types.ts`](../database.types.ts). Key file yang bukan kolom akan diprobe langsung ke DB (menangani kolom yang baru ditambah lewat migration tapi tipe belum di-regenerate); kalau memang tidak ada → **berhenti**, bukan diam-diam dibuang.
+3. Normalisasi baris: setiap baris diisi persis daftar kolom yang sama, key yang hilang jadi `null`. **Ini wajib** — PostgREST menolak bulk insert dengan galat `PGRST102` kalau objek dalam satu array punya set key berbeda, dan API sumber memang kadang menghilangkan field bernilai null.
+4. Cek duplikat `keyCol` di dalam file (duplikat menggagalkan upsert).
+5. **Gerbang pengaman**: kalau baris file < 80% baris DB sekarang → berhenti, minta `--force`. Mencegah "file kepotong → tabel jadi kosong".
+6. Backup isi tabel ke `data/backup/<tabel>_<timestamp>.json` (folder ini di-gitignore).
+7. Tulis (upsert / delete-all+insert), lalu hapus baris usang untuk mode upsert.
+8. Verifikasi jumlah baris akhir = jumlah baris file. Kalau tidak sama → dilaporkan `[BEDA]` dan exit code 1.
+9. Catat satu baris ke tabel `data_update_log` (lihat §5a). Gagal mencatat **tidak** membatalkan update — datanya sudah masuk.
+
+Nilai **tidak pernah diubah/dinormalisasi**. Yang dikirim persis isi file; konversi tipe diserahkan ke Postgres (mis. boolean JSON masuk ke kolom TEXT jadi `"true"`, angka masuk kolom TEXT jadi digit polos).
+
+---
+
+## 5a. Stempel "Diperbarui ..." di topbar
+
+Topbar aplikasi menampilkan teks halus seperti **"Diperbarui 3 jam lalu"**. Angkanya
+berasal dari tabel `data_update_log`, bukan dari file di `data/data_update/`.
+
+| Bagian | Berkas |
+| ------ | ------ |
+| DDL tabel | [`sql/migrations/74_table_data_update_log.sql`](../sql/migrations/74_table_data_update_log.sql) |
+| Yang mengisi | `logUpdate()` di [`scripts/update_from_data_update.mjs`](../scripts/update_from_data_update.mjs) |
+| Yang membaca | [`src/lib/data-update/lastUpdate.ts`](../src/lib/data-update/lastUpdate.ts) |
+| Yang menampilkan | [`src/components/layout/DataFreshness.tsx`](../src/components/layout/DataFreshness.tsx) |
+
+### Kenapa bukan `lastUpdated` di `*.meta.json`
+
+`meta.json` mencatat kapan data **ditarik dari API**. Itu bukan pertanyaan yang
+dijawab topbar. Dua bedanya nyata:
+
+- File bisa mengendap berhari-hari sebelum scriptnya dijalankan, atau tertahan
+  gerbang `DROP_GUARD` dan tidak pernah masuk DB sama sekali — stempelnya akan
+  bohong.
+- File hanya sampai ke production lewat commit + deploy. Update yang dijalankan
+  dari komputer lain tanpa deploy ulang tidak akan terlihat.
+
+`source_pulled_at` di `data_update_log` tetap menyimpan nilai `meta.json` itu
+sebagai pembanding; selisihnya dengan `finished_at` = berapa lama file mengendap
+sebelum masuk DB.
+
+### Kalau stempelnya tidak muncul / tidak maju
+
+| Gejala | Sebab | Tindakan |
+| ------ | ----- | -------- |
+| Topbar tidak menampilkan stempel sama sekali | tabel `data_update_log` belum ada, atau belum ada satu pun baris | jalankan migration 74 di Supabase SQL Editor, lalu jalankan updater sekali |
+| Script berkata "GAGAL menulis data_update_log" | migration 74 belum dijalankan, atau RLS diperketat | jalankan migration 74; kalau galat `42501`, isi `SUPABASE_SERVICE_ROLE_KEY` di `.env.local` |
+| Stempel ada tapi tidak maju setelah update | tabel yang dijalankan gagal validasi (tidak ada yang ditulis) | baca ringkasan di akhir output script |
+
+Stempel **tidak pernah maju karena `--dry-run`** — dry run tidak menulis apa pun,
+termasuk log.
+
+---
+
+## 5b. Rekap tersimpan (materialized view) `mv_dashboard_gabungan_satker`
+
+Halaman Ringkasan membaca dari `mv_dashboard_gabungan_satker`, bukan langsung dari
+`view_dashboard_gabungan_satker`. Lihat
+[`sql/migrations/75_materialized_view_gabungan_satker.sql`](../sql/migrations/75_materialized_view_gabungan_satker.sql)
+untuk alasannya (ringkasnya: view aslinya berat dihitung ulang tiap pembukaan halaman). Ada
+juga `mv_risiko_ringkasan` untuk keperluan serupa — lihat §5c di bawah.
+
+**Kapan di-refresh:** otomatis, tepat setelah `update_from_data_update.mjs --all` selesai
+menulis SEMUA tabel target dengan sukses (bukan terjadwal, bukan per kunjungan user). Kalau
+ada tabel yang gagal/tertahan, refresh **tidak** dipicu — rekap lama tetap dipakai daripada
+direfresh dari campuran data yang tidak utuh.
+
+**Kalau refresh gagal** (dicetak `GAGAL (non-fatal)` di output script): ini TIDAK
+menggagalkan update data — tabel sumbernya sudah aman ditulis. Halaman Ringkasan akan
+menampilkan data **basi** (dari refresh sebelumnya), bukan kosong/error, sampai direfresh
+ulang. Cara refresh manual di Supabase SQL Editor:
+
+```sql
+SELECT refresh_dashboard_gabungan_satker();
+```
+
+**Cek status kapan saja** (kolom `ispopulated` harus `true`, `last_refresh` menandakan segar/tidaknya):
+
+```sql
+SELECT matviewname, ispopulated FROM pg_matviews WHERE matviewname = 'mv_dashboard_gabungan_satker';
+```
+
+**Setup database baru** (clone/on-premise): setelah menjalankan migration 75, mv masih kosong
+(`WITH NO DATA`) — WAJIB refresh manual sekali sebelum halaman Ringkasan dibuka:
+
+```sql
+REFRESH MATERIALIZED VIEW mv_dashboard_gabungan_satker;
+```
+
+---
+
+## 5c. Rekap ringan risiko (materialized view) `mv_risiko_ringkasan` + hitung ulang otomatis
+
+Panel risiko di halaman Ringkasan (`RisikoInsightPanel`, dua grafik + angka cetak) membaca dari
+`mv_risiko_ringkasan`, bukan langsung dari `risiko_pengadaan` — lihat
+[`sql/migrations/76_materialized_view_risiko_ringkasan.sql`](../sql/migrations/76_materialized_view_risiko_ringkasan.sql).
+mv ini punya kolom `components_json` yang **diperkecil** (cuma `label`/`score`/`applicable`,
+bukan seluruh 9 field) karena itulah satu-satunya yang dipakai kedua grafik. Halaman **Risiko
+Pengadaan penuh** (tabel detail, filter, drill-down) TETAP membaca `risiko_pengadaan` asli
+langsung — TIDAK terpengaruh perubahan ini.
+
+**Kapan di-refresh:** dua jalur, keduanya otomatis:
+
+1. **Setelah update data** — `update_from_data_update.mjs` (tepat setelah semua tabel sukses
+   ditulis) memanggil `POST /api/risiko/recalculate/penyedia` dan `/swakelola` berulang (sama
+   endpoint yang dipakai tombol "Hitung Ulang" manual) sampai selesai, lalu memanggil
+   `refresh_risiko_ringkasan()`. Butuh env `RISIKO_RECALC_BASE_URL` (default
+   `https://god-pbj.vercel.app`, lihat `.env.example`) bisa dijangkau — proses ini memakan
+   waktu **beberapa menit** (puluhan request berurutan). Lewati dengan flag `--skip-risiko`
+   kalau tidak ingin menunggu:
+   ```powershell
+   node scripts/update_from_data_update.mjs --all --yes --skip-risiko
+   ```
+2. **Tombol "Hitung Ulang" manual** di halaman Risiko Pengadaan — memanggil
+   `refresh_risiko_ringkasan()` tepat setelah kedua proses (Penyedia + Swakelola) selesai.
+
+**Kalau gagal** (baik jalur 1 maupun 2): non-fatal, dicatat ke log/console saja. Panel Ringkasan
+menampilkan data **basi** (dari refresh sebelumnya), bukan kosong/error. Refresh manual:
+```sql
+SELECT refresh_risiko_ringkasan();
+```
+
+**Setup database baru:** setelah menjalankan migration 76, mv masih kosong (`WITH NO DATA`) —
+WAJIB refresh manual sekali sebelum halaman Ringkasan dibuka:
+```sql
+REFRESH MATERIALIZED VIEW mv_risiko_ringkasan;
+```
+
+---
+
+## 6. Menambah tabel baru ke mekanisme ini
+
+1. Buat folder `data/data_update/<nama_tabel>/` dan taruh file JSON-nya.
+2. Tambahkan satu baris ke `TABLES` di script:
+
+   ```js
+   { table: 'nama_tabel', mode: 'upsert', keyCol: 'kunci_alami', idCol: 'pk_db' },
+   ```
+
+   Pakai `mode: 'replace'` + `keyCol: null` kalau PK-nya digenerate DB (serial/uuid) dan tidak ada di file.
+3. `--dry-run` dulu. Kalau muncul keluhan kolom tidak ada, buat migration di `sql/migrations/` (nomor berikutnya), jalankan di Supabase SQL Editor, lalu regenerate `database.types.ts`.
+
+---
+
+## 7. Pesan error dan artinya
+
+| Pesan                                                                     | Arti & tindakan                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Field berikut ada di file tapi tidak ada kolomnya di tabel X: <kolom>` | Sumber menambah field baru. Buat migration`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, jalankan di SQL Editor, ulangi. Contoh nyata: [`67_alter_pencatatan_non_tender_kode_penyedia.sql`](../sql/migrations/67_alter_pencatatan_non_tender_kode_penyedia.sql) |
+| `baris baru (N) < 80% baris sekarang (M)`                               | File sumber diduga tidak lengkap. Periksa`*.meta.json` (`rowCount`). Kalau memang benar turun, ulangi dengan `--force`                                                                                                                                    |
+| `Kunci <k> duplikat di file`                                            | File sumber punya PK ganda — mustahil di-upsert. Bersihkan file sumber dulu                                                                                                                                                                                    |
+| `Tabel X tidak ditemukan di database.types.ts`                          | Regenerate tipe (lihat bagian 2)                                                                                                                                                                                                                                |
+| Error`42501` saat menulis                                               | RLS memblokir anon key. Isi`SUPABASE_SERVICE_ROLE_KEY` di `.env.local`                                                                                                                                                                                      |
+| Error`PGRST102`                                                         | Seharusnya tidak terjadi (script menormalisasi key). Kalau muncul, ada baris file yang bukan objek datar                                                                                                                                                        |
+| `[BEDA]` di ringkasan                                                   | Jumlah baris akhir ≠ jumlah file. Periksa manual, jangan diulang membabi buta                                                                                                                                                                                  |
+
+---
+
+## 8. Peta sumber realisasi → tampilan dashboard
+
+Sangat sering ditanyakan: **"kenapa paket X di website masih BELUM REALISASI?"**. Statusnya bukan kolom, tapi **hasil hitung view**:
+
+```sql
+CASE WHEN (total_pencatatan + total_transaksional) > 0
+     THEN 'COMPLETED' ELSE 'BELUM REALISASI' END
+```
+
+Jadi status hanya berubah kalau ada baris realisasi di tabel sumbernya:
+
+| Dashboard / view                       | Sumber realisasi                                             | Filter kunci                                               |
+| -------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------- |
+| `view_dashboard_pengadaan_langsung`  | `pencatatan_non_tender_realisasi` + `non_tender_selesai` | `mtd_pemilihan IN ('Pengadaan Langsung','Dikecualikan')` |
+| `view_dashboard_penunjukan_langsung` | `pencatatan_non_tender_realisasi` + `non_tender_selesai` | `mtd_pemilihan = 'Penunjukan Langsung'`                  |
+| `view_dashboard_tender`              | `tender_selesai_nilai`                                     | metode Tender/Seleksi/Tender Cepat/Kontrak Tahun Jamak     |
+| `view_dashboard_epurchasing_v6`      | `paket_e_purchasing`                                       | join lewat`rup_code` + `satker_kode_alias`             |
+| `view_dashboard_swakelola_v1`        | `api_pencatatan_swakelola` (`total_realisasi`)           | status bukan`%cancel%`                                   |
+| `view_dashboard_gabungan_satker`     | UNION kelima view di atas                                    | —                                                         |
+
+Definisi final tiap view = file bernomor **terbesar** di `sql/migrations/` yang menyentuh view itu (mis. PL final ada di `45_view_jenis_pengadaan.sql`, bukan `43_`).
+
+### Cara mendiagnosis satu `kd_rup`
+
+Urutannya: cek tabel sumber realisasi dulu, baru view. Kalau tabel sumbernya kosong, view pasti bilang BELUM REALISASI dan itu **benar** — masalahnya di data yang belum masuk, bukan di view.
+
+```js
+// jalankan dari root project (butuh node_modules), anon key sudah cukup
+const RUP = '64619620';
+await sb.from('non_tender_selesai').select('*').eq('kd_rup', RUP);
+await sb.from('pencatatan_non_tender_realisasi').select('*').eq('kd_rup_paket', RUP);
+await sb.from('paket_e_purchasing').select('*').eq('rup_code', RUP);
+await sb.from('tender_selesai_nilai').select('*').eq('kd_rup_paket', RUP);
+await sb.from('view_dashboard_pengadaan_langsung').select('*').eq('kd_rup', RUP);
+```
+
+**Kejadian nyata 18 Agustus 2026:** paket `64619620` tampil BELUM REALISASI. Ternyata tabel `non_tender_selesai` **kosong 0 baris** — datanya tidak pernah masuk. Setelah 49 baris diimpor: paket itu jadi `COMPLETED` (Rp79.646.692,04, CV.Limas Jaya), dan dashboard PL melonjak dari 22 → 67 paket sudah realisasi (Rp768 juta → Rp6,18 miliar). Pelajarannya: satu tabel sumber yang kosong bisa menyembunyikan ratusan realisasi tanpa error apa pun.
+
+Catatan lain: `nilai_kontrak` sering kosong di data non-tender; view sudah jatuh ke `nilai_negosiasi` lewat `NULLIF`. Jangan "memperbaiki" file sumber untuk ini.
+
+---
+
+## 9. Jebakan yang mudah bikin salah
+
+- **`database.types.ts` ber-line-ending CRLF.** Parser apa pun yang membacanya harus strip `\r` dulu. Kalau di-regenerate lewat redirect shell, seluruh file akan tampak berubah di git padahal isinya sama — itu normal.
+- **Angka desimal koma.** Ekspor CSV lama pakai `79646692,04`; JSON baru pakai `79646692.04`. View sudah `REPLACE(x, ',', '.')`, jadi keduanya aman. Jangan mengubah nilainya di file.
+- **Kolom TEXT berisi angka.** Banyak tabel dibuat dengan semua kolom TEXT (lihat `sql/migrations/11–14`). Jangan "merapikan" jadi numeric tanpa memeriksa seluruh view yang meng-cast-nya.
+- **Jangan pakai Table Editor Supabase untuk file besar.** Importer-nya jalan di browser dan sering berhenti separuh jalan pada file belasan MB (`paket-penyedia-terumumkan` ±16 MB), tanpa backup dan tanpa verifikasi.
+- **`data/backup/` di-gitignore.** Isinya data produksi — jangan pernah di-commit.
+- **Migration bersifat historis.** File `sql/migrations/*.sql` mencatat niat saat itu, bukan kondisi live. Contoh: `12_table_non_tender_selesai.sql` menyalakan RLS SELECT-only, padahal di database sekarang anon tetap bisa menulis. **Selalu verifikasi ke DB**, jangan menyimpulkan dari file SQL.
+
+---
+
+## 10. Status terakhir (14 September 2026)
+
+- Migration 75 (`mv_dashboard_gabungan_satker`) dan 76 (`mv_risiko_ringkasan`) **sudah
+  dijalankan** di Supabase SQL Editor dan diverifikasi (0 selisih baris-per-baris terhadap
+  sumber aslinya di kedua mv). `mv_risiko_ringkasan` mengecilkan `components_json` dari
+  ~13MB menjadi ~2,9MB (rasio 4,5x) tanpa mengubah isi `label`/`score`/`applicable`.
+- Auto-recalculate risiko (§5c) **sudah diuji end-to-end lewat dev server lokal**
+  (`RISIKO_RECALC_BASE_URL=http://localhost:3000`) — 7.927 baris Penyedia + 43 Swakelola
+  berhasil dihitung ulang, `mv_risiko_ringkasan` ikut segar. **Belum diuji ke default
+  produksi** (`https://god-pbj.vercel.app`) — jalankan sekali setelah deploy branch ini
+  dipastikan live untuk konfirmasi.
+- Branch `rework-pengadaan` **sudah ditimpakan ke `main`** (force-push) hari ini — histori
+  `main` yang lama (fitur Prioritas Nasional + percobaan materialized view terpisah 14 Juli
+  2026) diarsipkan di tag git `main-sebelum-ditimpa-20260914`, bukan dihapus.
+
+### Status 11 September 2026 (riwayat)
+
+- `npm run update-data` (salin dari `D:\INAPROC-Data\sync-state\v1` -> dry-run -> tulis)
+  dijalankan dan sukses **11/11 `[OK]`**: `api_paket_penyedia_terumumkan` 7.900→7.911,
+  `history_kaji_ulang` 6.771→6.781, `paket_anggaran_penyedia` 7.907→7.920,
+  `paket_e_purchasing` 1.320→1.341, tabel lain jumlahnya tetap. Semua ter-backup ke
+  `data/backup/` sebelum ditulis.
+- Mulai tarikan ini `data/data_update/` hanya berisi `.json` + `.meta.json`
+  (plus satu `.csv` untuk `data_afirmasi_pdn_perencanaan`). `.csv`/`.xlsx` duplikat dari
+  tarikan lama dihapus `sync_from_inaproc.mjs` — repo ikut jauh lebih ringan.
+- `pencatatan_non_tender` sudah masuk `TABLES` (total 11 tabel, bukan 10 seperti di §4).
+
+### Status 19 Agustus 2026 (riwayat)
+
+- Migration 67 **sudah dijalankan** di Supabase SQL Editor.
+- `--dry-run --all` pagi ini lolos 10/10 dengan selisih 0 — tapi begitu file sumber ditarik ulang (mis. `data_afirmasi_pdn_perencanaan` dapat CSV baru jam 01:56), selisihnya muncul lagi. `--all` **sudah dijalankan** dan sukses 10/10 `[OK]`: `api_paket_penyedia_terumumkan` 7.691→7.690, `history_kaji_ulang` 6.374→6.393, `paket_anggaran_penyedia` 7.704→7.703, `non_tender_selesai` 49→50, sisanya tidak berubah. Semua ter-backup ke `data/backup/` sebelum ditulis.
+- Pelajaran: jangan asumsikan "tadi pagi 0 selisih" masih berlaku kalau ada jeda waktu — sumbernya bisa ditarik ulang otomatis kapan saja. Selalu `--dry-run --all` dulu tepat sebelum `--all`, jangan mengandalkan dry-run lama.
+
+Kalau ada tarikan data baru, ulangi prosedur bagian 5 — dari tarikan lokal di komputer ini:
+
+```powershell
+npm run update-data
+```
+
+atau, kalau file JSON/CSV-nya sudah ditaruh sendiri di folder tabel terkait:
+
+```powershell
+node scripts/update_from_data_update.mjs --dry-run --all
+node scripts/update_from_data_update.mjs --all
+```
+
+Status sebelumnya (18 Agustus 2026, untuk riwayat): `non_tender_selesai` baru diimpor 0 → 49 baris; 9 tabel lain saat itu belum dijalankan karena `pencatatan_non_tender_realisasi` menunggu migration 67.

@@ -9,7 +9,7 @@ export function ThemeToggle() {
   const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
-    // Check initial HTML attribute
+    // Sinkronkan state React dengan nilai yang sudah diset oleh script SSR
     const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
     setIsDark(isDarkTheme);
   }, []);
@@ -18,6 +18,9 @@ export function ThemeToggle() {
     const nextTheme = isDark ? 'light' : 'dark';
     setIsDark(!isDark);
     document.documentElement.setAttribute('data-theme', nextTheme);
+    try {
+      localStorage.setItem('theme', nextTheme);
+    } catch (e) {}
   };
 
   return (

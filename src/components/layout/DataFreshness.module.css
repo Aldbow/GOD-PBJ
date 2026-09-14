@@ -1,0 +1,28 @@
+/*
+ * Sengaja tanpa kotak/pill/ikon: stempel ini konteks, bukan kontrol. Bobotnya
+ * harus di bawah judul halaman dan tombol di sebelahnya.
+ */
+.freshness {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  letter-spacing: -0.005em;
+  cursor: default;
+  transition: color var(--dur-med) ease;
+}
+
+.freshness:hover {
+  color: var(--text-secondary);
+}
+
+/*
+ * Di layar sempit deret kontrol sudah padat (cari, notifikasi, tema, profil).
+ * Stempel yang paling boleh dikorbankan, jadi dilepas lebih dulu — batas 1100px
+ * dipilih agar hilang SEBELUM .userMeta ikut hilang di 992px.
+ */
+@media (max-width: 1100px) {
+  .freshness {
+    display: none;
+  }
+}

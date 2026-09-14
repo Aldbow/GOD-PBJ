@@ -1,0 +1,190 @@
+/* Bentuk kartunya seluruhnya dari komponen Card. Berkas ini hanya mengatur
+   grid pembungkus dan isi angka. */
+
+.section {
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--card-gap);
+  align-items: stretch;
+}
+
+.cardBody {
+  justify-content: flex-end;
+}
+
+.cardValueRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.cardValue {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.cardBadge {
+  padding: 2px 8px;
+  border: none;
+}
+
+.badge-good { background: var(--teal-100); color: var(--teal-800); }
+.badge-warn { background: var(--amber-100); color: var(--amber-800); }
+
+/* ---------- Rincian Realisasi ----------
+   Transaksional kini satu angka utuh (header + nilai, lihat .cardBody /
+   .rincianValue di atas). Pencatatan tetap pecah jadi on process + completed,
+   tapi sekarang ketiganya (total + dua status) berdiri sejajar mendatar
+   sebagai section, bukan angka besar dengan bar proporsi di bawahnya. */
+
+.rincianValue {
+  font-family: var(--font-mono);
+  font-size: 27px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.15;
+}
+
+/* Ukurannya diikatkan ke lebar kartunya sendiri lewat container query, sama
+   seperti .nilaiAcuan di KpiCards — tiga section mendatar dengan rupiah utuh
+   tak bisa dipatok satu ukuran font tetap tanpa risiko meluap. */
+.triStat {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-5);
+  container-type: inline-size;
+}
+
+.triStatItem {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.triStatItem + .triStatItem {
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--border);
+}
+
+.triStatLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.triStatValue {
+  font-family: var(--font-mono);
+  line-height: 1.15;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  /* Rupiah utuh tak punya titik putus alami -- turun baris daripada
+     terpotong diam-diam oleh overflow milik kartu. */
+  overflow-wrap: anywhere;
+}
+
+.triStatTotal .triStatValue {
+  font-weight: 700;
+  font-size: clamp(14px, 4.4cqw, 20px);
+}
+
+.triStatPart .triStatValue {
+  font-weight: 600;
+  font-size: clamp(12px, 3.6cqw, 16px);
+}
+
+/* Di bawah lebar ini kartu sudah selebar layar (grid dua kolom sudah jatuh
+   ke satu kolom jauh sebelum breakpoint ini) -- tiga section mendatar
+   ditumpuk supaya rupiah tak pernah harus mengecil sampai sulit dibaca. */
+@media (max-width: 480px) {
+  .triStat {
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .triStatItem + .triStatItem {
+    padding-left: 0;
+    padding-top: var(--space-4);
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+  .triStatTotal .triStatValue { font-size: 20px; }
+  .triStatPart .triStatValue { font-size: 16px; }
+}
+
+/* ---------- Bar progres penyerapan ---------- */
+
+.progressTotal {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.progressTrack {
+  height: 12px;
+  background: var(--track-bg);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  display: flex;
+  border: 1px solid var(--border);
+}
+
+.progressDone {
+  background: var(--teal-600);
+  height: 100%;
+}
+
+.progressRemaining {
+  background: var(--amber-600);
+  height: 100%;
+}
+
+.progressLegend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+}
+
+.legendDotDone { background: var(--teal-600); }
+.legendDotRemaining { background: var(--amber-600); }

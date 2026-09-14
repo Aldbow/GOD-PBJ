@@ -1,0 +1,10 @@
+{
+  "endpoint": "/v1/tender/tender-selesai-nilai",
+  "year": "2026",
+  "keyFields": [
+    "kode_lelang||kd_lelang||kode_rup||kd_rup"
+  ],
+  "rowCount": 10,
+  "lastUpdated": "2026-09-14T01:35:04.541Z",
+  "lastWriteMode": "append"
+}

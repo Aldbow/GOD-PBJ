@@ -1,0 +1,522 @@
+"use client";
+
+import React, { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Wallet, TrendingUp, ListTodo, Package, CheckCircle2, Clock } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { fmtRupiah, fmtRupiahDetail, countRup } from '@/lib/format';
+import { fetchRupHistory, type RupHistoryEntry } from '@/lib/paket/rupHistory';
+import { useOrgFilters } from '@/hooks/useOrgFilters';
+import { useUrlPillFilter } from '@/hooks/useUrlPillFilter';
+import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
+import { FilterAdvancedCard } from '@/components/paket/FilterAdvancedCard';
+import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
+import { MetricGrid, DualProgressBar } from '@/components/paket/SummaryCards';
+import { AnomaliPanel, AnomaliBadge } from '@/components/paket/AnomaliPanel';
+import { summarizeAnomali, matchesAnomali, type AnomaliJenis } from '@/lib/anomali';
+import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
+import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
+import { ViewLoadingSkeleton } from '@/components/ui/ViewLoadingSkeleton';
+import { Badge } from '@/components/ui/Badge';
+import { ErrorBox } from '@/components/ui/ErrorBox';
+import { ExportDataModal } from '@/components/ui/ExportDataModal';
+import styles from '@/components/paket/paketView.module.css';
+
+const METODE_OPTIONS = [
+  { value: 'Tender', label: 'Tender' },
+  { value: 'Seleksi', label: 'Seleksi' },
+  { value: 'Tender Cepat', label: 'Tender Cepat' },
+  { value: 'Pembayaran untuk Kontrak Tahun Jamak', label: 'Pembayaran Kontrak Tahun Jamak' },
+];
+
+const KURASI_OPTIONS = [
+  { value: 'Akurat', label: 'Akurat' },
+  { value: 'Tidak Akurat', label: 'Tidak Akurat' },
+  { value: 'Belum Dikurasi', label: 'Belum Dikurasi' }
+];
+
+const TIPE_RUP_OPTIONS = [
+  { value: 'Single RUP', label: 'Single RUP' },
+  { value: 'Multiple RUP', label: 'Multiple RUP' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'PAGU_DESC', label: 'Pagu Tertinggi' },
+  { value: 'PAGU_ASC', label: 'Pagu Terendah' },
+  { value: 'REAL_DESC', label: 'Realisasi Tertinggi' },
+  { value: 'REAL_ASC', label: 'Realisasi Terendah' },
+];
+
+export function TenderView() {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const { eselon1, satker, ppk, search, setEselon1, setSatker, setPpk, setSearch } = useOrgFilters();
+
+  // Metode hidup di URL (?m=), bukan useState: halaman ini dituju dari Ringkasan
+  // lewat tautan yang sudah membawa metodenya (Tender / Seleksi / Pembayaran
+  // Kontrak Tahun Jamak), jadi pill-nya harus sudah menyala saat halaman terbuka.
+  const [metodeFilter, setMetodeFilter] = useUrlPillFilter('m');
+  const [tipeRupFilter, setTipeRupFilter] = useState<string[]>([]);
+  const [kurasiFilter, setKurasiFilter] = useState<string[]>([]);
+  const [anomaliFilter, setAnomaliFilter] = useState<AnomaliJenis[]>([]);
+  const [sortBy, setSortBy] = useState<string[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [historyData, setHistoryData] = useState<RupHistoryEntry[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    if (!isModalOpen || !selectedItem?.kd_rup) {
+      setHistoryData([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingHistory(true);
+    fetchRupHistory(selectedItem.kd_rup).then((result) => {
+      if (!cancelled) {
+        setHistoryData(result);
+        setLoadingHistory(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isModalOpen, selectedItem]);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        let allData: any[] = [];
+        let offset = 0;
+        const limit = 1000;
+        while (true) {
+          const { data, error } = await supabase
+            .from('view_dashboard_tender')
+            .select('*')
+            .order('kd_rup', { ascending: true })
+            .range(offset, offset + limit - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          allData = [...allData, ...data];
+          if (data.length < limit) break;
+          offset += limit;
+        }
+        setData(allData);
+      } catch (e: any) {
+        console.error(e);
+        setError(e.message || 'Gagal memuat data dari Supabase.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const baseData = useMemo(() => {
+    let d = data;
+    if (eselon1) d = d.filter((item) => (item.eselon1 || 'Tidak Diketahui') === eselon1);
+    if (satker) d = d.filter((item) => (item.satker || 'Tidak Diketahui') === satker);
+    if (ppk) d = d.filter((item) => (item.nama_ppk || 'Tidak Diketahui') === ppk);
+    if (tipeRupFilter.length > 0) {
+      d = d.filter((item) => tipeRupFilter.includes(item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP'));
+    }
+    if (metodeFilter.length > 0) d = d.filter((item) => metodeFilter.includes(item.metode_pengadaan));
+    if (kurasiFilter.length > 0) d = d.filter((item) => kurasiFilter.includes(item.status_kurasi || 'Belum Dikurasi'));
+    return d;
+  }, [data, eselon1, satker, ppk, tipeRupFilter, metodeFilter, kurasiFilter]);
+
+  const filteredData = useMemo(() => {
+    let d = baseData;
+    if (search) {
+      const q = search.toLowerCase();
+      d = d.filter(
+        (p) =>
+          (p.rup_name && p.rup_name.toLowerCase().includes(q)) ||
+          (p.kd_rup && String(p.kd_rup).toLowerCase().includes(q)) ||
+          (p.kode_penyedia && p.kode_penyedia.toLowerCase().includes(q)) ||
+          (p.satker && p.satker.toLowerCase().includes(q)) ||
+          (p.eselon1 && p.eselon1.toLowerCase().includes(q)) ||
+          (p.nama_ppk && p.nama_ppk.toLowerCase().includes(q))
+      );
+    }
+    if (anomaliFilter.length > 0) d = d.filter((p) => matchesAnomali(p, anomaliFilter));
+    return d;
+  }, [baseData, search, anomaliFilter]);
+
+  // Ringkasan anomali dihitung dari baseData (sebelum filter anomali) agar angka tile stabil.
+  const anomaliSummary = useMemo(() => summarizeAnomali(baseData), [baseData]);
+  const toggleAnomali = (j: AnomaliJenis) =>
+    setAnomaliFilter((prev) => (prev.includes(j) ? prev.filter((x) => x !== j) : [...prev, j]));
+
+  // contextPagu deliberately NOT gated by is_from_sirup here (matches original TenderView behavior,
+  // which differs from Pengadaan Langsung / Penunjukan Langsung's gated contextPagu).
+  const contextPagu = baseData.reduce((s, d) => s + (Number(d.pagu) || 0), 0);
+  const contextRealisasi = filteredData.reduce((s, d) => s + (Number(d.total) || 0), 0);
+  const contextBelumRealisasi = Math.max(0, contextPagu - contextRealisasi);
+  const persentase = contextPagu > 0 ? (contextRealisasi / contextPagu) * 100 : 0;
+  const persentaseBelumRealisasi = contextPagu > 0 ? (contextBelumRealisasi / contextPagu) * 100 : 0;
+
+  // totalPaket/paketSelesai also NOT gated by is_from_sirup (unlike Pengadaan/Penunjukan Langsung).
+  const totalPaket = filteredData.reduce((sum, p) => sum + countRup(p.kd_rup), 0);
+  const paketSelesai = filteredData.filter((p) => (Number(p.total) || 0) > 0).reduce((sum, p) => sum + countRup(p.kd_rup), 0);
+  const paketBelumSelesai = totalPaket - paketSelesai;
+
+  const activeSort = sortBy[0];
+  const sortedPackages = useMemo(() => {
+    const copy = [...filteredData];
+    copy.sort((a, b) => {
+      if (activeSort === 'PAGU_DESC') return (Number(b.pagu) || 0) - (Number(a.pagu) || 0);
+      if (activeSort === 'PAGU_ASC') return (Number(a.pagu) || 0) - (Number(b.pagu) || 0);
+      if (activeSort === 'REAL_DESC') return (Number(b.total) || 0) - (Number(a.total) || 0);
+      if (activeSort === 'REAL_ASC') return (Number(a.total) || 0) - (Number(b.total) || 0);
+      const pctA = (Number(a.pagu) || 0) > 0 ? (Number(a.total) || 0) / (Number(a.pagu) || 0) : 0;
+      const pctB = (Number(b.pagu) || 0) > 0 ? (Number(b.total) || 0) / (Number(b.pagu) || 0) : 0;
+      return pctB - pctA;
+    });
+    return copy;
+  }, [filteredData, activeSort]);
+
+  const hasActiveExtraFilters = metodeFilter.length > 0 || tipeRupFilter.length > 0 || kurasiFilter.length > 0 || anomaliFilter.length > 0 || sortBy.length > 0;
+
+  const columns: PaketColumn<any>[] = useMemo(
+    () => [
+      {
+        key: 'nama',
+        label: 'Nama Paket',
+        render: (p) => (
+          <div className={styles.nameCell}>
+            <span className={styles.nameText} title={p.rup_name}>
+              {p.rup_name}
+            </span>
+            <span className={styles.rupCode}>RUP: {p.kd_rup || '-'}</span>
+            <AnomaliBadge row={p} />
+          </div>
+        ),
+      },
+      { key: 'satker', label: 'Satker', render: (p) => <span className={styles.satkerCell}>{p.satker || '-'}</span> },
+      { key: 'ppk', label: 'PPK', render: (p) => <span className={styles.mutedCell}>{p.nama_ppk || '-'}</span> },
+      {
+        key: 'metode',
+        label: 'Metode',
+        render: (p) => (
+          <Badge variant="default" className={styles.metodeDefault}>
+            {p.metode_pengadaan || 'Tender'}
+          </Badge>
+        ),
+      },
+      {
+        key: 'tipe',
+        label: 'Tipe RUP',
+        render: (p) => <span className={styles.mutedCell}>{p.is_multiple_rup ? 'Multiple RUP' : 'Single RUP'}</span>,
+      },
+      {
+        key: 'pagu',
+        label: 'Pagu',
+        align: 'right',
+        sortAccessor: (p) => Number(p.pagu) || 0,
+        render: (p) => <span className={styles.monoCell}>{fmtRupiah(Number(p.pagu))}</span>,
+      },
+      {
+        key: 'realisasi',
+        label: 'Realisasi',
+        align: 'right',
+        sortAccessor: (p) => Number(p.total) || 0,
+        render: (p) => {
+          const over = (Number(p.total) || 0) > (Number(p.pagu) || 0);
+          return <span className={`${styles.monoCell} ${over ? styles.overBudget : ''}`}>{fmtRupiah(Number(p.total))}</span>;
+        },
+      },
+      {
+        key: 'pct',
+        label: '%',
+        align: 'right',
+        sortAccessor: (p) => ((Number(p.pagu) || 0) > 0 ? (Number(p.total) || 0) / (Number(p.pagu) || 0) : 0),
+        render: (p) => {
+          const pct = (Number(p.pagu) || 0) > 0 ? (Number(p.total) / Number(p.pagu)) * 100 : 0;
+          const over = (Number(p.total) || 0) > (Number(p.pagu) || 0);
+          return <strong className={`${styles.pctBadge} ${over ? styles.pctOver : styles.pctNormal}`}>{pct.toFixed(1)}%</strong>;
+        },
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        align: 'center',
+        render: (p) => (
+          <Badge variant={(Number(p.total) || 0) > 0 ? 'rendah' : 'sedang'} className={styles.statusBadge}>
+            {(Number(p.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI'}
+          </Badge>
+        ),
+      },
+      {
+        key: 'status_kurasi',
+        label: 'Status Kurasi',
+        align: 'center',
+        render: (p) => {
+          const sk = p.status_kurasi;
+          let variant: 'rendah' | 'sedang' | 'tinggi' | 'default' = 'default';
+          if (sk === 'Akurat') variant = 'rendah';
+          if (sk === 'Tidak Akurat') variant = 'tinggi';
+          return (
+            <Badge variant={variant} className={styles.statusBadge}>
+              {sk || 'Belum Dikurasi'}
+            </Badge>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  const exportColumns = useMemo(() => [
+    { key: 'kd_rup', label: 'Kode RUP' },
+    { key: 'rup_name', label: 'Nama Paket', width: 40 },
+    { key: 'satker', label: 'Satker' },
+    { key: 'eselon1', label: 'Eselon I' },
+    { key: 'nama_ppk', label: 'Nama PPK' },
+    { key: 'metode_pengadaan', label: 'Metode' },
+    { key: 'is_multiple_rup', label: 'Tipe RUP' },
+    { key: 'pagu', label: 'Pagu (Rp)', type: 'currency' },
+    { key: 'total', label: 'Realisasi (Rp)', type: 'currency' },
+    { key: 'pct', label: 'Realisasi (%)', type: 'number' },
+    { key: 'status', label: 'Status' },
+    { key: 'status_kurasi', label: 'Status Kurasi AI' },
+    { key: 'catatan_kurasi', label: 'Catatan Kurasi AI', width: 40 },
+    { key: 'rekomendasi_kurasi', label: 'Rekomendasi Kurasi AI', width: 40 },
+  ], []);
+
+  const mapForExport = (item: any) => ({
+    ...item,
+    is_multiple_rup: item.is_multiple_rup ? 'Multiple RUP' : 'Single RUP',
+    pct: (Number(item.pagu) || 0) > 0 ? ((Number(item.total) || 0) / (Number(item.pagu) || 0)) * 100 : 0,
+    status: (Number(item.total) || 0) > 0 ? 'SUDAH REALISASI' : 'BELUM REALISASI',
+    status_kurasi: item.status_kurasi || 'Belum Dikurasi',
+    catatan_kurasi: item.catatan_kurasi || '-',
+    rekomendasi_kurasi: item.rekomendasi_kurasi || '-'
+  });
+
+  // Pemetaan ekspor menyalin setiap baris yang lolos filter. Modal ekspor
+  // hampir selalu tertutup, jadi jangan bayar salinan itu di tiap ketikan
+  // pencarian — hitung saat modalnya dibuka.
+  const exportAllData = useMemo(
+    () => (isExportModalOpen ? baseData.map(mapForExport) : []),
+    [isExportModalOpen, baseData]
+  );
+  const exportFilteredData = useMemo(
+    () => (isExportModalOpen ? sortedPackages.map(mapForExport) : []),
+    [isExportModalOpen, sortedPackages]
+  );
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>
+      {error && <ErrorBox>{error}. Pastikan View SQL sudah dieksekusi di Supabase.</ErrorBox>}
+
+      {loading ? (
+        <ViewLoadingSkeleton metricCards={4} />
+      ) : (
+        <>
+          <MetricGrid
+            title="Ringkasan Keuangan"
+            icon={Wallet}
+            cards={[
+              { key: 'pagu', icon: Wallet, label: 'Total Anggaran (Pagu)', value: fmtRupiahDetail(contextPagu), accent: 'info' },
+              {
+                key: 'real',
+                icon: TrendingUp,
+                label: 'Total Realisasi',
+                value: fmtRupiahDetail(contextRealisasi),
+                badge: `${persentase.toFixed(1)}%`,
+                badgeTone: 'good',
+                accent: 'teal',
+              },
+              {
+                key: 'sisa',
+                icon: ListTodo,
+                label: 'Sisa Anggaran',
+                value: fmtRupiahDetail(contextBelumRealisasi),
+                badge: `${persentaseBelumRealisasi.toFixed(1)}%`,
+                badgeTone: 'warn',
+                accent: 'amber',
+              },
+            ]}
+          />
+
+          <MetricGrid
+            title="Status Paket Tender"
+            icon={Package}
+            cards={[
+              { key: 'total', icon: Package, label: 'Total Seluruh RUP', value: totalPaket, accent: 'neutral' },
+              { key: 'selesai', icon: CheckCircle2, label: 'Terdapat Realisasi', value: paketSelesai, accent: 'teal' },
+              { key: 'belum', icon: Clock, label: 'Belum Terealisasi', value: paketBelumSelesai, accent: 'amber' },
+            ]}
+          />
+
+          <AnomaliPanel summary={anomaliSummary} activeFilter={anomaliFilter} onToggleFilter={toggleAnomali} />
+
+          <div className={styles.progressWrap}>
+            <DualProgressBar
+              title="Progres Penyerapan Anggaran"
+              totalLabel={`Total Pagu: ${fmtRupiahDetail(contextPagu)}`}
+              donePct={persentase}
+              remainingPct={persentaseBelumRealisasi}
+              doneLabel="Terealisasi"
+              remainingLabel="Sisa"
+            />
+          </div>
+
+          <div className={styles.filterHead}>
+            <span className={styles.filterHeadTitle}>Filter</span>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button 
+                type="button" 
+                className={styles.advancedToggle} 
+                onClick={() => setIsExportModalOpen(true)}
+                style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              >
+                Export Data
+              </button>
+              <button type="button" className={styles.advancedToggle} onClick={() => setShowAdvanced((v) => !v)}>
+                Filter Lanjutan {hasActiveExtraFilters && <Badge variant="rendah">Aktif</Badge>}
+              </button>
+            </div>
+          </div>
+
+          <OrgFilterBar
+            data={data}
+            eselon1={eselon1}
+            satker={satker}
+            ppk={ppk}
+            search={search}
+            onEselon1Change={setEselon1}
+            onSatkerChange={setSatker}
+            onPpkChange={setPpk}
+            onSearchChange={setSearch}
+          />
+
+          {showAdvanced && (
+            <FilterAdvancedCard>
+              <div className={styles.filterRow}>
+                <span className={styles.filterLabel}>Metode</span>
+                <FilterPillGroup options={METODE_OPTIONS} selected={metodeFilter} onChange={setMetodeFilter} />
+              </div>
+              <div className={styles.filterRow}>
+                <span className={styles.filterLabel}>Tipe RUP</span>
+                <FilterPillGroup options={TIPE_RUP_OPTIONS} selected={tipeRupFilter} onChange={setTipeRupFilter} multi={false} />
+              </div>
+              <div className={styles.filterRow}>
+                <span className={styles.filterLabel}>Status Kurasi AI</span>
+                <FilterPillGroup options={KURASI_OPTIONS} selected={kurasiFilter} onChange={setKurasiFilter} />
+              </div>
+              <div className={styles.filterRow}>
+                <span className={styles.filterLabel}>Urutkan</span>
+                <FilterPillGroup options={SORT_OPTIONS} selected={sortBy} onChange={setSortBy} multi={false} />
+              </div>
+              {hasActiveExtraFilters && (
+                <button
+                  type="button"
+                  className={styles.resetAllBtn}
+                  onClick={() => {
+                    setMetodeFilter([]);
+                    setTipeRupFilter([]);
+                    setKurasiFilter([]);
+                    setAnomaliFilter([]);
+                    setSortBy([]);
+                  }}
+                >
+                  Reset Semua Filter &amp; Urutan
+                </button>
+              )}
+            </FilterAdvancedCard>
+          )}
+
+          <PaketTable
+            columns={columns}
+            rows={sortedPackages}
+            getRowKey={(p, i) => p.kd_rup || i}
+            onRowClick={(p) => {
+              setSelectedItem(p);
+              setIsModalOpen(true);
+            }}
+          />
+        </>
+      )}
+
+      <PaketDetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Detail Tender"
+        historyData={historyData}
+        loadingHistory={loadingHistory}
+        statusKurasi={selectedItem?.status_kurasi}
+        catatanKurasi={selectedItem?.catatan_kurasi}
+        rekomendasiKurasi={selectedItem?.rekomendasi_kurasi}
+        kdRup={selectedItem?.kd_rup}
+        onCurationSuccess={(newData) => setSelectedItem((prev: any) => prev ? { ...prev, ...newData } : null)}
+      >
+        {selectedItem && (
+          <>
+            <div>
+              <h3 className={styles.modalTitle}>{selectedItem.rup_name}</h3>
+              <p className={styles.modalSubLabel}>Penyedia (Kontraktor)</p>
+              <div className={styles.modalBox}>
+                <p className={styles.modalBoxText}>{selectedItem.kode_penyedia || 'Tidak Diketahui'}</p>
+              </div>
+            </div>
+
+            <div className={styles.modalGrid}>
+              <div>
+                <span className={styles.modalFieldLabel}>Kode RUP</span>
+                <span className={styles.modalFieldValue}>{selectedItem.kd_rup}</span>
+              </div>
+              <div>
+                <span className={styles.modalFieldLabel}>Metode Pengadaan</span>
+                <span className={styles.modalFieldValue}>{selectedItem.metode_pengadaan || 'Tender'}</span>
+              </div>
+              <div className={styles.modalDivider} />
+              <div>
+                <span className={styles.modalFieldLabel}>Total Nilai Pagu</span>
+                <span className={styles.modalFieldValue}>{fmtRupiahDetail(Number(selectedItem.pagu))}</span>
+              </div>
+              <div>
+                <span className={styles.modalFieldLabel}>Total Realisasi</span>
+                <span className={styles.modalFieldValueStrong}>{fmtRupiahDetail(Number(selectedItem.total))}</span>
+              </div>
+            </div>
+
+            <div>
+              <h4 className={styles.modalSectionTitle}>Informasi Instansi &amp; Satker</h4>
+              <p className={styles.modalText}>Eselon 1: {selectedItem.eselon1 || '-'}</p>
+              <p className={styles.modalText}>Satuan Kerja: {selectedItem.satker || '-'}</p>
+              <p className={styles.modalText}>PPK: {selectedItem.nama_ppk || '-'}</p>
+            </div>
+
+            <div>
+              <h4 className={styles.modalSectionTitle}>Detail Status</h4>
+              <p className={styles.modalText}>
+                Status Paket:{' '}
+                <strong className={styles.modalStatusStrong}>
+                  {(Number(selectedItem.total) || 0) > 0 ? 'Terdapat Realisasi' : 'Belum Ada Realisasi'}
+                </strong>
+              </p>
+              <p className={styles.modalText}>Status Aktif RUP: {selectedItem.status_aktif_rup === true ? 'Aktif' : 'Tidak / N/A'}</p>
+            </div>
+          </>
+        )}
+      </PaketDetailModal>
+
+      <ExportDataModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Laporan Realisasi Tender"
+        filename={`Laporan_Tender_${new Date().toISOString().slice(0,10)}`}
+        columns={exportColumns}
+        allData={exportAllData}
+        filteredData={exportFilteredData}
+      />
+    </motion.div>
+  );
+}

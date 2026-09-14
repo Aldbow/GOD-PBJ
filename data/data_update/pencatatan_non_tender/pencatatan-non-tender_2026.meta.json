@@ -1,0 +1,10 @@
+{
+  "endpoint": "/v1/tender/pencatatan-non-tender",
+  "year": "2026",
+  "keyFields": [
+    "kd_nontender_pct"
+  ],
+  "rowCount": 66,
+  "lastUpdated": "2026-09-14T01:34:58.417Z",
+  "lastWriteMode": "append"
+}

@@ -1,0 +1,30 @@
+-- ============================================================================
+-- CHECKPOINT: IMPORT DATA CSV  (langkah MANUAL — bukan dijalankan sebagai SQL)
+-- ----------------------------------------------------------------------------
+-- Jalankan SETELAH semua tabel (10..18) dibuat, SEBELUM view (30..).
+-- Import via Supabase Studio: Table Editor -> pilih tabel -> Insert -> Import CSV.
+--
+-- PENTING: dua tabel ini BELUM punya DDL dan LAHIR dari import CSV ini
+--          (Supabase meng-infer skema dari header). Wajib diimpor di sini,
+--          kalau tidak, view di fase berikutnya gagal ("relation does not exist"):
+--            * api_paket_penyedia_terumumkan  <- 260630_paket-penyedia-terumumkan.csv
+--            * api_paket_swakelola_terumumkan <- paket-swakelola-terumumkan_2026.csv
+--
+-- Peta tabel <- file CSV (folder data/csv):
+--   master_data                     <- MASTER_DATA.csv
+--   api_paket_penyedia_terumumkan   <- 260630_paket-penyedia-terumumkan.csv   (buat via import)
+--   api_paket_swakelola_terumumkan  <- paket-swakelola-terumumkan_2026.csv    (buat via import)
+--   paket_e_purchasing              <- 260630_paket-e-purchasing.csv
+--   non_tender_selesai              <- non-tender-selesai_2026.csv
+--   api_pencatatan_swakelola        <- pencatatan-swakelola_2024.csv
+--   paket_anggaran_penyedia         <- paket-anggaran-penyedia_2026.csv
+--   paket_anggaran_swakelola        <- paket-anggaran-swakelola_2026.csv
+--   tender_selesai_nilai            <- tender-selesai-nilai_2025.csv
+--   data_afirmasi_pdn_perencanaan   <- data_afirmasi_pdn_perencanaan_20260717_082506.csv
+--   history_kaji_ulang              <- (sudah terisi oleh 16_table_history_kaji_ulang.sql)
+--   ai_kurasi_paket                 <- (boleh kosong; diisi fitur AI Kurasi)
+--   satker_kode_alias               <- (sudah terisi seed oleh 17_table_satker_kode_alias.sql)
+--
+-- CATATAN pemisah CSV: file memakai ';' (kecuali afirmasi memakai ','). Sesuaikan
+-- delimiter saat import bila Supabase tidak mendeteksi otomatis.
+-- ============================================================================

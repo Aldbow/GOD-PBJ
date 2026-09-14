@@ -1,25 +1,40 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getApiProfile } from '@/lib/auth/dal';
 import { Package } from '@/types';
 
 export async function GET(request: Request) {
+  const profile = await getApiProfile();
+  if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
 
   if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('view_dashboard_gabungan_satker')
     .select('*')
-    .eq('kd_rup', id)
-    .single();
+    .eq('kd_rup', id);
 
-  if (error || !data) {
+  // Scope PPK: hanya boleh melihat paket miliknya sendiri.
+  if (profile.role === 'ppk') {
+    query = query.eq('nama_ppk', profile.ppk_name);
+  }
+
+  const { data: rows, error } = await query;
+
+  if (error || !rows || rows.length === 0) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
+  // Satu RUP bisa muncul beberapa kali (mis. 1 paket e-purchasing dengan banyak order_id).
+  // Gabungkan agar realisasi tidak dobel, sama seperti di /api/ppk.
+  const data = rows[0];
+  const totalSum = rows.reduce((s: number, row: any) => s + (Number(row.total) || 0), 0);
+
   const paguNum = Number(data.pagu) || 0;
-  const totalNum = Number(data.total) || 0;
+  const totalNum = totalSum;
   const realisasi = paguNum > 0 ? Math.round((totalNum / paguNum) * 100) : 0;
   
   let risiko: 'tinggi' | 'sedang' | 'rendah' = 'rendah';

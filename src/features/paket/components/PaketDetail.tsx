@@ -13,19 +13,12 @@ export function PaketDetail({ id }: { id: string }) {
     if (!id) return;
     setLoading(true);
     fetch(`/api/paket?id=${id}`)
-      .then(res => res.json())
-      .then(resData => {
-        if (resData.error) {
-          setData(null);
-        } else {
-          setData(resData);
-        }
+      .then(async res => {
+        const resData = await res.json();
+        setData(res.ok ? resData : null);
         setLoading(false);
       })
-      .catch(() => {
-        setData(null);
-        setLoading(false);
-      });
+      .catch(() => setLoading(false));
   }, [id]);
 
   if (loading) {

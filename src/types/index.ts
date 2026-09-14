@@ -1,5 +1,17 @@
 export type RiskLevel = 'tinggi' | 'sedang' | 'rendah';
 
+export type Role = 'admin' | 'sekjend' | 'ppk';
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  role: Role;
+  ppk_name: string | null;
+  eselon1: string | null;
+  satker: string | null;
+  is_active: boolean;
+}
+
 export interface Package {
   id: string;
   nama: string;
@@ -10,6 +22,10 @@ export interface Package {
   risiko: RiskLevel;
   pic: string;
   satkerId: string;
+  metode?: string;
+  status_kurasi?: 'Akurat' | 'Tidak Akurat' | 'Belum Dikurasi';
+  catatan_kurasi?: string;
+  rekomendasi_kurasi?: string;
   // Detail fields
   deskripsi?: string;
   timeline?: { date: string, event: string }[];
@@ -36,21 +52,4 @@ export interface DashboardMetrics {
   sdmPBJ: number;
   targetITKP: number;
   skorITKP: number;
-}
-
-export interface MasterDataPN {
-  id: string;
-  No: string;
-  Unit: string;
-  'Kode RO': string;
-  'Nama RO': string;
-  Satuan: string;
-  'Target Volume (Capaian)': string;
-  'Pagu (Capaian)': string;
-  'Realisasi Anggaran': string;
-  'Realisasi Volume': string;
-  '% Capaian Anggaran': string;
-  '% Capaian Fisik/Volume': string;
-  'Selisih Pagu': string;
-  Status: string;
 }

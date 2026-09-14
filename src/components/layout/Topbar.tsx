@@ -5,57 +5,121 @@ import styles from './Topbar.module.css';
 
 import { ThemeToggle } from './ThemeToggle';
 import { usePathname } from 'next/navigation';
+import { Search, ChevronRight, LogOut } from 'lucide-react';
+import { useSession } from '@/components/auth/SessionProvider';
+import { ROLE_LABEL } from '@/lib/auth/access';
+import { logout } from '@/lib/auth/actions';
+import { findActiveEntry } from '@/lib/nav';
+import { CommandPalette } from './CommandPalette';
+import { PpkNotificationBell } from './PpkNotificationBell';
+import { DataFreshness } from './DataFreshness';
+import { LastUpdatePill } from './LastUpdatePill';
 
-export function Topbar() {
+/**
+ * `lastDataUpdate` diteruskan dari server (AppLayout -> Shell -> sini), bukan
+ * di-fetch di client: nilainya sudah tersedia saat layout dirender, jadi tidak
+ * perlu request tambahan dan tidak ada kedipan kosong setelah mount.
+ */
+export function Topbar({ lastDataUpdate }: { lastDataUpdate: string | null }) {
   const pathname = usePathname();
-  const [spseSync, setSpseSync] = useState('');
-  const [sirupSync, setSirupSync] = useState('');
+  const { full_name, role } = useSession();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
 
-  // Determine Title
-  let title = 'Ringkasan Kementerian';
-  if (pathname === '/ppk') title = 'Tampilan PPK';
-  if (pathname === '/drilldown') title = 'Drill-down Satuan Kerja';
+  const activeEntry = findActiveEntry(pathname);
+  const title = activeEntry?.link.name ?? 'Ringkasan Kementerian';
+  const breadcrumbGroup = activeEntry?.group.label;
+  
+  // Get initials for avatar
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  };
 
-  // Mock sync timers
   useEffect(() => {
-    const spseStart = Date.now() - 4 * 60 * 1000;
-    const sirupStart = Date.now() - 38 * 60 * 1000;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
-    const tick = () => {
-      const now = Date.now();
-      const fmt = (start: number) => {
-        const diff = Math.floor((now - start) / 1000);
-        const m = Math.floor(diff / 60);
-        const s = diff % 60;
-        return `tersinkron ${m}m ${String(s).padStart(2, '0')}d lalu`;
-      };
-      setSpseSync(fmt(spseStart));
-      setSirupSync(fmt(sirupStart));
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Hide topbar when scrolling down, show when scrolling up
+      if (currentScrollY > lastScrollY && currentScrollY > 60) {
+        setIsHidden(true);
+      } else {
+        setIsHidden(false);
+      }
+      
+      lastScrollY = currentScrollY;
     };
 
-    tick();
-    const intv = setInterval(tick, 1000);
-    return () => clearInterval(intv);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <header className={styles.topbar}>
-      <h1>{title}</h1>
-      <div className={styles.controlsRow}>
-        <div className={styles.syncRow}>
-          <span className={styles.syncItem}>
-            <span className={`${styles.dot} ${styles.ok}`} />
-            SPSE · <span className={styles.mono}>{spseSync}</span>
-          </span>
-          <span className={styles.syncItem}>
-            <span className={`${styles.dot} ${styles.warn}`} />
-            SIRUP · <span className={styles.mono}>{sirupSync}</span>
-          </span>
+    <header className={`${styles.topbar} ${isHidden ? styles.hidden : ''}`}>
+      <div className={styles.titleWrap}>
+        <div className={styles.inlineBreadcrumb}>
+          <span className={styles.eyebrow}>DEWA-PBJ</span>
+          {breadcrumbGroup && (
+            <>
+              <ChevronRight size={14} className={styles.crumbSep} />
+              <span className={styles.crumbGroup}>{breadcrumbGroup}</span>
+            </>
+          )}
+          <ChevronRight size={14} className={styles.crumbSep} />
+          <h1 className={styles.pageTitle}>{title}</h1>
         </div>
-
-
-        <ThemeToggle />
       </div>
+      
+      <div className={styles.controlsRow}>
+        <DataFreshness finishedAt={lastDataUpdate} />
+        <LastUpdatePill finishedAt={lastDataUpdate} />
+
+        <button
+          type="button"
+          className={styles.iconBtn}
+          onClick={() => setPaletteOpen(true)}
+          aria-label="Pencarian"
+          title="Pencarian (Ctrl+K)"
+        >
+          <Search size={16} />
+        </button>
+
+        <PpkNotificationBell />
+        <ThemeToggle />
+
+        <div className={styles.divider} />
+
+        <div className={styles.userSection}>
+          <div className={styles.userProfile}>
+            <div className={styles.avatar}>
+              {full_name ? getInitials(full_name) : 'U'}
+            </div>
+            <div className={styles.userMeta}>
+              <span className={styles.userName}>{full_name}</span>
+              <span className={styles.userRole}>{ROLE_LABEL[role]}</span>
+            </div>
+          </div>
+          <form action={logout}>
+            <button type="submit" className={styles.logoutBtn} aria-label="Keluar" title="Keluar">
+              <LogOut size={16} />
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </header>
   );
 }

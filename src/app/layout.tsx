@@ -1,23 +1,41 @@
-import type { Metadata } from "next";
-import { Inter, IBM_Plex_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+/**
+ * IBM Plex Sans + IBM Plex Mono adalah satu superfamily: perancang sama,
+ * metrik dan bentuk angka sepadan. Itu penting di sini karena antarmukanya
+ * terus-menerus menyandingkan label sans dengan angka mono di tabel yang sama.
+ * Sebelumnya Inter dipasangkan dengan Plex Mono, dua keluarga dari asal
+ * rancangan berbeda, dan angkanya tidak pernah benar-benar sepadan.
+ *
+ * Lisensinya SIL OFL dan cakupan Latin-nya penuh untuk bahasa Indonesia.
+ */
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+  display: "swap",
 });
 
-import { Shell } from "@/components/layout/Shell";
-
 export const metadata: Metadata = {
-  title: "DEWA-PBJ — Early warning pengadaan",
+  title: "DEWA-PBJ · Digital Early Warning Analytics",
   description: "Dashboard untuk memonitor proyek PBJ Kemnaker",
+};
+
+// Next.js sudah menyisipkan default ini secara implisit walau tidak
+// dideklarasikan -- eksplisit di sini supaya jelas terbaca di kode dan ada
+// tempat resmi untuk kustomisasi (mis. themeColor) kalau diperlukan nanti.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -26,9 +44,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" data-theme="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} ${plexMono.variable}`} suppressHydrationWarning>
-        <Shell>{children}</Shell>
+    <html lang="id" data-theme="light" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                let theme = localStorage.getItem('theme');
+                if (!theme) {
+                  theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                document.documentElement.setAttribute('data-theme', theme);
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
+      <body className={`${plexSans.variable} ${plexMono.variable}`} suppressHydrationWarning>
+        {children}
       </body>
     </html>
   );

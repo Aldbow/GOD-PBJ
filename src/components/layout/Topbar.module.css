@@ -3,77 +3,248 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  padding: 22px 0 18px;
-  flex-wrap: wrap;
+  
+  /* Floating Island Concept */
+  margin: 16px 0 32px 0; /* Menambahkan jarak besar di bawah topbar */
+  padding: 10px 16px 10px 24px;
+  border-radius: 20px;
+  
   position: sticky;
-  top: 0;
-  background: var(--bg-page);
-  z-index: 5;
-  border-bottom: 1px solid var(--border);
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  top: 20px;
+  z-index: 30;
+  
+  /* Solid Material */
+  background: var(--surface);
+  
+  /* Multi-layered shadow & border for volume */
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 
+    0 12px 32px -8px rgba(0, 0, 0, 0.12),
+    0 4px 12px -4px rgba(0, 0, 0, 0.06);
+    
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color var(--dur-med) ease;
 }
 
-.topbar h1 {
-  font-size: 20px;
-  font-weight: 600;
+.topbar.hidden {
+  transform: translateY(-150%);
+}
+
+[data-theme="dark"] .topbar {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 10px 40px -10px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.titleWrap {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.inlineBreadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 4px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.crumbSep {
+  color: var(--text-tertiary);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.crumbGroup {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.pageTitle {
+  font-size: 14px;
+  font-weight: 700;
   margin: 0;
   color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .controlsRow {
   display: flex;
   align-items: center;
-  gap: 18px;
-  flex-wrap: wrap;
-}
-
-.syncRow {
-  display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
-}
-
-.syncItem {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  gap: 12px;
   flex-shrink: 0;
 }
 
-.ok {
-  background: var(--teal-600);
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
-.warn {
-  background: var(--amber-600);
+.iconBtn:hover {
+  background: var(--surface-hover);
+  color: var(--accent);
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .dot {
-    animation: dotpulse 2s ease-in-out infinite;
-  }
+[data-theme="dark"] .iconBtn {
+  background: var(--surface-2);
+  border-color: rgba(255,255,255,0.06);
 }
 
-@keyframes dotpulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+[data-theme="dark"] .iconBtn:hover {
+  border-color: rgba(255,255,255,0.15);
 }
 
-.mono {
-  font-family: var(--font-mono);
+.divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.userSection {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px;
+  padding-right: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .userSection {
+  background: var(--surface-2);
+  border-color: rgba(255,255,255,0.06);
+}
+
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3);
+}
+
+.userMeta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text-primary);
+  max-width: 260px; /* Lebar maksimal diperbesar untuk nama panjang */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@media (max-width: 860px) {
-  .topbar {
-    position: static;
+.userRole {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+}
+
+.logoutBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .logoutBtn {
+  background: rgba(255,255,255,0.04);
+}
+
+.logoutBtn:hover {
+  background: var(--red-100);
+  color: var(--red-600);
+  transform: rotate(5deg) scale(1.05);
+}
+
+[data-theme="dark"] .logoutBtn:hover {
+  background: rgba(248, 113, 113, 0.2);
+  color: #FCA5A5;
+}
+
+@media (max-width: 992px) {
+  .userMeta {
+    display: none;
   }
+  .crumbGroup, .crumbSep:first-of-type {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    margin: 12px;
+    padding: 8px 12px;
+    border-radius: 20px;
+  }
+  .eyebrow {
+    display: none;
+  }
+  .crumbSep {
+    display: none;
+  }
+}
+
+/* Dark Mode Fine-Tuning for Brand Avatar */
+[data-theme="dark"] .avatar {
+  background: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-600) 100%);
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.15);
+  color: #0A0E16; /* Teks inisial lebih kontras (gelap) karena background cukup terang */
 }
