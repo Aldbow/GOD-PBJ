@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -28,6 +28,14 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "DEWA-PBJ · Digital Early Warning Analytics",
   description: "Dashboard untuk memonitor proyek PBJ Kemnaker",
+};
+
+// Next.js sudah menyisipkan default ini secara implisit walau tidak
+// dideklarasikan -- eksplisit di sini supaya jelas terbaca di kode dan ada
+// tempat resmi untuk kustomisasi (mis. themeColor) kalau diperlukan nanti.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

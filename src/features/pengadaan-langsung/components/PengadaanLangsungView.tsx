@@ -227,10 +227,6 @@ export function PengadaanLangsungView() {
   const contextRealisasi = filteredData.reduce((s, d) => s + (Number(d.total) || 0), 0);
   const contextRealisasiPencatatan = filteredData.reduce((s, d) => s + (Number(d.total_pencatatan) || 0), 0);
   const contextRealisasiTransaksional = filteredData.reduce((s, d) => s + (Number(d.total_transaksional) || 0), 0);
-  // Realisasi transaksional pecah menurut metode aslinya — split nyata,
-  // sejajar dengan on process/completed di sisi Pencatatan.
-  const contextTransaksionalPL = filteredData.reduce((s, d) => s + (d.metode_pengadaan === 'Pengadaan Langsung' ? (Number(d.total_transaksional) || 0) : 0), 0);
-  const contextTransaksionalDikecualikan = filteredData.reduce((s, d) => s + (d.metode_pengadaan === 'Dikecualikan' ? (Number(d.total_transaksional) || 0) : 0), 0);
   const contextPencatatanBerjalan = filteredData.reduce((s, d) => s + (Number(d.total_pencatatan_berjalan) || 0), 0);
   const contextPencatatanSelesai = filteredData.reduce((s, d) => s + (Number(d.total_pencatatan_selesai) || 0), 0);
   const contextBelumRealisasi = Math.max(0, contextPagu - contextRealisasi);
@@ -470,21 +466,17 @@ export function PengadaanLangsungView() {
               title="Rincian Realisasi"
               icon={FileText}
               totalLabel={`Total ${fmtRupiahDetail(contextRealisasi)}`}
-              left={{
+              transaksional={{
                 icon: CreditCard,
                 label: 'Realisasi Transaksional',
                 value: fmtRupiahDetail(contextRealisasiTransaksional),
-                emptyMessage: 'Belum ada realisasi transaksional.',
-                first: { color: 'info', label: 'Pengadaan Langsung', value: fmtRupiahDetail(contextTransaksionalPL), amount: contextTransaksionalPL },
-                second: { color: 'amber', label: 'Dikecualikan', value: fmtRupiahDetail(contextTransaksionalDikecualikan), amount: contextTransaksionalDikecualikan },
               }}
-              right={{
+              pencatatan={{
                 icon: FileText,
                 label: 'Pencatatan',
-                value: fmtRupiahDetail(contextRealisasiPencatatan),
-                emptyMessage: 'Belum ada realisasi pencatatan.',
-                first: { color: 'amber', label: 'On Process', value: fmtRupiahDetail(contextPencatatanBerjalan), amount: contextPencatatanBerjalan },
-                second: { color: 'teal', label: 'Completed', value: fmtRupiahDetail(contextPencatatanSelesai), amount: contextPencatatanSelesai },
+                total: { label: 'Total Pencatatan', value: fmtRupiahDetail(contextRealisasiPencatatan) },
+                onProcess: { label: 'On Process', value: fmtRupiahDetail(contextPencatatanBerjalan) },
+                completed: { label: 'Completed', value: fmtRupiahDetail(contextPencatatanSelesai) },
               }}
             />
           ) : (

@@ -313,6 +313,19 @@
     margin-left: auto;
     overflow-x: auto;
     padding-right: 0;
+    position: relative;
+  }
+  /* Petunjuk visual bahwa strip menu ini bisa di-scroll ke samping -- tanpa
+     ini tidak ada tanda apa pun kalau ada menu lain di luar layar. */
+  .nav::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 28px;
+    background: linear-gradient(to right, transparent, rgba(10, 15, 25, 0.92));
+    pointer-events: none;
   }
   .group {
     flex-direction: row;

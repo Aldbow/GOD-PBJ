@@ -64,6 +64,20 @@
   min-width: 320px;
 }
 
+/* Tanpa ini, min-width 320px di atas bisa memaksa seluruh halaman melebar ke
+   samping di HP sempit (320-375px) -- .filterBar sengaja overflow:visible
+   (lihat komentar di atas) jadi tidak ada scroll kontainer yang menahannya.
+   Pola sama seperti RingkasanFilter.module.css. */
+@media (max-width: 640px) {
+  .filterBody.filterBody {
+    align-items: stretch;
+  }
+  .filterCol,
+  .filterColWide {
+    min-width: 100%;
+  }
+}
+
 .filterLabel {
   font-size: 12px;
   font-weight: 500;
