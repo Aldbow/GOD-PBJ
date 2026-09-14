@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { unstable_cache } from 'next/cache';
 import { getApiSupabase } from '@/lib/supabase/apiClient';
 import { getApiProfile } from '@/lib/auth/dal';
 
@@ -19,11 +18,11 @@ const SELECT_COLS =
  * buka Ringkasan dilayani dari cache ini, TIDAK menyentuh Supabase sama
  * sekali. Ini yang memutus hubungan "jumlah user = beban Supabase".
  *
- * Invalidasi murni berbasis waktu (revalidate 600 detik), TIDAK disambung ke
- * scripts/update_from_data_update.mjs -- data cuma berubah saat admin
- * menjalankan update (jarang, harian), dan topbar "Diperbarui ..." sudah
- * menetapkan ekspektasi data bisa agak basi. Cukup untuk v1; bisa
- * ditingkatkan jadi event-driven (revalidateTag) nanti kalau perlu.
+ * Invalidasi murni berbasis waktu (TTL 600 detik, lihat CACHE_TTL_MS di
+ * bawah), TIDAK disambung ke scripts/update_from_data_update.mjs -- data
+ * cuma berubah saat admin menjalankan update (jarang, harian), dan topbar
+ * "Diperbarui ..." sudah menetapkan ekspektasi data bisa agak basi. Cukup
+ * untuk v1; bisa ditingkatkan jadi event-driven nanti kalau perlu.
  */
 async function fetchGabunganRowsFromDb() {
   const sb = getApiSupabase();
@@ -46,25 +45,41 @@ async function fetchGabunganRowsFromDb() {
   return all;
 }
 
-const getCachedGabunganRows = unstable_cache(fetchGabunganRowsFromDb, ['ringkasan-gabungan-rows'], {
-  revalidate: 600,
-  tags: ['ringkasan-gabungan'],
-});
+// Cache TTL manual di module scope -- BUKAN unstable_cache. unstable_cache
+// menolak menyimpan item di atas 2MB ("items over 2MB can not be cached"),
+// dan payload ini sudah 4,3MB (7.982 baris) -- di atas ambang itu, SETIAP
+// pemanggilan gagal ditulis ke cache dan jatuh ke fetch penuh, diverifikasi
+// langsung dari log server (29 kegagalan berturut-turut, 0 cache hit sejak
+// fitur ini di-deploy). Variabel biasa di module scope tidak punya batas
+// ukuran seperti itu -- satu-satunya trade-off adalah cache-nya per-proses
+// (sama seperti `inFlight` di bawah), bukan lintas-instance di Vercel
+// serverless. Untuk payload ini itu jauh lebih baik daripada cache yang
+// TIDAK PERNAH benar-benar menyala.
+let cachedRows: Record<string, unknown>[] | null = null;
+let cachedAt = 0;
+const CACHE_TTL_MS = 600_000; // 10 menit, sama seperti revalidate lama
 
-// Penggabungan permintaan (request coalescing): unstable_cache SENDIRI TIDAK
-// menggabungkan permintaan yang datang bersamaan selagi cache masih kosong --
-// diuji langsung (30 permintaan bersamaan ke cache kosong = 30 query nyata
-// ke Supabase tanpa ini). Dengan Map ini, permintaan yang datang selagi ada
-// fetch yang sedang berjalan untuk key yang sama cukup menunggu promise yang
-// sama, bukan memulai query baru -- terbukti turun jadi 1 query untuk 30
-// permintaan bersamaan, baik cache kosong maupun hangat.
+// Penggabungan permintaan (request coalescing): permintaan yang datang
+// selagi ada fetch yang sedang berjalan cukup menunggu promise yang sama,
+// bukan memulai query baru -- perlu untuk cache kosong/kedaluwarsa supaya
+// beberapa permintaan bersamaan tidak masing-masing memicu query sendiri
+// (diuji: 30 permintaan bersamaan ke cache kosong -> turun jadi 1 query).
 let inFlight: Promise<Record<string, unknown>[]> | null = null;
 
 async function getRowsCoalesced() {
+  if (cachedRows && Date.now() - cachedAt < CACHE_TTL_MS) {
+    return cachedRows;
+  }
   if (!inFlight) {
-    inFlight = getCachedGabunganRows().finally(() => {
-      inFlight = null;
-    });
+    inFlight = fetchGabunganRowsFromDb()
+      .then((rows) => {
+        cachedRows = rows;
+        cachedAt = Date.now();
+        return rows;
+      })
+      .finally(() => {
+        inFlight = null;
+      });
   }
   return inFlight;
 }
