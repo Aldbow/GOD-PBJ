@@ -14,15 +14,25 @@ const SELECT_COLS =
  * selalu menarik seluruh baris, filter satker/PPK terjadi belakangan di
  * client. Ini membuat cache di bawah cuma punya SATU entri, dipakai semua
  * user -- bukan terpecah per kombinasi filter. Begitu 1 user memicu query
- * nyata ke mv_dashboard_gabungan_satker, 10 menit ke depan siapa pun yang
- * buka Ringkasan dilayani dari cache ini, TIDAK menyentuh Supabase sama
- * sekali. Ini yang memutus hubungan "jumlah user = beban Supabase".
+ * nyata ke mv_dashboard_gabungan_satker, request-request lain dilayani dari
+ * cache ini, TIDAK menyentuh Supabase sama sekali. Ini yang memutus hubungan
+ * "jumlah user = beban Supabase".
  *
- * Invalidasi murni berbasis waktu (TTL 600 detik, lihat CACHE_TTL_MS di
- * bawah), TIDAK disambung ke scripts/update_from_data_update.mjs -- data
- * cuma berubah saat admin menjalankan update (jarang, harian), dan topbar
- * "Diperbarui ..." sudah menetapkan ekspektasi data bisa agak basi. Cukup
- * untuk v1; bisa ditingkatkan jadi event-driven nanti kalau perlu.
+ * Dua TTL, pola stale-while-revalidate (lihat getRowsCoalesced di bawah):
+ * lewat SOFT_TTL_MS cache masih dipakai APA ADANYA untuk request yang sedang
+ * berjalan, sambil memicu refresh di background untuk request berikutnya --
+ * tidak ada request yang menunggu fetch penuh (~4,3MB, bisa beberapa detik)
+ * hanya karena kebetulan jadi yang pertama setelah cache kedaluwarsa. Baru
+ * lewat HARD_TTL_MS (artinya refresh background sudah gagal berturut-turut,
+ * mis. Supabase down) request BOLEH menunggu fetch baru -- ada batas atas
+ * yang jelas untuk seberapa basi data boleh disajikan tanpa pernah dicoba
+ * disegarkan lagi.
+ *
+ * Invalidasi murni berbasis waktu, TIDAK disambung ke
+ * scripts/update_from_data_update.mjs -- data cuma berubah saat admin
+ * menjalankan update (jarang, harian), dan topbar "Diperbarui ..." sudah
+ * menetapkan ekspektasi data bisa agak basi. SOFT_TTL_MS (10 menit) sudah
+ * cukup untuk mendeteksi update baru tanpa perlu event-driven invalidation.
  */
 async function fetchGabunganRowsFromDb() {
   const sb = getApiSupabase();
@@ -57,19 +67,20 @@ async function fetchGabunganRowsFromDb() {
 // TIDAK PERNAH benar-benar menyala.
 let cachedRows: Record<string, unknown>[] | null = null;
 let cachedAt = 0;
-const CACHE_TTL_MS = 600_000; // 10 menit, sama seperti revalidate lama
+const SOFT_TTL_MS = 600_000; // 10 menit -- lewat ini, refresh dipicu di background, cache lama tetap dipakai
+const HARD_TTL_MS = 3_600_000; // 60 menit -- batas mutlak; request WAJIB menunggu fetch baru lewat batas ini
 
 // Penggabungan permintaan (request coalescing): permintaan yang datang
 // selagi ada fetch yang sedang berjalan cukup menunggu promise yang sama,
 // bukan memulai query baru -- perlu untuk cache kosong/kedaluwarsa supaya
 // beberapa permintaan bersamaan tidak masing-masing memicu query sendiri
 // (diuji: 30 permintaan bersamaan ke cache kosong -> turun jadi 1 query).
+// Dipakai juga oleh refresh latar belakang (stale-while-revalidate) supaya
+// beberapa request yang menemukan cache basi di saat bersamaan tidak
+// masing-masing memicu refresh sendiri.
 let inFlight: Promise<Record<string, unknown>[]> | null = null;
 
-async function getRowsCoalesced() {
-  if (cachedRows && Date.now() - cachedAt < CACHE_TTL_MS) {
-    return cachedRows;
-  }
+function triggerRefresh(): Promise<Record<string, unknown>[]> {
   if (!inFlight) {
     inFlight = fetchGabunganRowsFromDb()
       .then((rows) => {
@@ -82,6 +93,28 @@ async function getRowsCoalesced() {
       });
   }
   return inFlight;
+}
+
+async function getRowsCoalesced(): Promise<Record<string, unknown>[]> {
+  const age = Date.now() - cachedAt;
+
+  if (cachedRows && age < SOFT_TTL_MS) {
+    return cachedRows;
+  }
+
+  if (cachedRows && age < HARD_TTL_MS) {
+    // Stale-while-revalidate: kembalikan cache lama SEKARANG ke request ini,
+    // segarkan di background untuk request berikutnya. Kegagalan refresh
+    // cukup dicatat -- cache lama masih valid dipakai sampai HARD_TTL_MS.
+    triggerRefresh().catch((e) => {
+      console.error('[ringkasan/gabungan] gagal refresh cache latar belakang:', e);
+    });
+    return cachedRows;
+  }
+
+  // Cache kosong (cold start) atau sudah lewat HARD_TTL_MS (refresh latar
+  // belakang gagal berturut-turut) -- request ini WAJIB menunggu data segar.
+  return triggerRefresh();
 }
 
 export async function GET() {

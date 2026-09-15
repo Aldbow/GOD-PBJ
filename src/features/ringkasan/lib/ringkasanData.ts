@@ -154,14 +154,19 @@ const SELECT_COLS = 'kd_rup,rup_name,satker,nama_ppk,metode_pengadaan,jenis_peng
 // Rekap gabungan Ringkasan -- lewat Route Handler server (Langkah 4, lihat
 // docs/LAPORAN-ANALISIS-PERFORMA.md), BUKAN lagi query langsung browser ->
 // Supabase. Route Handler-nya membungkus fetch paginasi (persis pola lama di
-// sini, termasuk .order()) dengan unstable_cache 10 menit -- satu entri
-// cache dipakai SEMUA user, karena fungsi ini tidak menerima parameter sama
-// sekali (filter satker/PPK tetap terjadi belakangan di client lewat
-// filterRows()). Ini yang memutus hubungan "jumlah user = beban Supabase".
+// sini, termasuk .order()) dengan cache manual module-scope (bukan
+// unstable_cache -- payload 4,3MB melewati batas 2MB-nya), satu entri
+// dipakai SEMUA user, karena fungsi ini tidak menerima parameter sama sekali
+// (filter satker/PPK tetap terjadi belakangan di client lewat filterRows()).
+// Ini yang memutus hubungan "jumlah user = beban Supabase".
+//
+// Cache-nya stale-while-revalidate (soft TTL 10 menit, hard TTL 60 menit --
+// lihat SOFT_TTL_MS/HARD_TTL_MS di route.ts): data yang disajikan bisa
+// sesegar refresh mv terakhir, atau selambat-lambatnya ~1 jam kalau refresh
+// background sempat gagal berturut-turut.
 //
 // Sumber datanya tetap mv_dashboard_gabungan_satker (materialized view) --
-// lihat sql/migrations/75_materialized_view_gabungan_satker.sql. Data hanya
-// sesegar refresh mv terakhir DITAMBAH sisa jendela cache 10 menit ini.
+// lihat sql/migrations/75_materialized_view_gabungan_satker.sql.
 export async function fetchGabunganRows(): Promise<GabunganRow[]> {
   const res = await fetch('/api/ringkasan/gabungan');
   if (!res.ok) {
