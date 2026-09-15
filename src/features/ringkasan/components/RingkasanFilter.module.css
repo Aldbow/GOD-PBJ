@@ -55,12 +55,6 @@
   white-space: nowrap;
 }
 
-.apply {
-  background: linear-gradient(135deg, #1A5D91 0%, #2F80ED 100%);
-  color: #fff;
-}
-.apply:hover:not(:disabled) { filter: brightness(1.07); }
-
 .reset {
   background: var(--surface-2);
   color: var(--text-secondary);
