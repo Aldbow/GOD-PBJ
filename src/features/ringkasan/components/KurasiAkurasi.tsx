@@ -1,16 +1,24 @@
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, Sparkles, CheckCircle2, AlertTriangle, Clock, BarChart3 } from 'lucide-react';
 import type { KurasiAggregate, MetodeAggregate } from '../lib/ringkasanData';
 import { fmtInt, fmtPct } from '@/lib/format';
 import { KurasiMetodeChart } from './charts/KurasiMetodeChart';
 import { useSession } from '@/components/auth/SessionProvider';
 import { Card } from '@/components/ui/Card';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import styles from './KurasiAkurasi.module.css';
 
 const RING_R = 52;
 const RING_C = 2 * Math.PI * RING_R;
+
+// fmtInt sendiri TIDAK membulatkan (langsung toLocaleString) -- aman untuk nilai
+// yang sudah pasti bulat, tapi <AnimatedNumber> memberi nilai PECAHAN di
+// tengah hitungan (mis. 41,7 saat menuju 42), dan tanpa pembulatan itu akan
+// tercetak sebagai "41,7" (koma desimal id-ID terbaca seperti pemisah ribuan
+// lain). Bulatkan dulu di sini supaya yang tampil selalu bilangan bulat.
+const fmtIntBulat = (n: number) => fmtInt(Math.round(n));
 
 interface Props {
   kurasi: KurasiAggregate;
@@ -102,6 +110,18 @@ export function KurasiAkurasi({ kurasi, metode, onRefresh, isFullWidth = false }
   const wKoreksi = (perluKoreksi / segTotal) * 100;
   const wBelum = (belumDikurasi / segTotal) * 100;
 
+  // Cincin dan stack bar sudah punya CSS transition pada stroke-dashoffset/width
+  // (lihat KurasiAkurasi.module.css) -- itu cukup untuk animasi saat NILAINYA
+  // berubah (filter diganti), tapi TIDAK cukup untuk render pertama: React
+  // langsung mem-paint di nilai akhir sejak mount, tidak ada "keadaan sebelum"
+  // untuk ditransisikan dari situ. `entered` menunda satu frame supaya mount
+  // pertama benar-benar mulai dari 0% dulu, baru CSS transition membawanya naik.
+  const [entered, setEntered] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   return (
     <Card>
       <Card.Header className={styles.head}>
@@ -146,39 +166,43 @@ export function KurasiAkurasi({ kurasi, metode, onRefresh, isFullWidth = false }
                 fill="transparent"
                 strokeWidth="11"
                 stroke="url(#kurasiRingGrad)"
-                style={{ strokeDasharray: RING_C, strokeDashoffset: RING_C * (1 - pctAkurasi / 100) }}
+                style={{ strokeDasharray: RING_C, strokeDashoffset: RING_C * (1 - (entered ? pctAkurasi : 0) / 100) }}
                 transform="rotate(-90 65 65)"
               />
             </svg>
             <div className={styles.ringCenter}>
-              <span className={styles.ringPct}>{fmtPct(pctAkurasi, 1)}</span>
+              <span className={styles.ringPct}>
+                <AnimatedNumber value={pctAkurasi} format={(n) => fmtPct(n, 1)} />
+              </span>
               <span className={styles.ringLabel}>Akurasi</span>
             </div>
           </div>
 
           <div className={styles.statsCol}>
             <div className={styles.stackBar} role="img" aria-label="Distribusi status kurasi">
-              <span className={styles.segAkurat} style={{ width: `${wAkurat}%` }} title={`Akurat: ${fmtInt(akurat)}`} />
-              <span className={styles.segKoreksi} style={{ width: `${wKoreksi}%` }} title={`Perlu koreksi: ${fmtInt(perluKoreksi)}`} />
-              <span className={styles.segBelum} style={{ width: `${wBelum}%` }} title={`Belum dikurasi: ${fmtInt(belumDikurasi)}`} />
+              <span className={styles.segAkurat} style={{ width: `${entered ? wAkurat : 0}%` }} title={`Akurat: ${fmtInt(akurat)}`} />
+              <span className={styles.segKoreksi} style={{ width: `${entered ? wKoreksi : 0}%` }} title={`Perlu koreksi: ${fmtInt(perluKoreksi)}`} />
+              <span className={styles.segBelum} style={{ width: `${entered ? wBelum : 0}%` }} title={`Belum dikurasi: ${fmtInt(belumDikurasi)}`} />
             </div>
-            <p className={styles.progressNote}>{fmtPct(pctSelesai, 1)} paket telah dievaluasi AI</p>
+            <p className={styles.progressNote}>
+              <AnimatedNumber value={pctSelesai} format={(n) => fmtPct(n, 1)} /> paket telah dievaluasi AI
+            </p>
 
             <div className={styles.numGrid}>
               <div className={styles.numCard} title="Jumlah paket yang sudah punya keputusan Akurat atau Tidak Akurat">
-                <span className={styles.numVal}>{fmtInt(kurasi.totalDikurasi)}</span>
+                <span className={styles.numVal}><AnimatedNumber value={kurasi.totalDikurasi} format={fmtIntBulat} /></span>
                 <span className={styles.numLabel}>Total Dikurasi</span>
               </div>
               <div className={`${styles.numCard} ${styles.nGood}`} title="Metode pemilihan sesuai batas nilai & jenis pengadaan (Perpres 12/2021)">
-                <span className={styles.numVal}><CheckCircle2 size={13} /> {fmtInt(akurat)}</span>
+                <span className={styles.numVal}><CheckCircle2 size={13} /> <AnimatedNumber value={akurat} format={fmtIntBulat} /></span>
                 <span className={styles.numLabel}>Akurat</span>
               </div>
               <div className={`${styles.numCard} ${styles.nBad}`} title="Metode melanggar batas nilai untuk jenis pengadaannya">
-                <span className={styles.numVal}><AlertTriangle size={13} /> {fmtInt(perluKoreksi)}</span>
+                <span className={styles.numVal}><AlertTriangle size={13} /> <AnimatedNumber value={perluKoreksi} format={fmtIntBulat} /></span>
                 <span className={styles.numLabel}>Perlu Koreksi</span>
               </div>
               <div className={`${styles.numCard} ${styles.nWait}`} title="Belum dievaluasi atau data tidak cukup untuk dinilai">
-                <span className={styles.numVal}><Clock size={13} /> {fmtInt(belumDikurasi)}</span>
+                <span className={styles.numVal}><Clock size={13} /> <AnimatedNumber value={belumDikurasi} format={fmtIntBulat} /></span>
                 <span className={styles.numLabel}>Belum Dikurasi</span>
               </div>
             </div>

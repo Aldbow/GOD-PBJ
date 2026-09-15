@@ -6,6 +6,7 @@ import { TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card, type CardTone } from '@/components/ui/Card';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import styles from './SummaryCards.module.css';
 
 export interface MetricCardDef {
@@ -200,10 +201,12 @@ export function DualProgressBar({ title, totalLabel, donePct, remainingPct, done
       </div>
       <div className={styles.progressLegend}>
         <span className={styles.legendItem}>
-          <span className={`${styles.legendDot} ${styles.legendDotDone}`} /> {doneLabel} ({donePct.toFixed(1)}%)
+          <span className={`${styles.legendDot} ${styles.legendDotDone}`} /> {doneLabel} (
+          <AnimatedNumber value={donePct} format={(n) => n.toFixed(1) + '%'} />)
         </span>
         <span className={styles.legendItem}>
-          <span className={`${styles.legendDot} ${styles.legendDotRemaining}`} /> {remainingLabel} ({remainingPct.toFixed(1)}%)
+          <span className={`${styles.legendDot} ${styles.legendDotRemaining}`} /> {remainingLabel} (
+          <AnimatedNumber value={remainingPct} format={(n) => n.toFixed(1) + '%'} />)
         </span>
       </div>
       </Card.Body>

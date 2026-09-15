@@ -2,7 +2,7 @@ import type { Role } from '@/types';
 
 /**
  * Peta akses RBAC — SATU sumber kebenaran.
- * Dipakai oleh proxy.ts (gate optimistik), DAL/page guard, Sidebar, dan API.
+ * Dipakai oleh proxy.ts (gate optimistik), DAL/page guard, CommandRail, dan API.
  *
  *   admin   → '*'  akses semua route
  *   sekjend → Ringkasan, Perencanaan, ITKP, Risiko Pengadaan, Prioritas Nasional

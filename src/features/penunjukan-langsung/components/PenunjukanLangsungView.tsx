@@ -11,6 +11,7 @@ import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
 import { FilterAdvancedCard } from '@/components/paket/FilterAdvancedCard';
 import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
 import { MetricGrid, DualProgressBar } from '@/components/paket/SummaryCards';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { AnomaliPanel, AnomaliBadge } from '@/components/paket/AnomaliPanel';
 import { summarizeAnomali, matchesAnomali, type AnomaliJenis } from '@/lib/anomali';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
@@ -319,12 +320,12 @@ export function PenunjukanLangsungView() {
             title="Ringkasan Keuangan"
             icon={Wallet}
             cards={[
-              { key: 'pagu', icon: Wallet, label: 'Total Anggaran (Pagu)', value: fmtRupiahDetail(contextPagu), accent: 'info' },
+              { key: 'pagu', icon: Wallet, label: 'Total Anggaran (Pagu)', value: <AnimatedNumber value={contextPagu} format={fmtRupiahDetail} />, accent: 'info' },
               {
                 key: 'real',
                 icon: TrendingUp,
                 label: 'Total Realisasi Keseluruhan',
-                value: fmtRupiahDetail(contextRealisasi),
+                value: <AnimatedNumber value={contextRealisasi} format={fmtRupiahDetail} />,
                 badge: `${persentase.toFixed(1)}%`,
                 badgeTone: 'good',
                 accent: 'teal',
@@ -333,7 +334,7 @@ export function PenunjukanLangsungView() {
                 key: 'sisa',
                 icon: ListTodo,
                 label: 'Sisa Anggaran',
-                value: fmtRupiahDetail(contextBelumRealisasi),
+                value: <AnimatedNumber value={contextBelumRealisasi} format={fmtRupiahDetail} />,
                 badge: `${persentaseBelumRealisasi.toFixed(1)}%`,
                 badgeTone: 'warn',
                 accent: 'amber',
@@ -344,8 +345,8 @@ export function PenunjukanLangsungView() {
             title="Rincian Realisasi"
             icon={FileText}
             cards={[
-              { key: 'pencatatan', icon: FileText, label: 'Realisasi Pencatatan', value: fmtRupiahDetail(contextRealisasiPencatatan), accent: 'indigo' },
-              { key: 'transaksional', icon: CreditCard, label: 'Realisasi Transaksional', value: fmtRupiahDetail(contextRealisasiTransaksional), accent: 'purple' },
+              { key: 'pencatatan', icon: FileText, label: 'Realisasi Pencatatan', value: <AnimatedNumber value={contextRealisasiPencatatan} format={fmtRupiahDetail} />, accent: 'indigo' },
+              { key: 'transaksional', icon: CreditCard, label: 'Realisasi Transaksional', value: <AnimatedNumber value={contextRealisasiTransaksional} format={fmtRupiahDetail} />, accent: 'purple' },
             ]}
           />
 
@@ -353,9 +354,9 @@ export function PenunjukanLangsungView() {
             title="Status Paket Penunjukan Langsung"
             icon={Package}
             cards={[
-              { key: 'total', icon: Package, label: 'Total Seluruh RUP', value: totalPaket, accent: 'neutral' },
-              { key: 'selesai', icon: CheckCircle2, label: 'Terdapat Realisasi', value: paketSelesai, accent: 'teal' },
-              { key: 'belum', icon: Clock, label: 'Belum Terealisasi', value: paketBelumSelesai, accent: 'amber' },
+              { key: 'total', icon: Package, label: 'Total Seluruh RUP', value: <AnimatedNumber value={totalPaket} />, accent: 'neutral' },
+              { key: 'selesai', icon: CheckCircle2, label: 'Terdapat Realisasi', value: <AnimatedNumber value={paketSelesai} />, accent: 'teal' },
+              { key: 'belum', icon: Clock, label: 'Belum Terealisasi', value: <AnimatedNumber value={paketBelumSelesai} />, accent: 'amber' },
             ]}
           />
 

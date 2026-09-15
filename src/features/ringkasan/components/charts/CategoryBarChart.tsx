@@ -15,7 +15,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { useRouter } from 'next/navigation';
-import { useIsDark, chartInk, fmtCompactRp } from './chartTheme';
+import { useIsDark, chartInk, fmtCompactRp, CHART_ANIMATION, usePrefersReducedMotion } from './chartTheme';
 import { fmtInt } from '@/lib/format';
 import styles from './charts.module.css';
 
@@ -73,17 +73,28 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
   const isDark = useIsDark();
   const ink = chartInk(isDark);
   const router = useRouter();
+  const reduceMotion = usePrefersReducedMotion();
 
   const dataRef = React.useRef(data);
   const getLabelRef = React.useRef(getLabel);
   const modeRef = React.useRef(mode);
   const inkRef = React.useRef(ink);
+  // Progres animasi Chart.js saat ini (0..1) -- diisi oleh options.animation.onProgress
+  // di bawah. Batang digerakkan sepenuhnya oleh Chart.js sendiri; ref ini HANYA
+  // dipakai untuk menyekalakan ANGKA yang digambar plugin ini, supaya angkanya
+  // ikut menghitung naik selaras dengan batang, bukan langsung tampil penuh
+  // sejak frame pertama.
+  const progressRef = React.useRef(0);
 
   // Update refs secara sinkron agar plugin (yang dipanggil saat draw) selalu punya data terbaru
   dataRef.current = data;
   getLabelRef.current = getLabel;
   modeRef.current = mode;
   inkRef.current = ink;
+  // Reduced motion: Chart.js sendiri tidak tahu preferensi ini, jadi progres
+  // dikunci penuh di sini -- tanpa ini angka macet di 0 selamanya karena
+  // onProgress (di bawah) tidak pernah dipanggil saat animation:false.
+  if (reduceMotion) progressRef.current = 1;
 
   const endLabelPlugin = useMemo<Plugin<'bar'>>(
     () => ({
@@ -92,6 +103,7 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
         const { ctx } = chart;
         const meta0 = chart.getDatasetMeta(0);
         const meta1 = chart.getDatasetMeta(1);
+        const progress = progressRef.current;
         ctx.save();
         ctx.font = '600 11px system-ui, sans-serif';
         ctx.textBaseline = 'middle';
@@ -105,11 +117,12 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
           let valText = '';
 
           if (currentMode === 'keuangan') {
-            pct = d.pctRealisasi;
-            valText = fmtCompactRp(d.realisasi);
+            pct = d.pctRealisasi * progress;
+            valText = fmtCompactRp(d.realisasi * progress);
           } else {
-            pct = d.jumlahPaket > 0 ? (d.paketSudah / d.jumlahPaket) * 100 : 0;
-            valText = fmtInt(d.paketSudah) + ' pkt';
+            const pctFinal = d.jumlahPaket > 0 ? (d.paketSudah / d.jumlahPaket) * 100 : 0;
+            pct = pctFinal * progress;
+            valText = fmtInt(Math.round(d.paketSudah * progress)) + ' pkt';
           }
 
           const pctText = pct.toFixed(1).replace('.', ',') + '%';
@@ -199,6 +212,17 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
         responsive: true,
         maintainAspectRatio: false,
         layout: { padding: { right: 70 } },
+        animation: reduceMotion
+          ? (false as const)
+          : {
+              ...CHART_ANIMATION,
+              onProgress: (a: { currentStep: number; numSteps: number }) => {
+                progressRef.current = a.currentStep / a.numSteps;
+              },
+              onComplete: () => {
+                progressRef.current = 1;
+              },
+            },
         onClick: (e: ChartEvent, _elements: ActiveElement[], chart: ChartJS) => {
           if (!e.native) return;
           const pts = chart.getElementsAtEventForMode(e.native, 'index', { intersect: false }, false);
@@ -271,7 +295,7 @@ export function CategoryBarChart<T extends CategoryBarDatum>({ data, getLabel, g
         },
       },
     };
-  }, [data, getLabel, getColor, mode, isDark, ink.tick, ink.grid, ink.tooltipBg, getLink, router]);
+  }, [data, getLabel, getColor, mode, isDark, ink.tick, ink.grid, ink.tooltipBg, getLink, router, reduceMotion]);
 
   if (data.length === 0) {
     return <div className={styles.empty}>Tidak ada data untuk filter ini.</div>;

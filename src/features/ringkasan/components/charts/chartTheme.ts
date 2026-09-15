@@ -20,6 +20,30 @@ export function useIsDark(): boolean {
   return isDark;
 }
 
+// Chart.js tidak menghormati prefers-reduced-motion sendiri -- animation:false
+// eksplisit dibutuhkan tiap chart yang memakai CHART_ANIMATION.
+export function usePrefersReducedMotion(): boolean {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const read = () => setReduce(mq.matches);
+    read();
+    mq.addEventListener('change', read);
+    return () => mq.removeEventListener('change', read);
+  }, []);
+  return reduce;
+}
+
+// Konfigurasi animasi Chart.js yang sama untuk seluruh chart Ringkasan --
+// eksplisit (bukan mengandalkan default library) supaya durasi/easing-nya
+// satu keputusan sadar, konsisten dengan --ease-out di globals.css (dekselerasi
+// eksponensial, tanpa bounce). 'easeOutQuart' adalah easing bawaan Chart.js
+// yang paling dekat dengan kurva itu.
+export const CHART_ANIMATION = {
+  duration: 800,
+  easing: 'easeOutQuart' as const,
+};
+
 type ColorPair = { light: string; dark: string };
 const pick = (c: ColorPair, isDark: boolean) => (isDark ? c.dark : c.light);
 

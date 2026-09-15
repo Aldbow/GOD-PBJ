@@ -16,7 +16,7 @@ const EASE = [0.22, 1, 0.36, 1] as const; // mirror --ease-out di globals.css
  * usePathname() berubah (halaman baru sudah commit).
  *
  * Sengaja HANYA mendengar klik <a> (mencakup seluruh <Link> Next.js —
- * Sidebar, Topbar, drilldown). Navigasi lewat router.push() terprogram (mis.
+ * CommandRail, Topbar, drilldown). Navigasi lewat router.push() terprogram (mis.
  * CommandPalette, klik chart) tidak dicakup: sebagian dari itu cuma
  * memperbarui query string di halaman yang sama (filter), bukan pindah
  * halaman, dan memicu bar ini di situ akan menyesatkan.

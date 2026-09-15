@@ -20,6 +20,21 @@
         ],
         "createdAt": "2026-09-07T01:43:39.464Z",
         "reason": "Claude's call, not the user's: the 42px masked hairline grid is this product's own existing motif, copied from src/features/landing/components/LandingHero.module.css (.gridOverlay, same construction + radial mask) onto the one dark plate in the KPI row. Reused deliberately per the bolder brief (amplify what the system already owns), not reached for as a default."
+      },
+      {
+        "rule": "bounce-easing",
+        "value": "var(--ease-spring)",
+        "createdAt": "2026-09-15T04:18:32.905Z",
+        "reason": "false positive: --ease-spring resolves to cubic-bezier(0.22,1,0.36,1) in globals.css, identical to --ease-out -- a standard exponential ease-out, not an actual bounce/elastic curve (no overshoot). Flagged only because the token name contains 'spring'; already used the same way in LastUpdatePill.module.css."
+      },
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "src/features/ringkasan/components/KurasiAkurasi.module.css"
+        ],
+        "createdAt": "2026-09-15T05:33:27.656Z",
+        "reason": "Claude's call: .stackBar span width transition (L127) animates 3 flex-item segments in a tiny 12px-tall bar, triggered only on mount/filter change, not repeated. Segments must push each other as they grow (classic stacked-bar behavior) -- transform:scaleX on a flex item doesn't reflow siblings, so it can't reproduce this without much more complexity for a contained, infrequent, negligible-cost animation."
       }
     ]
   }

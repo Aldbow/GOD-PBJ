@@ -12,7 +12,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import type { SatkerAggregate } from '../../lib/ringkasanData';
-import { useIsDark, rankColor, chartInk, fmtCompactRp } from './chartTheme';
+import { useIsDark, rankColor, chartInk, fmtCompactRp, CHART_ANIMATION, usePrefersReducedMotion } from './chartTheme';
 import { fmtInt, fmtPct, fmtRupiah } from '@/lib/format';
 import styles from './charts.module.css';
 
@@ -34,6 +34,7 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
   const isDark = useIsDark();
   const ink = chartInk(isDark);
   const cfg = METRICS['pct'];
+  const reduceMotion = usePrefersReducedMotion();
 
   const rows = useMemo<Row[]>(() => {
     const sorted = [...satker].sort((a, b) => cfg.getValue(b) - cfg.getValue(a));
@@ -56,10 +57,15 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
   const rowsRef = React.useRef(rows);
   const cfgRef = React.useRef(cfg);
   const inkRef = React.useRef(ink);
+  // Sama seperti CategoryBarChart: progres animasi Chart.js (0..1), dipakai
+  // untuk menyekalakan angka yang digambar plugin ini supaya ikut menghitung
+  // naik selaras dengan batang.
+  const progressRef = React.useRef(0);
 
   rowsRef.current = rows;
   cfgRef.current = cfg;
   inkRef.current = ink;
+  if (reduceMotion) progressRef.current = 1;
 
   // Plugin ringan: tulis nilai metrik aktif di ujung tiap bar.
   const endLabelPlugin = useMemo<Plugin<'bar'>>(
@@ -68,12 +74,13 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
       afterDatasetsDraw(chart) {
         const { ctx } = chart;
         const meta = chart.getDatasetMeta(0);
+        const progress = progressRef.current;
         ctx.save();
         ctx.font = '600 11px system-ui, sans-serif';
         ctx.fillStyle = inkRef.current.valueText;
         ctx.textBaseline = 'middle';
         meta.data.forEach((bar, i) => {
-          const val = cfgRef.current.getValue(rowsRef.current[i]);
+          const val = cfgRef.current.getValue(rowsRef.current[i]) * progress;
           ctx.textAlign = 'left';
           ctx.fillText(cfgRef.current.format(val), bar.x + 6, bar.y);
         });
@@ -124,6 +131,17 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
         responsive: true,
         maintainAspectRatio: false,
         layout: { padding: { right: 46 } },
+        animation: reduceMotion
+          ? (false as const)
+          : {
+              ...CHART_ANIMATION,
+              onProgress: (a: { currentStep: number; numSteps: number }) => {
+                progressRef.current = a.currentStep / a.numSteps;
+              },
+              onComplete: () => {
+                progressRef.current = 1;
+              },
+            },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -163,7 +181,7 @@ export function SatkerRankingChart({ satker, selectedSatker }: { satker: SatkerA
         },
       },
     };
-  }, [rows, cfg, isDark, selectedSatker, ink.tick, ink.grid, ink.tooltipBg]);
+  }, [rows, cfg, isDark, selectedSatker, ink.tick, ink.grid, ink.tooltipBg, reduceMotion]);
 
   return (
     <div>

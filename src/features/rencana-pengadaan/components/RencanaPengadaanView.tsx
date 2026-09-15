@@ -9,9 +9,17 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { ExportDataModal } from '@/components/ui/ExportDataModal';
 import { Card, type CardTone } from '@/components/ui/Card';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+import { CHART_ANIMATION, usePrefersReducedMotion } from '@/features/ringkasan/components/charts/chartTheme';
 import styles from './RencanaPengadaanView.module.css';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
+
+// Intl.NumberFormat dengan maximumFractionDigits sudah membulatkan sendiri --
+// aman dipakai langsung sebagai `format` <AnimatedNumber> walau nilai di
+// tengah animasi berupa pecahan.
+const fmtRpScorecard = (n: number) =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
 
 const SORT_OPTIONS = [
   { value: 'PCT_DESC', label: 'Persentase (Tertinggi)' },
@@ -41,6 +49,8 @@ export function RencanaPengadaanView() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const reduceMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     async function fetchData() {
@@ -351,6 +361,7 @@ export function RencanaPengadaanView() {
   );
 
   const chartOptions = {
+    animation: reduceMotion ? (false as const) : CHART_ANIMATION,
     plugins: {
       legend: { position: 'left' as const, labels: { color: legendColor, padding: 16, font: { size: 11 } } },
       tooltip: {
@@ -404,7 +415,7 @@ export function RencanaPengadaanView() {
               </Card.Header>
               <Card.Body className={styles.scoreInfo}>
                 <span className={styles.scoreValue}>
-                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalBelanjaAll)}
+                  <AnimatedNumber value={totalBelanjaAll} format={fmtRpScorecard} />
                 </span>
               </Card.Body>
             </Card>
@@ -416,7 +427,7 @@ export function RencanaPengadaanView() {
               </Card.Header>
               <Card.Body className={styles.scoreInfo}>
                 <span className={styles.scoreValue}>
-                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalRupAll)}
+                  <AnimatedNumber value={totalRupAll} format={fmtRpScorecard} />
                 </span>
               </Card.Body>
             </Card>
@@ -428,7 +439,7 @@ export function RencanaPengadaanView() {
               </Card.Header>
               <Card.Body className={styles.scoreInfo}>
                 <span className={styles.scoreValueProminent}>
-                  {avgPct.toFixed(1)}%
+                  <AnimatedNumber value={avgPct} format={(n) => n.toFixed(1) + '%'} />
                 </span>
               </Card.Body>
             </Card>

@@ -12,6 +12,7 @@ import { FilterAdvancedCard } from '@/components/paket/FilterAdvancedCard';
 import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
 import { FilterToggle } from '@/components/paket/FilterToggle';
 import { MetricGrid, DualProgressBar } from '@/components/paket/SummaryCards';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { AnomaliPanel, AnomaliBadge } from '@/components/paket/AnomaliPanel';
 import { summarizeAnomali, matchesAnomali, type AnomaliJenis } from '@/lib/anomali';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
@@ -353,12 +354,12 @@ export function EPurchasingView() {
             title="Ringkasan Keuangan"
             icon={Wallet}
             cards={[
-              { key: 'pagu', icon: Wallet, label: 'Total Anggaran (Pagu)', value: fmtRupiahDetail(totalPagu), accent: 'info' },
+              { key: 'pagu', icon: Wallet, label: 'Total Anggaran (Pagu)', value: <AnimatedNumber value={totalPagu} format={fmtRupiahDetail} />, accent: 'info' },
               {
                 key: 'real',
                 icon: TrendingUp,
                 label: 'Total Realisasi',
-                value: fmtRupiahDetail(totalRealisasi),
+                value: <AnimatedNumber value={totalRealisasi} format={fmtRupiahDetail} />,
                 badge: `${persentase.toFixed(1)}%`,
                 badgeTone: 'good',
                 accent: 'teal',
@@ -367,7 +368,7 @@ export function EPurchasingView() {
                 key: 'sisa',
                 icon: ListTodo,
                 label: 'Sisa Anggaran',
-                value: fmtRupiahDetail(totalBelumRealisasi),
+                value: <AnimatedNumber value={totalBelumRealisasi} format={fmtRupiahDetail} />,
                 badge: `${persentaseBelumRealisasi.toFixed(1)}%`,
                 badgeTone: 'warn',
                 accent: 'amber',
@@ -392,9 +393,9 @@ export function EPurchasingView() {
             title="Status Paket E-Purchasing"
             icon={Package}
             cards={[
-              { key: 'total', icon: Package, label: 'Total Seluruh Paket', value: totalPaket, accent: 'neutral' },
-              { key: 'selesai', icon: CheckCircle2, label: 'Paket Selesai', value: paketSelesai, accent: 'teal' },
-              { key: 'belum', icon: Clock, label: 'Paket Proses / Belum Selesai', value: paketBelumSelesai, accent: 'amber' },
+              { key: 'total', icon: Package, label: 'Total Seluruh Paket', value: <AnimatedNumber value={totalPaket} />, accent: 'neutral' },
+              { key: 'selesai', icon: CheckCircle2, label: 'Paket Selesai', value: <AnimatedNumber value={paketSelesai} />, accent: 'teal' },
+              { key: 'belum', icon: Clock, label: 'Paket Proses / Belum Selesai', value: <AnimatedNumber value={paketBelumSelesai} />, accent: 'amber' },
             ]}
           />
 

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, type TooltipItem, Legend, type Plugin } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { useIsDark, chartInk, riskKategoriColor } from './riskChartTheme';
 import { fmtInt } from '@/lib/format';
 import { type RiskKategori, RISK_KATEGORI_LABEL } from '@/lib/risiko/types';
+import { CHART_ANIMATION, usePrefersReducedMotion } from '@/features/ringkasan/components/charts/chartTheme';
 import styles from '@/features/ringkasan/components/charts/charts.module.css';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
@@ -41,6 +42,7 @@ export function RisikoDriverStackedBarChart({
 }: Props) {
   const isDark = useIsDark();
   const ink = chartInk(isDark);
+  const reduceMotion = usePrefersReducedMotion();
 
   const buckets = useMemo(() => {
     if (data.length <= maxBars) return data;
@@ -71,6 +73,37 @@ export function RisikoDriverStackedBarChart({
   bucketsRef.current = buckets;
   const inkRef = useRef(ink);
   inkRef.current = ink;
+  // Progres 0..1 untuk menyekalakan ANGKA "X paket" yang digambar plugin di
+  // bawah. SENGAJA tidak memakai options.animation.onProgress milik Chart.js
+  // (pola yang dipakai CategoryBarChart.tsx/SatkerRankingChart.tsx) -- di
+  // halaman ini progress-nya kepotong nyaris seketika (diverifikasi: cuma
+  // 1 tick ~0,005 lalu berhenti), kemungkinan karena render ulang yang lebih
+  // sering di RisikoPengadaanView (mis. dari useTransition filter driver)
+  // membuat Chart.js membatalkan animasi yang sedang berjalan. rAF sendiri
+  // di bawah tidak bergantung pada siklus animasi Chart.js sama sekali.
+  const progressRef = useRef(reduceMotion ? 1 : 0);
+  const chartRef = useRef<ChartJS<'bar'> | null>(null);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      progressRef.current = 1;
+      chartRef.current?.draw();
+      return;
+    }
+    progressRef.current = 0;
+    let raf = 0;
+    const start = performance.now();
+    const duration = CHART_ANIMATION.duration;
+    const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      progressRef.current = easeOutQuart(t);
+      chartRef.current?.draw();
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [buckets, reduceMotion]);
 
   // Plugin: menampilkan total paket di ujung kanan setiap bar
   const totalLabelPlugin: Plugin<'bar'> = useMemo(() => ({
@@ -78,6 +111,7 @@ export function RisikoDriverStackedBarChart({
     afterDraw(chart) {
       const { ctx } = chart;
       const currentBuckets = bucketsRef.current;
+      const progress = progressRef.current;
       const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
       if (!meta?.data) return;
 
@@ -103,7 +137,7 @@ export function RisikoDriverStackedBarChart({
           }
         }
         if (maxX > 0) {
-          ctx.fillText(fmtInt(currentBuckets[i].totalCount) + ' paket', maxX + 8, barY);
+          ctx.fillText(fmtInt(Math.round(currentBuckets[i].totalCount * progress)) + ' paket', maxX + 8, barY);
         }
       }
       ctx.restore();
@@ -129,6 +163,7 @@ export function RisikoDriverStackedBarChart({
         responsive: true,
         maintainAspectRatio: false,
         layout: { padding: { right: 100 } }, // ruang untuk label total di kanan
+        animation: reduceMotion ? (false as const) : CHART_ANIMATION,
         onHover: (event: any, chartElement: any) => {
           if (onClick && event.native?.target) {
             event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
@@ -205,7 +240,7 @@ export function RisikoDriverStackedBarChart({
         },
       },
     }),
-    [buckets, isDark, ink]
+    [buckets, isDark, ink, reduceMotion]
   );
 
   if (buckets.length === 0) {
@@ -214,7 +249,7 @@ export function RisikoDriverStackedBarChart({
 
   return (
     <div style={{ height, width: '100%' }}>
-      <Bar data={chartData} options={options} plugins={[totalLabelPlugin]} />
+      <Bar ref={chartRef} data={chartData} options={options} plugins={[totalLabelPlugin]} />
     </div>
   );
 }
