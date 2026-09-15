@@ -11,7 +11,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import type { MetodeAggregate } from '../../lib/ringkasanData';
-import { useIsDark, seriesColor, chartInk } from './chartTheme';
+import { useIsDark, seriesColor, chartInk, CHART_ANIMATION, usePrefersReducedMotion } from './chartTheme';
 import { fmtInt, fmtPct } from '@/lib/format';
 import styles from './charts.module.css';
 
@@ -20,9 +20,12 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 export function KurasiMetodeChart({ metode }: { metode: MetodeAggregate[] }) {
   const isDark = useIsDark();
   const ink = chartInk(isDark);
+  const reduceMotion = usePrefersReducedMotion();
 
   const inkRef = React.useRef(ink);
+  const progressRef = React.useRef(0);
   inkRef.current = ink;
+  if (reduceMotion) progressRef.current = 1;
 
   const { data, options, plugins } = useMemo(() => {
     const labels = metode.map((m) => m.metode);
@@ -31,6 +34,7 @@ export function KurasiMetodeChart({ metode }: { metode: MetodeAggregate[] }) {
       id: 'inlineLabels',
       afterDraw(chart: any) {
         const { ctx } = chart;
+        const progress = progressRef.current;
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -49,7 +53,7 @@ export function KurasiMetodeChart({ metode }: { metode: MetodeAggregate[] }) {
                 const centerY = element.y;
                 // Belum Dikurasi (i === 2) warnanya abu-abu terang, jadi pakai ink.valueText. Sisanya putih.
                 ctx.fillStyle = i === 2 ? inkRef.current.valueText : '#ffffff';
-                ctx.fillText(fmtInt(val), centerX, centerY);
+                ctx.fillText(fmtInt(Math.round(val * progress)), centerX, centerY);
               }
             }
           });
@@ -95,6 +99,17 @@ export function KurasiMetodeChart({ metode }: { metode: MetodeAggregate[] }) {
         indexAxis: 'y' as const,
         responsive: true,
         maintainAspectRatio: false,
+        animation: reduceMotion
+          ? (false as const)
+          : {
+              ...CHART_ANIMATION,
+              onProgress: (a: { currentStep: number; numSteps: number }) => {
+                progressRef.current = a.currentStep / a.numSteps;
+              },
+              onComplete: () => {
+                progressRef.current = 1;
+              },
+            },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -128,7 +143,7 @@ export function KurasiMetodeChart({ metode }: { metode: MetodeAggregate[] }) {
       },
       plugins: [inlineLabelsPlugin]
     };
-  }, [metode, isDark, ink.tick, ink.grid, ink.tooltipBg, ink.valueText]);
+  }, [metode, isDark, ink.tick, ink.grid, ink.tooltipBg, ink.valueText, reduceMotion]);
 
   if (metode.length === 0) {
     return <div className={styles.empty}>Tidak ada data untuk filter ini.</div>;

@@ -7,6 +7,7 @@ import { CheckCircle2, AlertTriangle, ShieldAlert, HelpCircle, type LucideIcon }
 import { useIsDark, chartInk, riskKategoriColor } from './riskChartTheme';
 import { fmtInt } from '@/lib/format';
 import { countRup } from '@/lib/format';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { RISK_KATEGORI_LABEL, type RiskKategori, type RiskRow } from '@/lib/risiko/types';
 
 type DonutRow = Pick<RiskRow, 'kd_rup' | 'kategori'>;
@@ -93,7 +94,9 @@ export function RisikoKategoriDonut({ rows }: Props) {
         <div style={{ position: 'relative', width: 200, height: 200, flexShrink: 0 }}>
           <Doughnut data={chartData} options={options} />
           <div className={styles.donutCenter}>
-            <div className={styles.donutTotal}>{fmtInt(total)}</div>
+            <div className={styles.donutTotal}>
+              <AnimatedNumber value={total} format={fmtInt} />
+            </div>
             <div className={styles.donutLabel}>Total Paket</div>
           </div>
         </div>
@@ -103,7 +106,6 @@ export function RisikoKategoriDonut({ rows }: Props) {
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {buckets.map((b) => {
           const Icon = KATEGORI_ICON[b.kategori];
-          const pct = ((b.count / total) * 100).toFixed(1).replace('.', ',');
           return (
             <li key={b.kategori} style={{
               display: 'flex',
@@ -124,10 +126,10 @@ export function RisikoKategoriDonut({ rows }: Props) {
                 {RISK_KATEGORI_LABEL[b.kategori]}
               </span>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                {fmtInt(b.count)}
+                <AnimatedNumber value={b.count} format={fmtInt} />
               </span>
               <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 44, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                {pct}%
+                <AnimatedNumber value={(b.count / total) * 100} format={(n) => n.toFixed(1).replace('.', ',') + '%'} />
               </span>
             </li>
           );

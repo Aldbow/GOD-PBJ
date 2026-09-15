@@ -56,8 +56,10 @@
 }
 
 @media (max-width: 860px) {
+  /* Di bawah 860px dock navigasi menempati tepi bawah; tombol ini naik agar
+     tidak duduk di atasnya. */
   .scrollToTopBtn {
-    bottom: var(--space-6, 24px);
-    right: var(--space-6, 24px);
+    bottom: 84px;
+    right: var(--space-4, 16px);
   }
 }

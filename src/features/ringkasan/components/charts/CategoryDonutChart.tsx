@@ -6,11 +6,18 @@ import { useRouter } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, type TooltipItem, type ChartEvent, type ActiveElement } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
-import { useIsDark, chartInk, fmtCompactRp } from './chartTheme';
+import { useIsDark, chartInk, fmtCompactRp, CHART_ANIMATION, usePrefersReducedMotion } from './chartTheme';
 import { fmtInt } from '@/lib/format';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import styles from './charts.module.css';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
+
+// fmtInt sendiri tidak membulatkan -- <AnimatedNumber> memberi nilai pecahan
+// di tengah hitungan, dan tanpa pembulatan koma desimal id-ID-nya terbaca
+// seperti pemisah ribuan lain (mis. "7.978,988"). Lihat catatan sama di
+// KurasiAkurasi.tsx.
+const fmtIntBulat = (n: number) => fmtInt(Math.round(n));
 
 export interface CategoryDatum {
   jumlahPaket: number;
@@ -43,6 +50,7 @@ export function CategoryDonutChart<T extends CategoryDatum>({ data, getLabel, ge
   const isDark = useIsDark();
   const ink = chartInk(isDark);
   const router = useRouter();
+  const reduceMotion = usePrefersReducedMotion();
 
   const { chartData, options } = useMemo(() => {
     const labels = data.map(getLabel);
@@ -66,6 +74,7 @@ export function CategoryDonutChart<T extends CategoryDatum>({ data, getLabel, ge
         responsive: true,
         maintainAspectRatio: false,
         cutout: '64%',
+        animation: reduceMotion ? (false as const) : CHART_ANIMATION,
         onClick: (_e: ChartEvent, elements: ActiveElement[]) => {
           const i = elements[0]?.index;
           if (i === undefined) return;
@@ -103,7 +112,7 @@ export function CategoryDonutChart<T extends CategoryDatum>({ data, getLabel, ge
         },
       },
     };
-  }, [data, getLabel, getColor, isDark, ink.surface, ink.tooltipBg, getLink, router]);
+  }, [data, getLabel, getColor, isDark, ink.surface, ink.tooltipBg, getLink, router, reduceMotion]);
 
   if (data.length === 0) {
     return <div className={styles.empty}>Tidak ada data untuk filter ini.</div>;
@@ -116,15 +125,18 @@ export function CategoryDonutChart<T extends CategoryDatum>({ data, getLabel, ge
       <ul className={styles.legendCol}>
         {data.map((d) => {
           const label = getLabel(d);
-          const pct = ((d.jumlahPaket / total) * 100).toFixed(1).replace('.', ',');
           const target = getLink?.(label) ?? null;
-
+          const pctNum = (d.jumlahPaket / total) * 100;
           const isi = (
             <>
               <span className={styles.swatch} style={{ background: getColor(label, isDark) }} />
               <span className={styles.legendName} title={label}>{label}</span>
-              <span className={styles.legendCount}>{fmtInt(d.jumlahPaket)}</span>
-              <span className={styles.legendPct}>{pct}%</span>
+              <span className={styles.legendCount}>
+                <AnimatedNumber value={d.jumlahPaket} format={fmtIntBulat} />
+              </span>
+              <span className={styles.legendPct}>
+                <AnimatedNumber value={pctNum} format={(n) => n.toFixed(1).replace('.', ',') + '%'} />
+              </span>
             </>
           );
 
@@ -154,7 +166,9 @@ export function CategoryDonutChart<T extends CategoryDatum>({ data, getLabel, ge
         <div className={`${styles.wrap} ${styles.donutBox}`}>
           <Doughnut data={chartData} options={options} />
           <div className={styles.donutCenter}>
-            <div className={styles.donutTotal}>{fmtInt(totalPaket)}</div>
+            <div className={styles.donutTotal}>
+              <AnimatedNumber value={totalPaket} format={fmtIntBulat} />
+            </div>
             <div className={styles.donutLabel}>Total Paket</div>
           </div>
         </div>

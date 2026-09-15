@@ -3,8 +3,9 @@
 import React, { useMemo } from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, type TooltipItem } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
-import { useIsDark, chartInk } from '@/features/ringkasan/components/charts/chartTheme';
+import { useIsDark, chartInk, CHART_ANIMATION, usePrefersReducedMotion } from '@/features/ringkasan/components/charts/chartTheme';
 import { fmtInt } from '@/lib/format';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import styles from './PnCategoryDonut.module.css';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -23,6 +24,7 @@ interface Props {
 export function PnCategoryDonut({ data, getColor, totalLabel = 'Total Paket' }: Props) {
   const isDark = useIsDark();
   const ink = chartInk(isDark);
+  const reduceMotion = usePrefersReducedMotion();
 
   const total = data.reduce((s, d) => s + d.count, 0) || 1;
 
@@ -46,6 +48,7 @@ export function PnCategoryDonut({ data, getColor, totalLabel = 'Total Paket' }: 
         responsive: true,
         maintainAspectRatio: false,
         cutout: '64%',
+        animation: reduceMotion ? (false as const) : CHART_ANIMATION,
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -65,7 +68,7 @@ export function PnCategoryDonut({ data, getColor, totalLabel = 'Total Paket' }: 
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, getColor, isDark, ink.surface, ink.tooltipBg, total]);
+  }, [data, getColor, isDark, ink.surface, ink.tooltipBg, total, reduceMotion]);
 
   if (data.length === 0) {
     return <div className={styles.empty}>Tidak ada data untuk filter ini.</div>;
@@ -78,8 +81,12 @@ export function PnCategoryDonut({ data, getColor, totalLabel = 'Total Paket' }: 
           <li key={d.label} className={styles.legendRow}>
             <span className={styles.swatch} style={{ background: getColor(d.label, isDark) }} />
             <span className={styles.legendName} title={d.label}>{d.label}</span>
-            <span className={styles.legendCount}>{fmtInt(d.count)}</span>
-            <span className={styles.legendPct}>{((d.count / total) * 100).toFixed(1).replace('.', ',')}%</span>
+            <span className={styles.legendCount}>
+              <AnimatedNumber value={d.count} format={fmtInt} />
+            </span>
+            <span className={styles.legendPct}>
+              <AnimatedNumber value={(d.count / total) * 100} format={(n) => n.toFixed(1).replace('.', ',') + '%'} />
+            </span>
           </li>
         ))}
       </ul>
@@ -87,7 +94,9 @@ export function PnCategoryDonut({ data, getColor, totalLabel = 'Total Paket' }: 
         <div className={styles.donutBox}>
           <Doughnut data={chartData} options={options} />
           <div className={styles.donutCenter}>
-            <div className={styles.donutTotal}>{fmtInt(total)}</div>
+            <div className={styles.donutTotal}>
+              <AnimatedNumber value={total} format={fmtInt} />
+            </div>
             <div className={styles.donutLabel}>{totalLabel}</div>
           </div>
         </div>

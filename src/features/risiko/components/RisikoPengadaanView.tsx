@@ -11,6 +11,7 @@ import { OrgFilterBar } from '@/components/paket/OrgFilterBar';
 import { FilterAdvancedCard } from '@/components/paket/FilterAdvancedCard';
 import { FilterPillGroup } from '@/components/paket/FilterPillGroup';
 import { MetricGrid, type MetricCardDef } from '@/components/paket/SummaryCards';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Card } from '@/components/ui/Card';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
 import { PaketDetailModal } from '@/components/paket/PaketDetailModal';
@@ -476,16 +477,16 @@ export function RisikoPengadaanView() {
   const exportFilteredData = useMemo(() => filteredData, [filteredData]);
 
   const kpiCards: MetricCardDef[] = [
-    { key: 'rendah', icon: ShieldAlert, label: 'Rendah', value: kategoriCounts.RENDAH, accent: 'teal' },
-    { key: 'sedang', icon: ShieldAlert, label: 'Sedang', value: kategoriCounts.SEDANG, accent: 'amber' },
-    { key: 'tinggi', icon: ShieldAlert, label: 'Tinggi', value: kategoriCounts.TINGGI, accent: 'indigo' },
-    { key: 'tidak_lengkap', icon: ShieldAlert, label: 'Data Tidak Lengkap', value: kategoriCounts.DATA_TIDAK_LENGKAP, accent: 'neutral' },
+    { key: 'rendah', icon: ShieldAlert, label: 'Rendah', value: <AnimatedNumber value={kategoriCounts.RENDAH} />, accent: 'teal' },
+    { key: 'sedang', icon: ShieldAlert, label: 'Sedang', value: <AnimatedNumber value={kategoriCounts.SEDANG} />, accent: 'amber' },
+    { key: 'tinggi', icon: ShieldAlert, label: 'Tinggi', value: <AnimatedNumber value={kategoriCounts.TINGGI} />, accent: 'indigo' },
+    { key: 'tidak_lengkap', icon: ShieldAlert, label: 'Data Tidak Lengkap', value: <AnimatedNumber value={kategoriCounts.DATA_TIDAK_LENGKAP} />, accent: 'neutral' },
   ];
 
   const earlyWarningCards: MetricCardDef[] = [
-    { key: 'belum', icon: Clock, label: 'Belum Dilaksanakan', value: belumDilaksanakanCount, accent: 'amber' },
-    { key: 'revisi', icon: RefreshCw, label: 'Revisi Berulang (>2x)', value: revisiBerulangCount, accent: 'indigo' },
-    { key: 'pagu_tinggi', icon: Wallet, label: 'Pagu pada Kategori Tinggi', value: fmtRupiahDetail(totalPaguTinggi), accent: 'info' },
+    { key: 'belum', icon: Clock, label: 'Belum Dilaksanakan', value: <AnimatedNumber value={belumDilaksanakanCount} />, accent: 'amber' },
+    { key: 'revisi', icon: RefreshCw, label: 'Revisi Berulang (>2x)', value: <AnimatedNumber value={revisiBerulangCount} />, accent: 'indigo' },
+    { key: 'pagu_tinggi', icon: Wallet, label: 'Pagu pada Kategori Tinggi', value: <AnimatedNumber value={totalPaguTinggi} format={fmtRupiahDetail} />, accent: 'info' },
   ];
 
   return (

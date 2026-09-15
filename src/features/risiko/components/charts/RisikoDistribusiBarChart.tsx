@@ -5,6 +5,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, LogarithmicScale, BarElem
 import { Bar } from 'react-chartjs-2';
 import { useIsDark, chartInk, fmtCompactRp, riskBarColor, riskPalette } from './riskChartTheme';
 import { fmtInt } from '@/lib/format';
+import { CHART_ANIMATION, usePrefersReducedMotion } from '@/features/ringkasan/components/charts/chartTheme';
 import type { GroupedBucket } from '@/lib/risiko/aggregate';
 import styles from '@/features/ringkasan/components/charts/charts.module.css';
 
@@ -43,6 +44,7 @@ interface Props {
 export function RisikoDistribusiBarChart({ data, maxBars = 8, height = '100%', vertical = false, multicolor = false }: Props) {
   const isDark = useIsDark();
   const ink = chartInk(isDark);
+  const reduceMotion = usePrefersReducedMotion();
 
   const buckets = useMemo(() => foldTopN(data, maxBars), [data, maxBars]);
   const singleColor = riskBarColor(isDark);
@@ -68,6 +70,7 @@ export function RisikoDistribusiBarChart({ data, maxBars = 8, height = '100%', v
         responsive: true,
         maintainAspectRatio: false,
         layout: { padding: vertical ? { top: 20 } : { right: 16 } },
+        animation: reduceMotion ? (false as const) : CHART_ANIMATION,
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -118,7 +121,7 @@ export function RisikoDistribusiBarChart({ data, maxBars = 8, height = '100%', v
         },
       },
     }),
-    [buckets, singleColor, palette, ink.tick, ink.grid, ink.tooltipBg, ink.tooltipText, vertical, multicolor]
+    [buckets, singleColor, palette, ink.tick, ink.grid, ink.tooltipBg, ink.tooltipText, vertical, multicolor, reduceMotion]
   );
 
   if (data.length === 0) {

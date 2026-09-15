@@ -121,7 +121,11 @@
   background: var(--surface-2);
 }
 
-.stackBar span { display: block; height: 100%; }
+.stackBar span {
+  display: block;
+  height: 100%;
+  transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
 .stackBar span + span { box-shadow: -2px 0 0 var(--surface); }
 
 .segAkurat { background: var(--teal-600); }

@@ -11,7 +11,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import type { MetodeAggregate } from '../../lib/ringkasanData';
-import { useIsDark, seriesColor, chartInk } from './chartTheme';
+import { useIsDark, seriesColor, chartInk, CHART_ANIMATION, usePrefersReducedMotion } from './chartTheme';
 import { fmtInt, fmtPct } from '@/lib/format';
 import styles from './charts.module.css';
 
@@ -20,6 +20,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 export function StatusPaketChart({ metode }: { metode: MetodeAggregate[] }) {
   const isDark = useIsDark();
   const ink = chartInk(isDark);
+  const reduceMotion = usePrefersReducedMotion();
 
   const { data, options } = useMemo(() => {
     const labels = metode.map((m) => m.metode);
@@ -50,6 +51,7 @@ export function StatusPaketChart({ metode }: { metode: MetodeAggregate[] }) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: reduceMotion ? (false as const) : CHART_ANIMATION,
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -82,7 +84,7 @@ export function StatusPaketChart({ metode }: { metode: MetodeAggregate[] }) {
         },
       },
     };
-  }, [metode, isDark, ink.tick, ink.grid, ink.tooltipBg]);
+  }, [metode, isDark, ink.tick, ink.grid, ink.tooltipBg, reduceMotion]);
 
   if (metode.length === 0) {
     return <div className={styles.empty}>Tidak ada data untuk filter ini.</div>;

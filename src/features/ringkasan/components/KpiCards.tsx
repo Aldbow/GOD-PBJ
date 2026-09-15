@@ -6,6 +6,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { RingkasanKpi } from '../lib/ringkasanData';
 import { fmtInt, fmtPct } from '@/lib/format';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Card, type CardTone } from '@/components/ui/Card';
 import styles from './KpiCards.module.css';
 
@@ -40,9 +41,14 @@ const TINT: Record<Tone, CardTone> = {
   danger: 'risk',
 };
 
-/** Satu ukuran di dalam kartu terukur: nilai + persentase pembandingnya. */
+/** Satu ukuran di dalam kartu terukur: nilai + persentase pembandingnya.
+ * Nilai disimpan sebagai angka mentah + formatter (bukan string jadi) supaya
+ * <AnimatedNumber> bisa menghitungnya naik di setiap frame -- lihat Ukuran(). */
 interface UkuranData {
-  nilai: string;
+  nilaiNum: number;
+  nilaiFormat: (n: number) => string;
+  /** Teks statis sesudah angka (mis. "paket") -- TIDAK ikut animasi. */
+  satuan?: string;
   /** Porsi terhadap kartu acuan, 0..100. */
   pct: number;
   keterangan: React.ReactNode;
@@ -69,7 +75,10 @@ function Ukuran({ data, size }: { data: UkuranData; size: 'utama' | 'pendamping'
   const utama = size === 'utama';
   return (
     <div className={utama ? styles.blokUtama : styles.blokPendamping}>
-      <div className={utama ? styles.nilaiUtama : styles.nilaiPendamping}>{data.nilai}</div>
+      <div className={utama ? styles.nilaiUtama : styles.nilaiPendamping}>
+        <AnimatedNumber value={data.nilaiNum} format={data.nilaiFormat} />
+        {data.satuan ? ` ${data.satuan}` : null}
+      </div>
       <div className={styles.track} aria-hidden="true">
         <div
           className={styles.fill}
@@ -132,7 +141,7 @@ function KartuAcuan({ kpi }: { kpi: RingkasanKpi }) {
         <div className={styles.blokUtama}>
           <div className={styles.nilaiAcuan}>
             <span className={styles.rp}>Rp</span>
-            {fmtInt(Math.round(Number(kpi.totalPagu) || 0))}
+            <AnimatedNumber value={Number(kpi.totalPagu) || 0} format={(n) => fmtInt(Math.round(n))} />
           </div>
           <div className={styles.keterangan}>Nilai pagu keseluruhan</div>
         </div>
@@ -143,7 +152,7 @@ function KartuAcuan({ kpi }: { kpi: RingkasanKpi }) {
               sehingga satuannya tak lagi sebaris dasar dengan angkanya. */}
           <div className={styles.nilaiPendamping}>
             <span>
-              {fmtInt(kpi.totalPaket)}
+              <AnimatedNumber value={kpi.totalPaket} format={(n) => fmtInt(Math.round(n))} />
               <span className={styles.satuan}>paket</span>
             </span>
           </div>
@@ -226,7 +235,8 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
           ? `Yang dinilai selalu triwulan terakhir yang sudah selesai; TW1 masih berjalan sehingga belum ada target yang jatuh tempo.`
           : `Yang dinilai triwulan terakhir yang sudah selesai. Kini TW${triwulan} berjalan, jadi acuannya target TW${triwulanDinilai} (${targetDinilai}%). Realisasi saat ini ${fmtPct(kpi.pctRealisasi)}.`),
       rupiah: {
-        nilai: fmtRupiahPenuh(kpi.totalRealisasi),
+        nilaiNum: kpi.totalRealisasi,
+        nilaiFormat: fmtRupiahPenuh,
         pct: kpi.pctRealisasi,
         keterangan:
           targetDinilai === null
@@ -243,7 +253,9 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
             : undefined,
       },
       paket: {
-        nilai: `${fmtInt(kpi.paketSudah)} paket`,
+        nilaiNum: kpi.paketSudah,
+        nilaiFormat: (n) => fmtInt(Math.round(n)),
+        satuan: 'paket',
         pct: sudahPaketPct,
         keterangan: `${fmtPct(sudahPaketPct)} dari total paket`,
       },
@@ -255,12 +267,15 @@ export function KpiCards({ kpi, loading }: { kpi: RingkasanKpi; loading?: boolea
       tone: 'warn',
       tooltip: 'Sisa pagu yang belum terserap dan jumlah paket yang belum memiliki realisasi.',
       rupiah: {
-        nilai: fmtRupiahPenuh(kpi.belumRealisasi),
+        nilaiNum: kpi.belumRealisasi,
+        nilaiFormat: fmtRupiahPenuh,
         pct: belumPct,
         keterangan: `${fmtPct(belumPct)} dari pagu`,
       },
       paket: {
-        nilai: `${fmtInt(kpi.paketBelum)} paket`,
+        nilaiNum: kpi.paketBelum,
+        nilaiFormat: (n) => fmtInt(Math.round(n)),
+        satuan: 'paket',
         pct: belumPaketPct,
         keterangan: `${fmtPct(belumPaketPct)} dari total paket`,
       },

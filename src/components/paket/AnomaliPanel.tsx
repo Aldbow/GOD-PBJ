@@ -5,6 +5,7 @@ import { AlertTriangle, FileWarning, TrendingUp, CheckCircle2, Filter } from 'lu
 import { anomaliOf, ANOMALI_LABEL, type AnomaliJenis, type AnomaliRow, type AnomaliSummary } from '@/lib/anomali';
 import { fmtRupiah, fmtInt } from '@/lib/format';
 import { Card, type CardTone } from '@/components/ui/Card';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import styles from './AnomaliPanel.module.css';
 
 // Badge ringkas untuk baris tabel yang terdeteksi anomali.
@@ -75,7 +76,9 @@ export function AnomaliPanel({ summary, activeFilter = [], onToggleFilter, title
         <AlertTriangle size={18} className={styles.titleIcon} />
         {title}
         {summary.totalPaket > 0 ? (
-          <span className={styles.totalBadge}>{fmtInt(summary.totalPaket)} paket</span>
+          <span className={styles.totalBadge}>
+            <AnimatedNumber value={summary.totalPaket} format={fmtInt} /> paket
+          </span>
         ) : (
           <span className={styles.okBadge}>
             <CheckCircle2 size={13} /> Bersih
@@ -108,11 +111,11 @@ export function AnomaliPanel({ summary, activeFilter = [], onToggleFilter, title
                 </Card.Header>
                 <Card.Body className={styles.body}>
                   <div className={styles.valueRow}>
-                    <span className={styles.count}>{fmtInt(t.count)}</span>
+                    <span className={styles.count}><AnimatedNumber value={t.count} format={fmtInt} /></span>
                     <span className={styles.countUnit}>paket</span>
                   </div>
                   <p className={styles.nilai}>
-                    {t.nilaiLabel}: <strong>{fmtRupiah(t.nilai)}</strong>
+                    {t.nilaiLabel}: <strong><AnimatedNumber value={t.nilai} format={fmtRupiah} /></strong>
                   </p>
                 </Card.Body>
                 <Card.Footer>{t.desc}</Card.Footer>

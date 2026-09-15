@@ -6,6 +6,7 @@ import { Star, Wallet, ShieldCheck, AlertTriangle, PieChart, Layers, CalendarClo
 import { fetchProgramPrioritasNasional } from '../lib/fetchProgramPrioritasNasional';
 import { MATCH_STATUS_LABEL, type MatchStatus, type ProgramPrioritasRow } from '../lib/types';
 import { MetricGrid, type MetricCardDef } from '@/components/paket/SummaryCards';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { FilterAdvancedCard } from '@/components/paket/FilterAdvancedCard';
 import { Card } from '@/components/ui/Card';
 import { PaketTable, type PaketColumn } from '@/components/paket/PaketTable';
@@ -193,19 +194,23 @@ export function ProgramPrioritasNasionalView() {
   }, [filteredData]);
 
   const kpiCards: MetricCardDef[] = [
-    { key: 'total', icon: Star, label: 'Total Paket PN', value: fmtInt(totalPaket), accent: 'info' },
-    { key: 'nilai', icon: Wallet, label: 'Total Nilai Paket', value: fmtRupiahDetail(totalNilaiPaket), accent: 'indigo' },
+    { key: 'total', icon: Star, label: 'Total Paket PN', value: <AnimatedNumber value={totalPaket} format={fmtInt} />, accent: 'info' },
+    { key: 'nilai', icon: Wallet, label: 'Total Nilai Paket', value: <AnimatedNumber value={totalNilaiPaket} format={fmtRupiahDetail} />, accent: 'indigo' },
     {
       key: 'match',
       icon: ShieldCheck,
       label: 'Match ke Data SPSE',
-      value: `${fmtInt(matchedCount)} (${fmtPct(matchPct, 1)})`,
+      value: (
+        <>
+          <AnimatedNumber value={matchedCount} format={fmtInt} /> (<AnimatedNumber value={matchPct} format={(n) => fmtPct(n, 1)} />)
+        </>
+      ),
       accent: 'teal',
       badge: matchPct < 70 ? 'Perlu Ditelusuri' : undefined,
       badgeTone: 'warn',
     },
-    { key: 'kendala', icon: AlertTriangle, label: 'Paket dengan Kendala', value: fmtInt(kendalaCount), accent: 'amber' },
-    { key: 'perlu_perhatian', icon: AlertTriangle, label: 'Perlu Perhatian (Kendala Tanpa Mitigasi)', value: fmtInt(perluPerhatianCount), accent: 'purple' },
+    { key: 'kendala', icon: AlertTriangle, label: 'Paket dengan Kendala', value: <AnimatedNumber value={kendalaCount} format={fmtInt} />, accent: 'amber' },
+    { key: 'perlu_perhatian', icon: AlertTriangle, label: 'Perlu Perhatian (Kendala Tanpa Mitigasi)', value: <AnimatedNumber value={perluPerhatianCount} format={fmtInt} />, accent: 'purple' },
   ];
 
   const columns: PaketColumn<ProgramPrioritasRow>[] = useMemo(

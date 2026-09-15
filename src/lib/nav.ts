@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap, ListChecks, Star, Database, ShieldAlert, Bell, Layers } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Target, Briefcase, FileText, GraduationCap, ListChecks, Star, ShieldAlert, Bell, Layers, Handshake } from 'lucide-react';
 import type { Role } from '@/types';
 import { canAccess } from '@/lib/auth/access';
 
@@ -8,11 +8,17 @@ import { canAccess } from '@/lib/auth/access';
  * `canAccess` — yaitu tautan eksternal (absolute URL), yang selalu lolos gate
  * berbasis prefix path. Tanpa `roles`, visibilitas murni ditentukan ROUTE_ACCESS.
  */
-export type NavLink = { name: string; href: string; icon: React.ReactNode; roles?: Role[] };
+/**
+ * `short` = label tanpa konteks yang sudah dibawa induknya. CommandRail memakai
+ * nama grup sebagai judul flyout, jadi enam entri "Realisasi ..." di sana hanya
+ * menyisakan kata basa-basi sebelum pembedanya. Topbar dan CommandPalette tetap
+ * memakai `name` utuh karena di sana konteks itu tidak digambar di tempat lain.
+ */
+export type NavLink = { name: string; href: string; icon: React.ReactNode; short?: string; roles?: Role[] };
 export type NavGroup = { id: string; label: string | null; links: NavLink[]; roles?: Role[] };
 
 /**
- * SATU sumber kebenaran struktur navigasi — dipakai oleh Sidebar (menu),
+ * SATU sumber kebenaran struktur navigasi — dipakai oleh CommandRail (menu),
  * Topbar (breadcrumb otomatis), dan CommandPalette (pencarian cepat).
  */
 export const NAV_GROUPS: NavGroup[] = [
@@ -45,12 +51,12 @@ export const NAV_GROUPS: NavGroup[] = [
     links: [
       // Daftar lintas metode — tujuan drill-down dari Ringkasan, dan satu-satunya
       // entri grup ini yang terbuka untuk sekjend.
-      { name: 'Daftar Seluruh Paket', href: '/daftar-paket', icon: React.createElement(Layers, { size: 18 }) },
-      { name: 'Realisasi E-Purchasing V6', href: '/epurchasing', icon: React.createElement(ShoppingCart, { size: 18 }) },
-      { name: 'Realisasi Tender', href: '/tender', icon: React.createElement(Briefcase, { size: 18 }) },
-      { name: 'Realisasi Pengadaan Langsung', href: '/pengadaan-langsung', icon: React.createElement(Package, { size: 18 }) },
-      { name: 'Realisasi Penunjukan Langsung', href: '/penunjukan-langsung', icon: React.createElement(Target, { size: 18 }) },
-      { name: 'Realisasi Swakelola', href: '/swakelola', icon: React.createElement(Package, { size: 18 }) },
+      { name: 'Daftar Seluruh Paket', href: '/daftar-paket', short: 'Seluruh Paket', icon: React.createElement(Layers, { size: 18 }) },
+      { name: 'Realisasi E-Purchasing V6', href: '/epurchasing', short: 'E-Purchasing V6', icon: React.createElement(ShoppingCart, { size: 18 }) },
+      { name: 'Realisasi Tender', href: '/tender', short: 'Tender', icon: React.createElement(Briefcase, { size: 18 }) },
+      { name: 'Realisasi Pengadaan Langsung', href: '/pengadaan-langsung', short: 'Pengadaan Langsung', icon: React.createElement(Package, { size: 18 }) },
+      { name: 'Realisasi Penunjukan Langsung', href: '/penunjukan-langsung', short: 'Penunjukan Langsung', icon: React.createElement(Target, { size: 18 }) },
+      { name: 'Realisasi Swakelola', href: '/swakelola', short: 'Swakelola', icon: React.createElement(Handshake, { size: 18 }) },
     ],
   },
   {
@@ -64,8 +70,8 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'itkp',
     label: 'ITKP',
     links: [
-      { name: 'Dashboard Penilaian ITKP', href: '/itkp', icon: React.createElement(GraduationCap, { size: 18 }) },
-      { name: 'ITKP Pemanfaatan Sistem', href: '/itkp/pemanfaatan-sistem', icon: React.createElement(ListChecks, { size: 18 }) },
+      { name: 'Dashboard Penilaian ITKP', href: '/itkp', short: 'Dashboard Penilaian', icon: React.createElement(GraduationCap, { size: 18 }) },
+      { name: 'ITKP Pemanfaatan Sistem', href: '/itkp/pemanfaatan-sistem', short: 'Pemanfaatan Sistem', icon: React.createElement(ListChecks, { size: 18 }) },
     ],
   },
   {
@@ -77,14 +83,14 @@ export const NAV_GROUPS: NavGroup[] = [
     links: [
       // { name: 'Prioritas Nasional', href: 'https://god-pbj.vercel.app/prioritas-nasional', icon: React.createElement(Star, { size: 18 }), roles: ['admin'] },
       // { name: 'Master Data PN', href: 'https://god-pbj.vercel.app/program-prioritas', icon: React.createElement(Database, { size: 18 }), roles: ['admin'] },
-      { name: 'Program Prioritas Nasional', href: '/program-prioritas-nasional', icon: React.createElement(ListChecks, { size: 18 }), roles: ['admin', 'sekjend'] },
+      { name: 'Program Prioritas Nasional', href: '/program-prioritas-nasional', icon: React.createElement(Star, { size: 18 }), roles: ['admin', 'sekjend'] },
     ],
   },
 ];
 
 /**
  * Grup + link yang boleh dilihat `role`. SATU tempat penyaringan menu — dipakai
- * Sidebar dan CommandPalette supaya keduanya tidak pernah berbeda isi.
+ * CommandRail dan CommandPalette supaya keduanya tidak pernah berbeda isi.
  */
 export function navGroupsFor(role: Role): NavGroup[] {
   return NAV_GROUPS.filter((group) => !group.roles || group.roles.includes(role))

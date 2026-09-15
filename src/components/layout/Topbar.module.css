@@ -21,10 +21,13 @@
   box-shadow: 
     0 12px 32px -8px rgba(0, 0, 0, 0.12),
     0 4px 12px -4px rgba(0, 0, 0, 0.06);
-    
+
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color var(--dur-med) ease;
 }
 
+/* Digeser ke luar viewport, bukan opacity: 0 -- topbar sticky tetap menempati
+   ruangnya di alur dokumen, jadi translate murni yang tidak mengganggu tata
+   letak konten di bawahnya saat ia masuk/keluar. */
 .topbar.hidden {
   transform: translateY(-150%);
 }
