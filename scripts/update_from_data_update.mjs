@@ -540,7 +540,7 @@ if (!flags.dryRun && gagal.length === 0) {
 // Kegagalan di sini TIDAK boleh menggagalkan update -- data tabel sudah
 // aman ditulis; risiko tinggal beda "segar"-nya, sama seperti mv gabungan.
 if (!flags.dryRun && gagal.length === 0 && !flags.skipRisiko) {
-  const baseUrl = env.RISIKO_RECALC_BASE_URL || 'https://god-pbj.vercel.app';
+  const baseUrl = env.RISIKO_RECALC_BASE_URL || 'https://dewa-kemnaker.vercel.app';
   console.log('\nMenghitung ulang risiko pengadaan (' + baseUrl + ') ...');
   try {
     for (const [rpath, label] of [

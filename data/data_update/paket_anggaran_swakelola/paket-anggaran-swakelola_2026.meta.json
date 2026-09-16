@@ -1,10 +1,6 @@
 {
+  "lastUpdated": "2026-09-16T04:18:11.863Z",
+  "rowCount": 101,
   "endpoint": "/v1/rup/paket-anggaran-swakelola",
-  "year": "2026",
-  "keyFields": [
-    "kode_rup||kd_rup"
-  ],
-  "rowCount": 43,
-  "lastUpdated": "2026-09-15T01:45:38.428Z",
-  "lastWriteMode": "append"
+  "tahun": "2026"
 }

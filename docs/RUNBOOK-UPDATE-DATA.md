@@ -75,7 +75,7 @@ INAPROC_SYNC_DIR=E:\INAPROC-Data\sync-state\v1
 
 Opsional, hanya untuk auto-recalculate risiko (lihat §5c) — base URL aplikasi yang
 dipanggil untuk `POST /api/risiko/recalculate/*`. Default kalau dikosongkan:
-`https://god-pbj.vercel.app`. Isi dengan `http://localhost:3000` untuk menguji lokal
+`https://dewa-kemnaker.vercel.app`. Isi dengan `http://localhost:3000` untuk menguji lokal
 (dev server harus jalan), atau lewati langkah ini sepenuhnya dengan flag `--skip-risiko`:
 
 ```
@@ -148,7 +148,42 @@ Beberapa punya script sendiri (mis. [`scripts/import_master_data_pn_ro.mjs`](../
 
 ## 5. Prosedur update rutin
 
-### 5.1 Cara cepat: satu perintah dari tarikan lokal
+### 5.0 Tercepat: tarik langsung dari API, satu klik
+
+Tidak butuh `web-app` atau folder tarikan lokal sama sekali — script ini memanggil
+`data.inaproc.id` langsung, lalu lanjut ke langkah 2 & 3 seperti biasa:
+
+```powershell
+npm run update-data-live                    # = node scripts/refresh_data.mjs --live --yes
+npm run update-data-live -- --dry-run       # tarik + periksa saja, DB tidak disentuh
+```
+
+Atau klik dua kali **`update-data-live.bat`** di root repo dari File Explorer — tidak
+perlu buka terminal, jendela tidak langsung tertutup di akhir.
+
+Prasyarat sekali per komputer, isi di `.env.local` (lihat `.env.example`):
+
+```
+JWT_TOKEN=<token LKPP yang sama dipakai web-app>
+INAPROC_KODE_KLPD=K34
+```
+
+Mencakup **10 dari 11 tabel** — semua tabel di §4 KECUALI `data_afirmasi_pdn_perencanaan`,
+yang tidak punya endpoint v1 (lihat catatan di §3/§4). **Taruh file tabel itu manual di
+`data/data_update/data_afirmasi_pdn_perencanaan/` sebelum menjalankan** — script ini tidak
+pernah menyentuh folder itu, jadi isinya tetap seperti terakhir kali ditaruh.
+
+| Script | Tugas |
+| ------ | ----- |
+| [`scripts/pull_from_inaproc.mjs`](../scripts/pull_from_inaproc.mjs) | tarik 10 tabel langsung dari `data.inaproc.id` -> `data/data_update/<tabel>/` |
+| [`scripts/refresh_data.mjs --live`](../scripts/refresh_data.mjs) | orkestrator: langkah 1 (tarik live) + langkah 2 & 3 seperti §5.1 |
+
+Kalau satu tabel gagal ditarik (API error/timeout), file lama tabel itu **tidak ditimpa**
+dan orkestrator berhenti sebelum langkah 2/3 — jalankan ulang setelah masalah beres.
+Kalau `JWT_TOKEN` bermasalah atau INAPROC memblokir komputer ini, jalur §5.1 (tarikan
+lokal lewat `web-app`) masih tersedia sebagai cadangan.
+
+### 5.1 Cara cepat (cadangan): satu perintah dari tarikan lokal `web-app`
 
 Kalau tarikan INAPROC ada di komputer ini (default `D:\INAPROC-Data\sync-state\v1`),
 satu perintah ini mengerjakan seluruh rantainya — salin file, dry-run, lalu tulis:
@@ -350,7 +385,7 @@ langsung — TIDAK terpengaruh perubahan ini.
    ditulis) memanggil `POST /api/risiko/recalculate/penyedia` dan `/swakelola` berulang (sama
    endpoint yang dipakai tombol "Hitung Ulang" manual) sampai selesai, lalu memanggil
    `refresh_risiko_ringkasan()`. Butuh env `RISIKO_RECALC_BASE_URL` (default
-   `https://god-pbj.vercel.app`, lihat `.env.example`) bisa dijangkau — proses ini memakan
+   `https://dewa-kemnaker.vercel.app`, lihat `.env.example`) bisa dijangkau — proses ini memakan
    waktu **beberapa menit** (puluhan request berurutan). Lewati dengan flag `--skip-risiko`
    kalau tidak ingin menunggu:
    ```powershell
@@ -454,7 +489,29 @@ Catatan lain: `nilai_kontrak` sering kosong di data non-tender; view sudah jatuh
 
 ---
 
-## 10. Status terakhir (14 September 2026)
+## 10. Status terakhir (16 September 2026)
+
+- **`npm run update-data-live` (§5.0) ditambahkan dan diuji end-to-end untuk pertama
+  kali** — `scripts/pull_from_inaproc.mjs` (baru) menarik 10 tabel langsung dari
+  `data.inaproc.id`, lalu `scripts/refresh_data.mjs --live --yes` lanjut dry-run + tulis.
+  Hasil run pertama: 11/11 `[OK]`.
+- **Ditemukan bug data loss di `web-app`** (bukan di repo ini): `endpoint-registry.ts`
+  memberi `paket-anggaran-penyedia` dan `paket-anggaran-swakelola` dedup key `kd_rup`
+  saja (`RUP_PAKET_KEY`), padahal satu `kd_rup` bisa punya banyak baris anggaran berbeda
+  (sampai 27 baris untuk satu paket, dikonfirmasi dari tarikan langsung). `appendRecords()`
+  di `web-app/src/lib/storage-service.ts` membuang semua baris "duplikat" berdasarkan key
+  itu, jadi setiap pull lewat `web-app` — fresh maupun resume — selalu berakhir cuma 1
+  baris per `kd_rup`, diam-diam kehilangan sisanya. Efeknya baru terlihat sekarang:
+  `paket_anggaran_penyedia` 7.949→11.279 baris, `paket_anggaran_swakelola` 43→101 baris
+  setelah ditarik langsung tanpa lewat dedup key yang salah itu. **Tidak perlu memperbaiki
+  `web-app`** — jalur `--live` di repo ini sudah tidak melewati logika itu sama sekali.
+- **`RISIKO_RECALC_BASE_URL` default sudah mati** — `https://god-pbj.vercel.app`
+  membalas `X-Vercel-Error: DEPLOYMENT_NOT_FOUND` (domain tidak lagi terhubung ke
+  deployment apa pun). Domain production yang benar sekarang: **`https://dewa-kemnaker.vercel.app`**
+  (dikonfirmasi 200 OK). Sudah diperbarui di `scripts/update_from_data_update.mjs`,
+  dokumen ini, dan `src/lib/nav.ts`.
+
+### Status 14 September 2026 (riwayat)
 
 - Migration 75 (`mv_dashboard_gabungan_satker`) dan 76 (`mv_risiko_ringkasan`) **sudah
   dijalankan** di Supabase SQL Editor dan diverifikasi (0 selisih baris-per-baris terhadap

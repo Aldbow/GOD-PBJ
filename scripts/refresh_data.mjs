@@ -1,9 +1,9 @@
 // ============================================================================
-// Sekali jalan: tarikan INAPROC lokal -> data/data_update/ -> Supabase
+// Sekali jalan: tarikan INAPROC -> data/data_update/ -> Supabase
 // ----------------------------------------------------------------------------
 // Menjalankan tiga langkah berurutan, berhenti begitu ada yang gagal:
 //
-//   1. node scripts/sync_from_inaproc.mjs            salin file yang diperlukan
+//   1. salin/tarik data mentah ke data/data_update/ (dua cara, lihat --live)
 //   2. node scripts/update_from_data_update.mjs --dry-run --all    periksa
 //   3. node scripts/update_from_data_update.mjs --all              tulis ke DB
 //
@@ -14,13 +14,24 @@
 // Langkah 3 tetap meminta konfirmasi "ya" dari updater-nya sendiri. Pakai
 // --yes kalau dijalankan dari scheduler/non-TTY.
 //
+// DUA CARA LANGKAH 1
+//   default   scripts/sync_from_inaproc.mjs -- menyalin file JSON dari folder
+//             tarikan lokal (hasil `web-app`) ke data/data_update/. Butuh
+//             komputer yang punya folder tarikan itu (lihat INAPROC_SYNC_DIR).
+//   --live    scripts/pull_from_inaproc.mjs -- menarik LANGSUNG dari
+//             data.inaproc.id (butuh JWT_TOKEN di .env.local, lihat
+//             .env.example). Tidak butuh web-app / folder tarikan lokal sama
+//             sekali. Ini cara yang dipakai npm run update-data-live.
+//
 // PEMAKAIAN
 //   node scripts/refresh_data.mjs
 //   npm run update-data
-//   node scripts/refresh_data.mjs --dry-run        salin + periksa saja
+//   node scripts/refresh_data.mjs --live                tarik langsung dari API
+//   node scripts/refresh_data.mjs --live --year 2026
+//   node scripts/refresh_data.mjs --dry-run        salin/tarik + periksa saja
 //   node scripts/refresh_data.mjs --yes            tanpa konfirmasi interaktif
 //
-// LOKASI TARIKAN LOKAL
+// LOKASI TARIKAN LOKAL (hanya relevan tanpa --live)
 //   Diatur sekali per komputer lewat .env.local (file ini di-gitignore):
 //
 //     INAPROC_SYNC_DIR=E:\INAPROC-Data\sync-state\v1
@@ -30,10 +41,12 @@
 //
 // FLAG
 //   --dry-run       berhenti setelah langkah 2; tidak ada file/DB yang berubah
-//   --source <dir>  folder tarikan INAPROC untuk sekali jalan ini saja
+//   --live          langkah 1 tarik langsung dari API (lihat di atas)
+//   --year <YYYY>   hanya dengan --live -- tahun yang diminta ke API
+//   --source <dir>  hanya tanpa --live -- folder tarikan INAPROC untuk sekali jalan ini saja
 //   --skip-sync     langsung ke langkah 2, pakai isi data/data_update/ apa adanya
-//   --keep-extra    jangan hapus file tarikan lama di data/data_update/
-//   --force-older   izinkan menyalin file sumber yang lebih tua dari yang ada
+//   --keep-extra    hanya tanpa --live -- jangan hapus file tarikan lama di data/data_update/
+//   --force-older   hanya tanpa --live -- izinkan menyalin file sumber yang lebih tua dari yang ada
 //   --yes           lewati konfirmasi "ya" di langkah 3
 //   --force         lewati gerbang "baris turun drastis" di updater
 // ============================================================================
@@ -47,6 +60,7 @@ const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
 
 let source = null;
+let year = null;
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === '--source') {
     if (!argv[i + 1]) {
@@ -54,18 +68,33 @@ for (let i = 0; i < argv.length; i++) {
       process.exit(1);
     }
     source = argv[++i];
+  } else if (argv[i] === '--year') {
+    if (!argv[i + 1]) {
+      console.error('\n[GAGAL] --year butuh nilai, mis. --year 2026\n');
+      process.exit(1);
+    }
+    year = argv[++i];
   }
 }
 
 const langkah = [];
 
 if (!has('--skip-sync')) {
-  const a = ['scripts/sync_from_inaproc.mjs'];
-  if (source) a.push('--source', source);
-  if (has('--dry-run')) a.push('--dry-run');
-  if (has('--keep-extra')) a.push('--keep-extra');
-  if (has('--force-older')) a.push('--force');
-  langkah.push({ judul: 'LANGKAH 1/3 — salin tarikan INAPROC ke data/data_update/', args: a });
+  let a;
+  let judul;
+  if (has('--live')) {
+    a = ['scripts/pull_from_inaproc.mjs'];
+    if (year) a.push('--year', year);
+    judul = 'LANGKAH 1/3 — tarik langsung dari INAPROC ke data/data_update/';
+  } else {
+    a = ['scripts/sync_from_inaproc.mjs'];
+    if (source) a.push('--source', source);
+    if (has('--dry-run')) a.push('--dry-run');
+    if (has('--keep-extra')) a.push('--keep-extra');
+    if (has('--force-older')) a.push('--force');
+    judul = 'LANGKAH 1/3 — salin tarikan INAPROC ke data/data_update/';
+  }
+  langkah.push({ judul, args: a });
 }
 
 const cekArgs = ['scripts/update_from_data_update.mjs', '--dry-run', '--all'];
