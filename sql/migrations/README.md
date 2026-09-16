@@ -55,6 +55,7 @@ untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak d
 | 74 | 74_table_data_update_log.sql | data_update_log | tabel baru — jejak kapan tiap tabel terakhir ditulis; dibaca stempel "Diperbarui ..." di topbar |
 | 75 | 75_materialized_view_gabungan_satker.sql | mv_dashboard_gabungan_satker | **materialized view** — rekap tersimpan sumber halaman Ringkasan, BUKAN view biasa; lihat catatan di bawah |
 | 76 | 76_materialized_view_risiko_ringkasan.sql | mv_risiko_ringkasan | **materialized view** — rekap ringan (components_json diperkecil) untuk 2 grafik risiko di halaman Ringkasan; butuh refresh pertama manual sama seperti 75 |
+| 77 | 77_fix_refresh_risiko_ringkasan_timeout.sql | refresh_risiko_ringkasan() | fix — tambah `SET statement_timeout = '180s'` di level fungsi; dipanggil lewat anon/authenticated (PostgREST) kena timeout default saat refresh ~8.000 baris |
 
 ## `mv_dashboard_gabungan_satker` butuh refresh pertama manual
 
