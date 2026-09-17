@@ -13,6 +13,10 @@ export interface GabunganRow {
   metode_pengadaan: string | null;
   jenis_pengadaan: string | null;
   pagu: number | null;
+  // Pagu dipecah per tahun anggaran dana, mis. {"2026": 38367049000, "2027": 202109000}.
+  // null untuk paket anomali yang tidak terumumkan di SIRUP, karena paket itu
+  // memang tidak punya pagu (lihat sql/migrations/78_pagu_per_tahun_anggaran.sql).
+  pagu_per_tahun: Record<string, number> | null;
   total: number | null;
   status: string | null;
   status_kurasi: string | null;
@@ -145,11 +149,12 @@ export interface RingkasanAggregate {
 export interface RingkasanFilterValue {
   satker: string; // '' = Semua Satker
   ppk: string; // '' = Semua PPK
+  tahun: string; // '' = seluruh tahun anggaran dana
 }
 
 // Sama persis dengan SELECT_COLS di src/app/api/ringkasan/gabungan/route.ts --
 // jaga keduanya tetap sinkron kalau salah satu berubah.
-const SELECT_COLS = 'kd_rup,rup_name,satker,nama_ppk,metode_pengadaan,jenis_pengadaan,pagu,total,status,status_kurasi,catatan_kurasi,rekomendasi_kurasi,is_from_sirup';
+const SELECT_COLS = 'kd_rup,rup_name,satker,nama_ppk,metode_pengadaan,jenis_pengadaan,pagu,pagu_per_tahun,total,status,status_kurasi,catatan_kurasi,rekomendasi_kurasi,is_from_sirup';
 
 // Rekap gabungan Ringkasan -- lewat Route Handler server (Langkah 4, lihat
 // docs/LAPORAN-ANALISIS-PERFORMA.md), BUKAN lagi query langsung browser ->
@@ -178,7 +183,11 @@ export async function fetchGabunganRows(): Promise<GabunganRow[]> {
 
 const num = (v: number | null | undefined): number => Number(v) || 0;
 
-export function filterRows(rows: GabunganRow[], filter: RingkasanFilterValue): GabunganRow[] {
+// Tahun anggaran sengaja TIDAK ikut menyaring di sini. Membuang baris yang tak
+// didanai tahun terpilih juga akan membuang realisasi dan paket anomali dari
+// seluruh angka halaman, dan angka yang hilang tanpa keterangan lebih berbahaya
+// daripada angka yang aneh. Tahun hanya melingkupi pagu, lewat paguPadaTahun().
+export function filterRows(rows: GabunganRow[], filter: Pick<RingkasanFilterValue, 'satker' | 'ppk'>): GabunganRow[] {
   return rows.filter((r) => {
     if (filter.satker && r.satker !== filter.satker) return false;
     if (filter.ppk && r.nama_ppk !== filter.ppk) return false;
@@ -210,9 +219,52 @@ export function getSatkerForPpk(rows: GabunganRow[], ppk: string): string | unde
   return row?.satker || undefined;
 }
 
+// Tahun anggaran dana yang benar-benar ada di data, terlama dulu. Dibaca dari
+// data supaya tidak perlu diubah saat tahun anggaran berganti.
+export function listTahunAnggaran(rows: GabunganRow[]): string[] {
+  const set = new Set<string>();
+  for (const r of rows) {
+    if (!r.pagu_per_tahun) continue;
+    for (const tahun of Object.keys(r.pagu_per_tahun)) set.add(tahun);
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'id-ID'));
+}
+
+// Paket multi-tahun (tender/seleksi 2026-2027) memecah pagunya per tahun dana.
+// Tahun kosong berarti seluruh tahun, yaitu kolom pagu apa adanya.
+function paguPadaTahun(row: GabunganRow, tahun: string): number {
+  if (!tahun) return num(row.pagu);
+  return num(row.pagu_per_tahun?.[tahun]);
+}
+
+// Tabel realisasi (non_tender_selesai, tender_selesai_nilai, paket_e_purchasing)
+// ditarik per tahun dan tidak punya kolom tahun sendiri, jadi seluruh realisasi
+// yang ada adalah belanja tahun RUP berjalan. Memakainya sebagai pembanding pagu
+// tahun berikutnya menghasilkan capaian di atas 100%; dana tahun depan memang
+// belum boleh dibelanjakan.
+function realisasiPadaTahun(row: GabunganRow, tahun: string, tahunBelanja: string): number {
+  if (tahun && tahun !== tahunBelanja) return 0;
+  return num(row.total);
+}
+
+// Pelingkupan nilai untuk satu pilihan tahun, dipakai bersama oleh aggregate()
+// dan penyusun baris export supaya angka layar dan angka unduhan tidak berbeda.
+export function lingkupTahun(rows: GabunganRow[], tahun: string) {
+  const tahunBelanja = listTahunAnggaran(rows)[0] ?? '';
+  return {
+    tahunBelanja,
+    pagu: (row: GabunganRow) => paguPadaTahun(row, tahun),
+    realisasi: (row: GabunganRow) => realisasiPadaTahun(row, tahun, tahunBelanja),
+  };
+}
+
 // Fungsi murni: filter + hitung seluruh angka yang dipakai halaman Ringkasan.
 export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): RingkasanAggregate {
   const data = filterRows(rows, filter);
+  // Diambil dari seluruh baris, bukan dari hasil filter, supaya tahun belanjanya
+  // tidak bergeser hanya karena satker yang dipilih kebetulan tidak punya paket
+  // multi-tahun.
+  const lingkup = lingkupTahun(rows, filter.tahun);
 
   let totalPagu = 0;
   let totalRealisasi = 0;
@@ -230,8 +282,8 @@ export function aggregate(rows: GabunganRow[], filter: RingkasanFilterValue): Ri
   const excludedSatkerNames = new Set<string>();
 
   for (const r of data) {
-    const pagu = num(r.pagu);
-    const realisasi = num(r.total);
+    const pagu = lingkup.pagu(r);
+    const realisasi = lingkup.realisasi(r);
     const sudah = realisasi > 0;
     const metode = (r.metode_pengadaan && r.metode_pengadaan.trim()) || 'Lainnya';
     // Swakelola bukan bagian taksonomi Barang/Jasa/Konstruksi/Konsultansi (tidak

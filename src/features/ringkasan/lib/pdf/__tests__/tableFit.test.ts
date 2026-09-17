@@ -54,6 +54,7 @@ function rows(n: number): GabunganRow[] {
     catatan_kurasi: i % 3 === 0 ? CATATAN[i % CATATAN.length] : null,
     rekomendasi_kurasi: i % 3 === 0 ? REKOMENDASI[i % REKOMENDASI.length] : null,
     is_from_sirup: i % 9 !== 0,
+    pagu_per_tahun: null,
   }));
 }
 
@@ -68,7 +69,7 @@ const MARGIN = 40;
 
 /** Gambar seluruh laporan; kembalikan kolom yang terlalu sempit & sel yang lewat margin. */
 function periksaTabel(): { sempit: KolomSempit[]; lewatMargin: string[] } {
-  const filter = { satker: '', ppk: '' };
+  const filter = { satker: '', ppk: '', tahun: '' };
   const laporan = buildLaporan({
     agg: aggregate(rows(60), filter),
     scopeLabel: 'Kementerian Ketenagakerjaan',

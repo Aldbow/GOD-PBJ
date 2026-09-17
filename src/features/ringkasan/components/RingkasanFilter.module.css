@@ -69,9 +69,24 @@
 }
 .activeInfo b { color: var(--text-primary); font-weight: 600; }
 
+/* Dropdown tahun cuma memuat 2-3 opsi pendek, jadi tidak perlu selebar
+   Satker/PPK yang isinya nama panjang. */
+.fieldTahun {
+  min-width: 150px;
+  flex: 0 0 auto;
+}
+
+.catatanTahun {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
 @media (max-width: 640px) {
   .row { align-items: stretch; }
   .field { min-width: 100%; }
+  .fieldTahun { min-width: 100%; flex: 1 1 auto; }
   .actions { width: 100%; }
   .actions .btn { flex: 1; justify-content: center; }
 }

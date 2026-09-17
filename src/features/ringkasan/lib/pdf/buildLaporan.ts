@@ -33,6 +33,8 @@ export interface LaporanInput {
   highlightSatker?: string;
   /** Keterangan pembatasan lingkup, mis. untuk role PPK. */
   scopeNote?: string | null;
+  /** Tahun anggaran tempat realisasi tercatat, untuk menjelaskan realisasi nol. */
+  tahunBelanja?: string;
   /** Ringkasan yang diterbitkan seksi ITKP & Risiko. */
   sections: PrintSections;
   printedAt: Date;
@@ -101,6 +103,12 @@ export function buildLaporan(input: LaporanInput): Laporan {
   const blocks: LaporanBlock[] = [];
 
   const meta: string[] = [`Dicetak ${stamp(printedAt)}`, SUMBER_DATA];
+  // Pagu paket multi-tahun terpecah per tahun anggaran dana, jadi angka cetakan
+  // tidak bisa dibaca tanpa tahu tahun mana yang dipilih.
+  meta.unshift(filter.tahun ? `Pagu tahun anggaran ${filter.tahun}` : 'Pagu seluruh tahun anggaran');
+  if (filter.tahun && input.tahunBelanja && filter.tahun !== input.tahunBelanja) {
+    meta.push(`Realisasi tercatat pada tahun belanja ${input.tahunBelanja}, sehingga nol pada lingkup ini`);
+  }
   if (filter.ppk) meta.unshift(`PPK: ${filter.ppk}`);
   if (input.scopeNote) meta.push(input.scopeNote);
 

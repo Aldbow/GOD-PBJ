@@ -5,7 +5,7 @@ import { getApiProfile } from '@/lib/auth/dal';
 // Sama persis dengan SELECT_COLS di src/features/ringkasan/lib/ringkasanData.ts --
 // jaga keduanya tetap sinkron kalau salah satu berubah.
 const SELECT_COLS =
-  'kd_rup,rup_name,satker,nama_ppk,metode_pengadaan,jenis_pengadaan,pagu,total,status,status_kurasi,catatan_kurasi,rekomendasi_kurasi,is_from_sirup';
+  'kd_rup,rup_name,satker,nama_ppk,metode_pengadaan,jenis_pengadaan,pagu,pagu_per_tahun,total,status,status_kurasi,catatan_kurasi,rekomendasi_kurasi,is_from_sirup';
 
 /**
  * Rekap gabungan Ringkasan (Langkah 4 -- lihat docs/LAPORAN-ANALISIS-PERFORMA.md).

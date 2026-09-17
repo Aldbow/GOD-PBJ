@@ -28,6 +28,7 @@ function row(over: Partial<GabunganRow> = {}): GabunganRow {
     catatan_kurasi: null,
     rekomendasi_kurasi: null,
     is_from_sirup: true,
+    pagu_per_tahun: null,
     ...over,
   };
 }
@@ -50,7 +51,7 @@ const ROWS: GabunganRow[] = [
 ];
 
 function input(over: Partial<LaporanInput> = {}): LaporanInput {
-  const filter = over.filter ?? { satker: '', ppk: '' };
+  const filter = over.filter ?? { satker: '', ppk: '', tahun: '' };
   return {
     agg: aggregate(ROWS, filter),
     scopeLabel: 'Kementerian Ketenagakerjaan',
@@ -157,7 +158,7 @@ describe('buildLaporan', () => {
   });
 
   it('memberi setiap tabel teks pengganti saat datanya kosong', () => {
-    const kosong = buildLaporan({ ...input(), agg: aggregate([], { satker: '', ppk: '' }) }).blocks;
+    const kosong = buildLaporan({ ...input(), agg: aggregate([], { satker: '', ppk: '', tahun: '' }) }).blocks;
     for (const t of tables(kosong)) {
       if (t.rows.length === 0) expect(t.emptyText, `tabel "${t.title ?? t.columns[0].header}"`).toBeTruthy();
     }

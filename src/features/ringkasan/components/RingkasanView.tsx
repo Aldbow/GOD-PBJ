@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, Variants } from 'framer-motion';
@@ -17,6 +17,8 @@ import {
   aggregate,
   listSatker,
   listPpk,
+  listTahunAnggaran,
+  lingkupTahun,
   getSatkerForPpk,
   filterRows,
   type GabunganRow,
@@ -74,7 +76,7 @@ const item: Variants = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 26 } },
 };
 
-const EMPTY_FILTER: RingkasanFilterValue = { satker: '', ppk: '' };
+const EMPTY_FILTER: RingkasanFilterValue = { satker: '', ppk: '', tahun: '' };
 
 /** Lingkup data yang boleh dipilih role PPK pada halaman Ringkasan. */
 type PpkScope = 'satker' | 'kementerian';
@@ -216,7 +218,10 @@ export function RingkasanView() {
   const [appliedState, setApplied] = useState<RingkasanFilterValue>(EMPTY_FILTER);
   const applied = useMemo<RingkasanFilterValue>(() => {
     if (!isPpk) return appliedState;
-    return ppkScope === 'satker' ? { satker: profileSatker ?? '', ppk: '' } : EMPTY_FILTER;
+    // Tahun anggaran ikut terbawa: PPK tidak punya pemilihnya, tapi nilainya
+    // menentukan pagu yang tampil dan harus sama dengan lingkup manapun.
+    const lingkup = ppkScope === 'satker' ? { satker: profileSatker ?? '', ppk: '' } : { satker: '', ppk: '' };
+    return { ...lingkup, tahun: appliedState.tahun };
   }, [isPpk, ppkScope, profileSatker, appliedState]);
 
   // SATU gerbang untuk semua permukaan per-paket (tabel anomali, tabel kurasi
@@ -267,6 +272,21 @@ export function RingkasanView() {
 
   const agg = useMemo(() => aggregate(rows, applied), [rows, applied]);
   const satkerOptions = useMemo(() => listSatker(rows), [rows]);
+  const tahunOptions = useMemo(() => listTahunAnggaran(rows), [rows]);
+  // Tahun anggaran RUP-nya sendiri, yaitu yang paling awal di data. Paket
+  // multi-tahun menaruh sisa pagunya di tahun berikutnya, dan memakai itu
+  // sebagai bawaan akan menampilkan angka yang jauh lebih besar dari anggaran
+  // tahun berjalan.
+  const defaultTahun = tahunOptions[0] ?? '';
+
+  // Bawaan dipasang sekali begitu data pertama masuk, bukan saat render, karena
+  // daftar tahunnya baru diketahui setelah fetch selesai.
+  const tahunSudahDipasang = useRef(false);
+  useEffect(() => {
+    if (tahunSudahDipasang.current || !defaultTahun) return;
+    tahunSudahDipasang.current = true;
+    setApplied((f) => ({ ...f, tahun: defaultTahun }));
+  }, [defaultTahun]);
   const getPpkOptions = useCallback((satker: string) => listPpk(rows, satker), [rows]);
   const getSatkerByPpk = useCallback((ppk: string) => getSatkerForPpk(rows, ppk), [rows]);
 
@@ -302,9 +322,12 @@ export function RingkasanView() {
     (f: RingkasanFilterValue) => {
       if (isPpk && !profileSatker) return [];
       const base = isPpk ? filterRows(rows, { satker: profileSatker!, ppk: '' }) : rows;
+      // Dilingkupi dengan aturan yang sama seperti layar; kalau tidak, jumlah di
+      // file unduhan tidak akan cocok dengan KPI yang baru saja dilihat.
+      const lingkup = lingkupTahun(rows, f.tahun);
       return filterRows(base, f).map((r) => {
-        const pagu = Number(r.pagu) || 0;
-        const total = Number(r.total) || 0;
+        const pagu = lingkup.pagu(r);
+        const total = lingkup.realisasi(r);
         return {
           kd_rup: r.kd_rup || '-',
           satker: r.satker || 'Tidak Diketahui',
@@ -471,6 +494,7 @@ export function RingkasanView() {
         isFiltered,
         canSeePaketDetail,
         highlightSatker: highlightSatker || undefined,
+        tahunBelanja: defaultTahun,
         scopeNote:
           isPpk && ppkScope === 'kementerian'
             ? 'Lingkup Kementerian — rincian per-paket dibatasi pada satuan kerja Anda.'
@@ -484,7 +508,7 @@ export function RingkasanView() {
     } finally {
       setDownloadingPdf(false);
     }
-  }, [agg, applied, isFiltered, canSeePaketDetail, highlightSatker, isPpk, ppkScope, printSections]);
+  }, [agg, applied, defaultTahun, isFiltered, canSeePaketDetail, highlightSatker, isPpk, ppkScope, printSections]);
 
   return (
     <PrintSectionsProvider store={printSections}>
@@ -534,6 +558,8 @@ export function RingkasanView() {
             satkerOptions={satkerOptions}
             getPpkOptions={getPpkOptions}
             getSatkerByPpk={getSatkerByPpk}
+            tahunOptions={tahunOptions}
+            defaultTahun={defaultTahun}
             applied={applied}
             onApply={setApplied}
             disabled={loading}
@@ -1055,6 +1081,7 @@ export function RingkasanView() {
       <SatkerDetailModal 
         satkerName={selectedSatkerForDetail}
         rows={rows}
+        tahun={applied.tahun}
         onClose={() => setSelectedSatkerForDetail(null)}
       />
     </motion.div>

@@ -35,11 +35,12 @@ function bigRows(n: number): GabunganRow[] {
     catatan_kurasi: i % 5 === 0 ? 'Metode melampaui batas nilai untuk jenis pengadaannya' : null,
     rekomendasi_kurasi: i % 5 === 0 ? 'Gunakan Tender' : null,
     is_from_sirup: i % 7 !== 0,
+    pagu_per_tahun: null,
   }));
 }
 
 function makeInput(rows: GabunganRow[]): LaporanInput {
-  const filter = { satker: '', ppk: '' };
+  const filter = { satker: '', ppk: '', tahun: '' };
   return {
     agg: aggregate(rows, filter),
     scopeLabel: 'Kementerian Ketenagakerjaan',

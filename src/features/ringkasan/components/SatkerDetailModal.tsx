@@ -10,16 +10,18 @@ import styles from './RingkasanView.module.css';
 interface SatkerDetailModalProps {
   satkerName: string | null;
   rows: GabunganRow[];
+  /** Tahun anggaran dana yang aktif di halaman; '' berarti seluruh tahun. */
+  tahun: string;
   onClose: () => void;
 }
 
-export function SatkerDetailModal({ satkerName, rows, onClose }: SatkerDetailModalProps) {
+export function SatkerDetailModal({ satkerName, rows, tahun, onClose }: SatkerDetailModalProps) {
   
   const detailData = useMemo(() => {
     if (!satkerName) return null;
-    const filter: RingkasanFilterValue = { satker: satkerName, ppk: '' };
+    const filter: RingkasanFilterValue = { satker: satkerName, ppk: '', tahun };
     return aggregate(rows, filter);
-  }, [satkerName, rows]);
+  }, [satkerName, rows, tahun]);
 
   return (
     <Modal isOpen={!!satkerName} onClose={onClose} title="Detail Satuan Kerja">

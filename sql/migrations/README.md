@@ -4,7 +4,7 @@ Folder ini berisi **subset final** dari script SQL, sudah dinomori sesuai urutan
 untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak diubah**
 (tetap sebagai backup/riwayat).
 
-> Jalankan **berurutan menaik** (00 → 64). File dengan nomor sama boleh urut bebas.
+> Jalankan **berurutan menaik** (00 → 79). File dengan nomor sama boleh urut bebas.
 > Detail alasan & peta supersesi ada di [`../MIGRASI-RUNBOOK.md`](../MIGRASI-RUNBOOK.md).
 
 ## Cara jalan
@@ -56,6 +56,22 @@ untuk membangun database dari **Supabase kosong**. File lama di `sql/` **tidak d
 | 75 | 75_materialized_view_gabungan_satker.sql | mv_dashboard_gabungan_satker | **materialized view** — rekap tersimpan sumber halaman Ringkasan, BUKAN view biasa; lihat catatan di bawah |
 | 76 | 76_materialized_view_risiko_ringkasan.sql | mv_risiko_ringkasan | **materialized view** — rekap ringan (components_json diperkecil) untuk 2 grafik risiko di halaman Ringkasan; butuh refresh pertama manual sama seperti 75 |
 | 77 | 77_fix_refresh_risiko_ringkasan_timeout.sql | refresh_risiko_ringkasan() | fix — tambah `SET statement_timeout = '180s'` di level fungsi; dipanggil lewat anon/authenticated (PostgREST) kena timeout default saat refresh ~8.000 baris |
+| 78 | 78_pagu_per_tahun_anggaran.sql | view_pagu_paket_per_tahun, view_dashboard_tender, mv_dashboard_gabungan_satker | fix + fitur — buang cabang `tahun_anggaran_dana = '2027'` di CTE `anggaran_penyedia` yang menjumlah porsi 2026 dua kali begitu `paket_anggaran_penyedia` lengkap; tambah kolom `pagu_per_tahun` (jsonb) sumber filter Tahun Anggaran Dana di halaman Ringkasan |
+| 79 | 79_pagu_rup_gabungan_tidak_dobel.sql | view_dashboard_pengadaan_langsung/penunjukan_langsung/tender, mv_dashboard_gabungan_satker | fix — pagu hanya diambil saat `kd_rup` cocok PERSIS, bukan lewat `split_part`; baris RUP gabungan "A;B" berhenti mewarisi pagu milik A yang juga punya baris sendiri (Rp350.180.000 dobel pada 3 baris) |
+
+## Rollback
+
+[`../rollback/`](../rollback/) berisi pembatal untuk migration tertentu. **Folder itu
+sengaja di luar `migrations/`** supaya tidak ikut terjalan saat membangun database dari
+Supabase kosong: menjalankannya di database baru akan membatalkan perbaikan yang belum
+pernah diterapkan.
+
+| Membatalkan | File | Konsekuensi yang disengaja |
+|----|------|------|
+| 79 | `79_rollback_pagu_rup_gabungan.sql` | pagu Rp350.180.000 kembali terhitung dua kali pada 3 baris RUP gabungan; perbaikan 78 tetap utuh |
+
+Rollback 79 tidak menyentuh kolom mana pun, jadi build aplikasi yang sedang tayang tetap
+jalan tanpa deploy ulang.
 
 ## `mv_dashboard_gabungan_satker` butuh refresh pertama manual
 

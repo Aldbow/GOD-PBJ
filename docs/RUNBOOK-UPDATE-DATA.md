@@ -489,7 +489,61 @@ Catatan lain: `nilai_kontrak` sering kosong di data non-tender; view sudah jatuh
 
 ---
 
-## 10. Status terakhir (16 September 2026)
+## 10. Status terakhir (17 September 2026)
+
+- **Pagu Tender sempat terhitung ganda, dan itu BUKAN masalah data.** Setelah
+  tarikan 16 September, total pagu dashboard melonjak dari Rp1.467.652.088.677 ke
+  Rp1.971.135.203.427 padahal pagu SIRUP justru turun Rp274.808.000. Penyebabnya
+  CTE `anggaran_penyedia` di `view_dashboard_tender`: cabang
+  `WHEN tahun_anggaran_dana = '2027' THEN (pendukung.pagu - utama.pagu)`
+  merekonstruksi porsi 2026 dari pagu terumumkan, yang hanya benar selama
+  `paket_anggaran_penyedia` punya satu baris per `kd_rup` (efek bug dedup web-app
+  di bawah). Dengan tabel yang sudah utuh, 27 paket tender/seleksi multi-tahun
+  jadi salah: 11 menggelembung, 16 anjlok (`67561347` pagu SIRUP Rp48.454.000.000
+  tampil Rp200 juta). Diperbaiki di
+  [`sql/migrations/78_pagu_per_tahun_anggaran.sql`](../sql/migrations/78_pagu_per_tahun_anggaran.sql).
+  **Pelajarannya sama seperti §8: cek dulu rumus view-nya sebelum menuduh tarikannya.**
+- **Halaman Ringkasan punya filter Tahun Anggaran Dana.** `SUM(pagu)` per `kd_rup`
+  di tabel anggaran sama persis dengan pagu terumumkan untuk seluruh 7.941 paket
+  penyedia (nol selisih), dan tabel itu memecahnya per MAK dan per tahun dana.
+  Migration 78 menambah view `view_pagu_paket_per_tahun` plus kolom
+  `pagu_per_tahun` (jsonb) di `mv_dashboard_gabungan_satker`. Angka per 17
+  September 2026: **2026 Rp1.467.652.088.677**, **2027 Rp650.820.222.250**,
+  seluruh tahun Rp2.115.096.610.927. Bawaannya tahun paling awal di data, dan
+  tahun hanya melingkupi pagu, bukan jumlah paket maupun realisasi.
+- **Pagu baris RUP gabungan "A;B" dulu terhitung dua kali, Rp350.180.000.** Satu
+  realisasi bisa menaungi beberapa RUP; `non_tender_selesai` menyimpannya sebagai
+  `kd_rup` "A;B", dan view men-join masterdata lewat `split_part(kd_rup, ';', 1)`,
+  jadi baris gabungan ikut mewarisi pagu milik A yang juga punya barisnya sendiri.
+  Terdampak: `65598940;66447219` (Rp258.140.000),
+  `65599008;65599009;65599036;65599037;66447219` (Rp70.000.000),
+  `65599027;66445498` (Rp22.040.000). Diperbaiki di
+  [`sql/migrations/79_pagu_rup_gabungan_tidak_dobel.sql`](../sql/migrations/79_pagu_rup_gabungan_tidak_dobel.sql):
+  pagu hanya diambil kalau `kd_rup` cocok PERSIS, sementara join `split_part` tetap
+  dipakai untuk nama, PPK, satker, dan jenis. Cacat ini sudah ada jauh sebelum
+  tarikan live, bukan efek update data.
+- **Realisasi dihitung pada tahun belanjanya.** Tabel realisasi ditarik per tahun
+  dan tidak punya kolom tahun sendiri, jadi seluruh realisasi yang ada adalah
+  belanja tahun RUP berjalan. Tanpa aturan ini, memilih tahun 2027 menampilkan
+  capaian 101,86% (pagu 2027 dibandingkan realisasi 2026). Sekarang tahun 2027
+  menampilkan realisasi Rp0 dan seluruh pagunya sebagai belum direalisasi, yang
+  memang keadaannya: dana tahun depan belum boleh dibelanjakan.
+- **Angka akhir setelah migration 78 + 79** (tarikan 17 September 2026):
+  2026 Rp1.463.651.400.677, 2027 Rp650.820.222.250, seluruh tahun
+  Rp2.114.471.622.927. Kalau dibandingkan dengan angka SIRUP
+  Rp1.467.652.088.677 untuk 2026, selisihnya Rp4.000.688.000 dari 6 paket yang
+  RUP-nya sudah dikaji ulang (`65135780`, `66499808`, `65584502`, `66267017`,
+  `63878365`, `65858176`) dan sengaja dibuang dashboard lewat
+  `WHERE kd_rup NOT IN (SELECT kd_rup_lama ...)`. Keenamnya sudah dikecualikan
+  sejak tarikan 10 September, jadi bukan efek update ini. Catatan: `kd_rup_baru`
+  penggantinya tidak ada di terumumkan 2026, jadi pagunya benar-benar hilang dari
+  dashboard dan tidak berpindah ke paket pengganti.
+- **Urutan wajib: migration 78 lalu 79 dijalankan di Supabase SQL Editor SEBELUM
+  kode aplikasinya di-deploy.** `SELECT_COLS` sudah meminta kolom `pagu_per_tahun`;
+  tanpa migration, halaman Ringkasan gagal memuat dengan
+  `column mv_dashboard_gabungan_satker.pagu_per_tahun does not exist`.
+
+### Status 16 September 2026 (riwayat)
 
 - **`npm run update-data-live` (§5.0) ditambahkan dan diuji end-to-end untuk pertama
   kali** — `scripts/pull_from_inaproc.mjs` (baru) menarik 10 tabel langsung dari
