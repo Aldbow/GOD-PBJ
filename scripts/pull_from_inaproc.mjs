@@ -11,10 +11,12 @@
 //   node scripts/pull_from_inaproc.mjs                        semua 10 tabel, tahun berjalan
 //   node scripts/pull_from_inaproc.mjs --year 2026
 //   node scripts/pull_from_inaproc.mjs --table non_tender_selesai
+//   node scripts/pull_from_inaproc.mjs --dry-run
 //
 // FLAG
 //   --year <YYYY>   tahun yang diminta ke API (default: tahun berjalan)
 //   --table <nama>  tarik satu tabel saja (boleh diulang)
+//   --dry-run       tarik dan laporkan saja, tidak ada file yang ditulis
 //
 // KREDENSIAL (.env.local, lihat .env.example)
 //   JWT_TOKEN               wajib -- token Bearer LKPP, sama seperti punya web-app
@@ -70,6 +72,7 @@ function fail(msg) {
 
 let year = String(new Date().getFullYear());
 const wanted = [];
+let dryRun = false;
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === '--year') {
     if (!argv[i + 1]) fail('--year butuh nilai, mis. --year 2026');
@@ -77,6 +80,8 @@ for (let i = 0; i < argv.length; i++) {
   } else if (argv[i] === '--table') {
     if (!argv[i + 1]) fail('--table butuh nama tabel');
     wanted.push(argv[++i]);
+  } else if (argv[i] === '--dry-run') {
+    dryRun = true;
   }
 }
 if (!/^\d{4}$/.test(year)) fail('--year harus 4 digit, dapat: ' + year);
@@ -252,7 +257,7 @@ function writeTableFiles(entry, rows) {
 
 // ------------------------------------------------------------------- main
 console.log('Sumber   : ' + API_BASE_URL + ' (kode_klpd=' + KODE_KLPD + ', tahun=' + year + ')');
-console.log('Tujuan   : ' + UPDATE_DIR);
+console.log('Tujuan   : ' + UPDATE_DIR + (dryRun ? ' (DRY RUN, tidak ada file yang ditulis)' : ''));
 console.log('Tabel    : ' + targets.length + '\n');
 
 const hasil = [];
@@ -260,8 +265,8 @@ for (const [i, entry] of targets.entries()) {
   process.stdout.write('[' + (i + 1) + '/' + targets.length + '] ' + entry.table + ' ... ');
   try {
     const { rows, pages } = await pullTable(entry);
-    writeTableFiles(entry, rows);
-    console.log(rupiahless(rows.length) + ' baris (' + pages + ' halaman)');
+    if (!dryRun) writeTableFiles(entry, rows);
+    console.log(rupiahless(rows.length) + ' baris (' + pages + ' halaman)' + (dryRun ? ' -- tidak ditulis' : ''));
     hasil.push({ table: entry.table, ok: true, rows: rows.length });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

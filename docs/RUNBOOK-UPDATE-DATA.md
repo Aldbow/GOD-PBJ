@@ -155,7 +155,8 @@ Tidak butuh `web-app` atau folder tarikan lokal sama sekali — script ini meman
 
 ```powershell
 npm run update-data-live                    # = node scripts/refresh_data.mjs --live --yes
-npm run update-data-live -- --dry-run       # tarik + periksa saja, DB tidak disentuh
+npm run update-data-live -- --dry-run       # tarik + periksa saja, file & DB tidak disentuh
+npm run update-data-live -- --skip-risiko    # tulis, tapi lewati hitung ulang risiko
 ```
 
 Atau klik dua kali **`update-data-live.bat`** di root repo dari File Explorer — tidak
@@ -177,6 +178,13 @@ pernah menyentuh folder itu, jadi isinya tetap seperti terakhir kali ditaruh.
 | ------ | ----- |
 | [`scripts/pull_from_inaproc.mjs`](../scripts/pull_from_inaproc.mjs) | tarik 10 tabel langsung dari `data.inaproc.id` -> `data/data_update/<tabel>/` |
 | [`scripts/refresh_data.mjs --live`](../scripts/refresh_data.mjs) | orkestrator: langkah 1 (tarik live) + langkah 2 & 3 seperti §5.1 |
+
+`--dry-run` menahan tarikannya di memori: API tetap dipanggil dan jumlah barisnya
+dilaporkan, tapi tidak ada file yang ditulis dan database tidak disentuh. Sampai
+17 September 2026 ini tidak berlaku untuk jalur `--live` — flagnya tidak pernah
+diteruskan ke `pull_from_inaproc.mjs`, jadi filenya tetap ditimpa diam-diam.
+Begitu juga `--skip-risiko`, yang dulu hanya dikenal kalau `update_from_data_update.mjs`
+dipanggil langsung. Keduanya sudah diperbaiki.
 
 Kalau satu tabel gagal ditarik (API error/timeout), file lama tabel itu **tidak ditimpa**
 dan orkestrator berhenti sebelum langkah 2/3 — jalankan ulang setelah masalah beres.
@@ -538,6 +546,18 @@ Catatan lain: `nilai_kontrak` sering kosong di data non-tender; view sudah jatuh
   sejak tarikan 10 September, jadi bukan efek update ini. Catatan: `kd_rup_baru`
   penggantinya tidak ada di terumumkan 2026, jadi pagunya benar-benar hilang dari
   dashboard dan tidak berpindah ke paket pengganti.
+- **Dua flag di jalur live ternyata tidak berfungsi, sudah diperbaiki.**
+  `refresh_data.mjs` tidak pernah meneruskan `--dry-run` ke `pull_from_inaproc.mjs`
+  (cabang `--live`), jadi `npm run update-data-live -- --dry-run` tetap menimpa
+  seluruh isi `data/data_update/` walau databasenya aman. Dan ke langkah 3 hanya
+  `--yes` dan `--force` yang diteruskan, jadi `--skip-risiko` jatuh tanpa
+  peringatan dan hitung ulang risiko tetap jalan ke produksi. Keduanya ketahuan
+  saat menguji ulang pipeline 17 September 2026, setelah `--skip-risiko` diminta
+  tapi 7.941 paket tetap dihitung ulang. Sekarang `pull_from_inaproc.mjs` punya
+  `--dry-run` sendiri (menarik ke memori, melaporkan jumlah baris, tidak menulis)
+  dan kedua flag diteruskan dengan benar. Diuji: dry-run meninggalkan 21 file
+  dengan md5 tidak berubah, dan `--skip-risiko` melewati recalculate tapi tetap
+  menyegarkan `mv_dashboard_gabungan_satker`.
 - **Urutan wajib: migration 78 lalu 79 dijalankan di Supabase SQL Editor SEBELUM
   kode aplikasinya di-deploy.** `SELECT_COLS` sudah meminta kolom `pagu_per_tahun`;
   tanpa migration, halaman Ringkasan gagal memuat dengan

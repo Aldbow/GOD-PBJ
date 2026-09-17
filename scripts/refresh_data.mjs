@@ -49,6 +49,7 @@
 //   --force-older   hanya tanpa --live -- izinkan menyalin file sumber yang lebih tua dari yang ada
 //   --yes           lewati konfirmasi "ya" di langkah 3
 //   --force         lewati gerbang "baris turun drastis" di updater
+//   --skip-risiko   lewati hitung ulang risiko + refresh mv_risiko_ringkasan di langkah 3
 // ============================================================================
 
 import path from 'path';
@@ -85,6 +86,7 @@ if (!has('--skip-sync')) {
   if (has('--live')) {
     a = ['scripts/pull_from_inaproc.mjs'];
     if (year) a.push('--year', year);
+    if (has('--dry-run')) a.push('--dry-run');
     judul = 'LANGKAH 1/3 — tarik langsung dari INAPROC ke data/data_update/';
   } else {
     a = ['scripts/sync_from_inaproc.mjs'];
@@ -105,6 +107,7 @@ if (!has('--dry-run')) {
   const tulisArgs = ['scripts/update_from_data_update.mjs', '--all'];
   if (has('--yes')) tulisArgs.push('--yes');
   if (has('--force')) tulisArgs.push('--force');
+  if (has('--skip-risiko')) tulisArgs.push('--skip-risiko');
   langkah.push({ judul: 'LANGKAH 3/3 — tulis ke Supabase', args: tulisArgs });
 }
 
@@ -127,7 +130,7 @@ console.log(
     garis +
     '\n' +
     (has('--dry-run')
-      ? 'DRY RUN selesai. Tidak ada perubahan di database. Jalankan lagi tanpa --dry-run untuk menulis.'
+      ? 'DRY RUN selesai. Tidak ada file maupun isi database yang berubah. Jalankan lagi tanpa --dry-run untuk menulis.'
       : 'SELESAI. Data di Supabase sudah sesuai tarikan terbaru, stempel "Diperbarui ..." di topbar ikut maju.') +
     '\n' +
     garis
